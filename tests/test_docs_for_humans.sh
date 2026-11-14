@@ -2040,6 +2040,83 @@ F04_R4_umbrella_diagrams() {
   um_diagram_problems "$T/f44d/p.md" | grep -qF 'exactly one mermaid block' || fail "F04 R4: the check misses a second mermaid block"
   pass "F04_R4_umbrella_diagrams"
 }
+
+# F04_R5 — the human UMBRELLA sentences are true (one- or two-token pins on the doc folded outside
+# fences) and the known over-claims are absent. um_accuracy_problems / um_over_claims take a file so mutants are checked.
+um_accuracy_problems() {
+  _t="$(unfenced "$1" | folded)"
+  _pin() { printf '%s' "$_t" | grep -qE -- "$2" || echo "$1 missing"; }
+  _pin U1a 'engaged only when'
+  _pin U1b 'coordinator is inert'
+  _pin U2a 'never writes source code'
+  _pin U2b "child repo.s own"
+  _pin U3a 'every slice is .done. and .merged.'
+  _pin U3b 'no integration gate'
+  _pin U4a 'never commits'
+  _pin U4b '--dry-run. skips'
+  _pin U5a 'pointer stubs'
+  _pin U5b 'real,? local file in every layout'
+  _pin U6a 'on its own'
+  _pin U6b 'says so and exits zero'
+  _pin U7a 'whole or not at all'
+  _pin U7b 'never fatal'
+  _pin U8a 'clears .umbrella\.root.'
+  _pin U8b 'not a permanent opt-out'
+  _pin U9a 'only when it has no .\.git. yet'
+  _pin U9b 'never a gitlink'
+  _pin U10a 'equal[^.]{0,40}basename'
+  _pin U10b 'adds no remote'
+}
+um_over_claims() {
+  _t="$(unfenced "$1" | folded)"
+  for _o in 'monorepo' 'commits for you' 'merges for you' 'always converts' 'converts every child' \
+            'done as soon as' 'boolean flag' 'v0.52.0' 'v0.54.0' 'E99-F102'; do
+    printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
+  done
+  return 0
+}
+F04_R5_umbrella_sentences() {
+  _bad="$(um_accuracy_problems "$ROOT/$UM_H")"
+  [ -z "$_bad" ] || fail "F04 R5: docs/UMBRELLA.md lacks pinned sentence(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f45u"; mkdir -p "$T/f45u"
+  _m() { sed "$2" "$ROOT/$UM_H" > "$T/f45u/m.md"
+         cmp -s "$ROOT/$UM_H" "$T/f45u/m.md" && fail "F04 R5: setup: the mutant for $1 did not apply"
+         um_accuracy_problems "$T/f45u/m.md" | grep -qF "$1 missing" || fail "F04 R5: the pin $1 survives its mutant"; }
+  _m U1a 's/is engaged only when/is engaged when/'
+  _m U1b 's/the coordinator is inert and/the coordinator idles and/'
+  _m U2a 's/never writes source code/does not write much code/'
+  _m U2b "s/by the child repo's own SDD loop/by an SDD loop/"
+  _m U3a 's/is `done` only when every slice is `done` and `merged` and/is `done` when most slices are in and/'
+  _m U3b 's/means there is no integration gate/means the gate is skipped/'
+  _m U4a 's/it never commits, and/it commits nothing extra, and/'
+  _m U4b 's/and `--dry-run` skips it/and a preview run skips it/'
+  _m U5a 's/keeps pointer stubs for/keeps small files for/'
+  _m U5b 's/a real, local file in every layout/a local file in most layouts/'
+  _m U6a 's/A child entered on its own still runs/A child still runs/'
+  _m U6b 's/and exits zero\./and carries on./'
+  _m U7a 's/the child converts whole or not at all, and/the child converts file by file, and/'
+  _m U7b 's/converts nothing and is never fatal/converts nothing/'
+  _m U8a 's/and clears `umbrella.root`;/and edits `umbrella.root`;/'
+  _m U8b 's/it is not a permanent opt-out —/it is a permanent opt-out —/'
+  _m U9a 's/only when it has no `.git` yet/at the umbrella root/'
+  _m U9b 's/each child stays its own repository, never a gitlink\./each child stays its own repository./'
+  _m U10a "s/each entry key must equal its child directory's basename, and/each entry key names a child, and/"
+  _m U10b 's/and adds no remote\./and adds a remote./'
+  pass "F04_R5_umbrella_sentences"
+}
+F04_R5_umbrella_no_over_claims() {
+  _bad="$(um_over_claims "$ROOT/$UM_H")"
+  [ -z "$_bad" ] || fail "F04 R5: docs/UMBRELLA.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f45v"; mkdir -p "$T/f45v"
+  for _m in 'The umbrella is a MONOREPO.' 'The audit commits for you.' 'The loop merges for you.' 'A thin run always converts.' 'It converts every child.' \
+            'A feature is done as soon as slices land.' 'It is a boolean flag.' '(v0.52.0)' '(v0.54.0+)' '(E99-F102)'; do
+    { cat "$ROOT/$UM_H"; printf '\n%s\n' "$_m"; } > "$T/f45v/m.md"
+    [ -n "$(um_over_claims "$T/f45v/m.md")" ] || fail "F04 R5: the over-claim check misses '$_m'"
+  done
+  { cat "$ROOT/$UM_H"; printf '\n```text\nmonorepo commits for you merges for you always converts converts every child done as soon as boolean flag v0.52.0 v0.54.0 E99-F102\n```\n'; } > "$T/f45v/m.md"
+  [ -z "$(um_over_claims "$T/f45v/m.md")" ] || fail "F04 R5: the over-claim check flags text inside a fence"
+  pass "F04_R5_umbrella_no_over_claims"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2085,6 +2162,7 @@ row F04_R8_suites_cite_counterparts
 row F04_R11_registry_and_index
 row F04_R3_umbrella_shape
 row F04_R4_umbrella_diagrams
+row F04_R5_umbrella_sentences; row F04_R5_umbrella_no_over_claims
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
