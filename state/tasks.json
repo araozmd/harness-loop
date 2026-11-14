@@ -2416,19 +2416,20 @@
         {
           "id": "E39-F04",
           "title": "UMBRELLA + CONFIG-LAYERING split (coordinator and config-layer diagrams); re-point suites and installer hints",
-          "status": "in-review",
+          "status": "done",
+          "landed": {
+            "base": "origin/main",
+            "commit": "d134bc5cc4fd517efaa40b49a661dab81da2f26b",
+            "ref": "d134bc5cc4fd517efaa40b49a661dab81da2f26b",
+            "repo": "harness-sdd",
+            "verified": "ancestor"
+          },
           "sdd": true,
           "autonomous": true,
           "depends_on": [
             "E39-F01"
           ],
-          "spec_path": "specs/epics/E39-docs-for-humans/F04-umbrella-config-split/",
-          "parked": {
-            "gate": "merge",
-            "reason": "approved; PR open, awaiting merge (338)",
-            "unblocked_by": "the PR merging \u2014 then `set-status E39-F04 done --evidence <merge-ref>`",
-            "pr": "338"
-          }
+          "spec_path": "specs/epics/E39-docs-for-humans/F04-umbrella-config-split/"
         },
         {
           "id": "E39-F05",
