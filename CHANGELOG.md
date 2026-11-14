@@ -4,6 +4,21 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.113.0] — 2026-11-14
+
+### Changed — docs for humans, slice 4: UMBRELLA + CONFIG-LAYERING split (E39-F04)
+- `docs/UMBRELLA.md` rewritten for humans (under 250 lines): the umbrella layout and cascade
+  (diagram), thin children, the shared spec repository, the slice loop from select to `done`
+  (diagram), promotion.
+- `docs/CONFIG-LAYERING.md` rewritten for humans (under 100 lines): the three layers (diagram),
+  the seeded ignores, personal prompt files, the umbrella rules.
+- `docs/agents/UMBRELLA.md` and `docs/agents/CONFIG-LAYERING.md` — the 0.112 docs moved verbatim
+  (every section, headings byte-identical, link targets retargeted). Six suites, the Architect and
+  Orchestrator prompts, the store contract, the installer's comments and usage text, the two
+  shipped seeds and the sibling-doc pointers re-point by path only.
+- `tests/test_docs_for_humans.sh` — one `changelog_problem` helper serves the slice 2, 3 and 4
+  release rows.
+
 ## [0.112.0] — 2026-11-13
 
 ### Changed — docs for humans, slice 3: WORKFLOW split (E39-F03)

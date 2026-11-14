@@ -1300,17 +1300,23 @@ F02_R8_anchors_resolve() {
 
 # F02_R11 — release: a CHANGELOG heading equals the runtime VERSION, and the section naming E39-F02,
 # docs/agents/INSTALL.md and docs/INSTALL.md sits one MINOR (patch 0) above the section below it.
-f02_changelog_problem() {
-  _v="$(awk '
-    function flush() {
-      if (sec != "" && f == "" && body ~ /E39-F02/ && body ~ /docs\/agents\/INSTALL\.md/ && body ~ /docs\/INSTALL\.md/) f = sec
+# changelog_problem <file> <feature-id> <paths...> — the newest section naming the feature id and every path is one MINOR (patch 0)
+# above the section directly below it. Serves the slice 2, 3 and 4 release rows.
+changelog_problem() {
+  _cf="$1"; _cid="$2"; shift 2; _cpaths="$*"
+  _v="$(awk -v id="$_cid" -v paths="$_cpaths" '
+    function flush(   n, a, i, ok) {
+      ok = (sec != "" && index(body, id) > 0)
+      n = split(paths, a, " ")
+      for (i = 1; ok && i <= n; i++) if (index(body, a[i]) == 0) ok = 0
+      if (ok && f == "") f = sec
       else if (f != "" && o == "" && sec != "") o = sec
     }
     /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { flush(); v = $2; gsub(/[][]/, "", v); sec = v; body = ""; next }
     { body = body "\n" $0 }
-    END { flush(); print f; print o }' "$1")"
+    END { flush(); print f; print o }' "$_cf")"
   _f="$(printf '%s\n' "$_v" | sed -n '1p')"; _o="$(printf '%s\n' "$_v" | sed -n '2p')"
-  [ -n "$_f" ] || { echo "no section names E39-F02, docs/agents/INSTALL.md and docs/INSTALL.md"; return 0; }
+  [ -n "$_f" ] || { echo "no section names $_cid and: $_cpaths"; return 0; }
   [ -n "$_o" ] || { echo "the section $_f has no older section below it"; return 0; }
   IFS=. read -r _fa _fb _fc <<EOV
 $_f
@@ -1324,15 +1330,15 @@ EOV
 F02_R11_version_and_changelog() {
   _cur="$(cat "$ROOT/VERSION")"
   grep -qF "## [$_cur]" "$ROOT/CHANGELOG.md" || fail "F02 R11: CHANGELOG has no '## [$_cur]' section for the runtime VERSION"
-  _p="$(f02_changelog_problem "$ROOT/CHANGELOG.md")"
+  _p="$(changelog_problem "$ROOT/CHANGELOG.md" E39-F02 docs/agents/INSTALL.md docs/INSTALL.md)"
   [ -z "$_p" ] || fail "F02 R11: $_p"
   sed 's#docs/agents/INSTALL\.md#docs/agents/GONE.md#g' "$ROOT/CHANGELOG.md" > "$T/f11a.md"
-  [ -n "$(f02_changelog_problem "$T/f11a.md")" ] || fail "F02 R11: the changelog check misses a section without docs/agents/INSTALL.md"
+  [ -n "$(changelog_problem "$T/f11a.md" E39-F02 docs/agents/INSTALL.md docs/INSTALL.md)" ] || fail "F02 R11: the changelog check misses a section without docs/agents/INSTALL.md"
   _fv="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { v = $2; gsub(/[][]/, "", v); sec = v } /E39-F02/ { print sec; exit }' "$ROOT/CHANGELOG.md")"
   [ -n "$_fv" ] || fail "F02 R11: no CHANGELOG section names E39-F02"
   sed "s/^## \[$_fv\]/## [${_fv%.*}.1]/" "$ROOT/CHANGELOG.md" > "$T/f11b.md"
   grep -qF "## [${_fv%.*}.1]" "$T/f11b.md" || fail "F02 R11: setup: the PATCH mutant did not apply"
-  [ -n "$(f02_changelog_problem "$T/f11b.md")" ] || fail "F02 R11: the changelog check misses a PATCH-step E39-F02 section"
+  [ -n "$(changelog_problem "$T/f11b.md" E39-F02 docs/agents/INSTALL.md docs/INSTALL.md)" ] || fail "F02 R11: the changelog check misses a PATCH-step E39-F02 section"
   pass "F02_R11_version_and_changelog"
 }
 
@@ -1720,39 +1726,18 @@ F03_R8_sibling_citations() {
 
 # F03_R10 — release: a CHANGELOG heading equals the runtime VERSION, and the section naming E39-F03,
 # docs/agents/WORKFLOW.md and docs/WORKFLOW.md sits one MINOR (patch 0) above the section below it.
-f03_changelog_problem() {
-  _v="$(awk '
-    function flush() {
-      if (sec != "" && f == "" && body ~ /E39-F03/ && body ~ /docs\/agents\/WORKFLOW\.md/ && body ~ /docs\/WORKFLOW\.md/) f = sec
-      else if (f != "" && o == "" && sec != "") o = sec
-    }
-    /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { flush(); v = $2; gsub(/[][]/, "", v); sec = v; body = ""; next }
-    { body = body "\n" $0 }
-    END { flush(); print f; print o }' "$1")"
-  _f="$(printf '%s\n' "$_v" | sed -n '1p')"; _o="$(printf '%s\n' "$_v" | sed -n '2p')"
-  [ -n "$_f" ] || { echo "no section names E39-F03, docs/agents/WORKFLOW.md and docs/WORKFLOW.md"; return 0; }
-  [ -n "$_o" ] || { echo "the section $_f has no older section below it"; return 0; }
-  IFS=. read -r _fa _fb _fc <<EOV
-$_f
-EOV
-  IFS=. read -r _oa _ob _oc <<EOV
-$_o
-EOV
-  [ "$_fa" -eq "$_oa" ] && [ "$_fb" -eq $((_ob + 1)) ] && [ "$_fc" -eq 0 ] || echo "$_f is not one MINOR above $_o with patch 0"
-  return 0
-}
 F03_R10_version_and_changelog() {
   _cur="$(cat "$ROOT/VERSION")"
   grep -qF "## [$_cur]" "$ROOT/CHANGELOG.md" || fail "F03 R10: CHANGELOG has no '## [$_cur]' section for the runtime VERSION"
-  _p="$(f03_changelog_problem "$ROOT/CHANGELOG.md")"
+  _p="$(changelog_problem "$ROOT/CHANGELOG.md" E39-F03 docs/agents/WORKFLOW.md docs/WORKFLOW.md)"
   [ -z "$_p" ] || fail "F03 R10: $_p"
   sed 's#docs/agents/WORKFLOW\.md#docs/agents/GONE.md#g' "$ROOT/CHANGELOG.md" > "$T/f310a.md"
-  [ -n "$(f03_changelog_problem "$T/f310a.md")" ] || fail "F03 R10: the changelog check misses a section without docs/agents/WORKFLOW.md"
+  [ -n "$(changelog_problem "$T/f310a.md" E39-F03 docs/agents/WORKFLOW.md docs/WORKFLOW.md)" ] || fail "F03 R10: the changelog check misses a section without docs/agents/WORKFLOW.md"
   _fv="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { v = $2; gsub(/[][]/, "", v); sec = v } /E39-F03/ { print sec; exit }' "$ROOT/CHANGELOG.md")"
   [ -n "$_fv" ] || fail "F03 R10: no CHANGELOG section names E39-F03"
   sed "s/^## \[$_fv\]/## [${_fv%.*}.1]/" "$ROOT/CHANGELOG.md" > "$T/f310b.md"
   grep -qF "## [${_fv%.*}.1]" "$T/f310b.md" || fail "F03 R10: setup: the PATCH mutant did not apply"
-  [ -n "$(f03_changelog_problem "$T/f310b.md")" ] || fail "F03 R10: the changelog check misses a PATCH-step E39-F03 section"
+  [ -n "$(changelog_problem "$T/f310b.md" E39-F03 docs/agents/WORKFLOW.md docs/WORKFLOW.md)" ] || fail "F03 R10: the changelog check misses a PATCH-step E39-F03 section"
   pass "F03_R10_version_and_changelog"
 }
 
@@ -2316,6 +2301,24 @@ F04_R10_sibling_citations() {
   um_sibling_problems "$T/f410" | grep -qF 'docs/agents/README.md' || fail "F04 R10: the check misses a re-pointed docs/agents/README.md pointer"
   pass "F04_R10_sibling_citations"
 }
+
+# F04_R12 — release: a CHANGELOG heading equals the runtime VERSION, and the section naming E39-F04 and the four
+# doc paths sits one MINOR (patch 0) above the section below it (the shared changelog_problem helper).
+F04_R12_version_and_changelog() {
+  _cur="$(cat "$ROOT/VERSION")"
+  grep -qF "## [$_cur]" "$ROOT/CHANGELOG.md" || fail "F04 R12: CHANGELOG has no '## [$_cur]' section for the runtime VERSION"
+  _p="$(changelog_problem "$ROOT/CHANGELOG.md" E39-F04 docs/agents/UMBRELLA.md docs/UMBRELLA.md docs/agents/CONFIG-LAYERING.md docs/CONFIG-LAYERING.md)"
+  [ -z "$_p" ] || fail "F04 R12: $_p"
+  sed 's#docs/agents/CONFIG-LAYERING\.md#docs/agents/GONE.md#g' "$ROOT/CHANGELOG.md" > "$T/f412a.md"
+  cmp -s "$ROOT/CHANGELOG.md" "$T/f412a.md" && fail "F04 R12: setup: the path mutant did not apply"
+  [ -n "$(changelog_problem "$T/f412a.md" E39-F04 docs/agents/UMBRELLA.md docs/UMBRELLA.md docs/agents/CONFIG-LAYERING.md docs/CONFIG-LAYERING.md)" ] || fail "F04 R12: the changelog check misses a section without docs/agents/CONFIG-LAYERING.md"
+  _fv="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { v = $2; gsub(/[][]/, "", v); sec = v } /E39-F04/ { print sec; exit }' "$ROOT/CHANGELOG.md")"
+  [ -n "$_fv" ] || fail "F04 R12: no CHANGELOG section names E39-F04"
+  sed "s/^## \[$_fv\]/## [${_fv%.*}.1]/" "$ROOT/CHANGELOG.md" > "$T/f412b.md"
+  grep -qF "## [${_fv%.*}.1]" "$T/f412b.md" || fail "F04 R12: setup: the PATCH mutant did not apply"
+  [ -n "$(changelog_problem "$T/f412b.md" E39-F04 docs/agents/UMBRELLA.md docs/UMBRELLA.md docs/agents/CONFIG-LAYERING.md docs/CONFIG-LAYERING.md)" ] || fail "F04 R12: the changelog check misses a PATCH-step E39-F04 section"
+  pass "F04_R12_version_and_changelog"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2366,6 +2369,7 @@ row F04_R6_cl_shape_and_diagram
 row F04_R7_cl_sentences; row F04_R7_cl_no_over_claims
 row F04_R9_code_citations
 row F04_R10_sibling_citations
+row F04_R12_version_and_changelog
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
