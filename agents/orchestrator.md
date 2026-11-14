@@ -791,7 +791,7 @@ never block the delegation** — if the write fails, carry on (see "## Telemetry
 This section ADDS behavior; it does not replace anything above. It is engaged **only**
 when `umbrella.manifest` in `harness.config.yaml` is set and the manifest file exists.
 When it is unset/absent the coordinator is inert and the single-repo loop above runs
-unchanged. Full model: `docs/UMBRELLA.md`.
+unchanged. Full model: `docs/agents/UMBRELLA.md`.
 
 A cross-repo feature carries an optional `slices[]` in the TaskStore (see
 `store/local.md`). Each slice is one child repo's unit of work, with `id`

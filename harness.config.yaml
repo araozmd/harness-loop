@@ -180,13 +180,13 @@ verification:
   lint_command: ""        # e.g. "ruff check ." or "npm run lint"
   typecheck_command: ""   # e.g. "mypy ." or "tsc --noEmit"
 
-  # Umbrella mode only (see docs/UMBRELLA.md): the feature-level integration check
+  # Umbrella mode only (see docs/agents/UMBRELLA.md): the feature-level integration check
   # that runs the stack together (e.g. "viernes-infra/dev.sh ci"). It runs ONLY when
   # every slice of a cross-repo feature is done+merged, and a non-zero exit keeps the
   # feature out of `done`. Empty ⇒ no integration gate (single-repo default).
   integration_command: ""
 
-# Umbrella coordinator (cross-repo) — ADDITIVE / opt-in. See docs/UMBRELLA.md.
+# Umbrella coordinator (cross-repo) — ADDITIVE / opt-in. See docs/agents/UMBRELLA.md.
 # A single-repo project leaves this inert: with `manifest` unset (or the file
 # absent) the coordinator does nothing and the existing single-repo flow
 # (init.sh, verification.test_command, Reviewer `done` verdict) is unchanged.
@@ -198,7 +198,7 @@ umbrella:
   # (.harness/, which is init.sh's cwd) — so the cascade installer's default is
   # `../umbrella.manifest.yaml` (the manifest sits at the umbrella root). Inside the
   # manifest, each repo's `path:` resolves relative to the MANIFEST file's own dir,
-  # not to .harness/. See docs/UMBRELLA.md → Manifest reference.
+  # not to .harness/. See docs/agents/UMBRELLA.md → Manifest reference.
   #
   # Dispatch backend is execution.builder.backend above: the default `in-session`
   # drives each slice by spawning the Builder cd'd into the child repo (no executor,
@@ -235,7 +235,7 @@ umbrella:
   # Clearing it is not a permanent opt-out: the cascade re-records it for every child it
   # installs, and this shipped default is already `""`, so "cleared" is indistinguishable
   # from "never set". What makes `--standalone` durable is the LAYOUT — a full-copy child is
-  # left alone by every run that does not pass `--thin`. See docs/UMBRELLA.md.
+  # left alone by every run that does not pass `--thin`. See docs/agents/UMBRELLA.md.
   root: ""
 
 # Per-role model routing (E17-F01) — OPT-IN and INERT by default.

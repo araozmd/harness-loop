@@ -18,7 +18,7 @@
 #   R6  scaffold_cmd is optional and opaque (only E28-F03 runs it)
 #   R7  the portable agents/planner.md carries the whole rule
 #   R8  the emitted /sdd-plan body + both source-mode artifacts carry the same step
-#   R9  umbrella.manifest.example.yaml + docs/UMBRELLA.md document scaffold_cmd
+#   R9  umbrella.manifest.example.yaml + docs/agents/UMBRELLA.md document scaffold_cmd
 #   R10 the Planner is the single writer; /sdd-drill does not amend the draft and the
 #       Driller STOPS and records a required /sdd-plan amend when a decomposition changes
 #       the deployable set, PERSISTING the full resulting deployable set (logical key +
@@ -66,7 +66,7 @@ DRILLER="$SRC/agents/driller.md"
 DRILL_CMD="$SRC/.claude/commands/sdd-drill.md"
 DRILL_SKILL="$SRC/.agents/skills/sdd-drill/SKILL.md"
 EX="$SRC/umbrella.manifest.example.yaml"
-DOC="$SRC/docs/UMBRELLA.md"
+DOC="$SRC/docs/agents/UMBRELLA.md"
 DOC_CRITIC="$SRC/agents/doc-critic.md"
 CFG="$SRC/harness.config.yaml"
 

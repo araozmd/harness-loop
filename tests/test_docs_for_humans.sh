@@ -13,6 +13,7 @@
 #
 # E39-F02 registers docs/INSTALL.md and adds the F02_R* rows (anchor lint, scan-set plants).
 # E39-F03 registers docs/WORKFLOW.md and adds the F03_R* rows (WORKFLOW split).
+# E39-F04 registers docs/UMBRELLA.md and docs/CONFIG-LAYERING.md and adds the F04_R* rows (UMBRELLA + CONFIG-LAYERING split).
 #
 # Registry: HUMAN_DOCS lists <path>:<line-budget>:<diagram yes|no>. A later slice appends an
 # entry; an override above the default 300 carries a `# why:` comment on the line above it.
@@ -30,7 +31,7 @@ trap 'rm -rf "$T"' EXIT
 trap 'exit 1' HUP INT TERM  # a killed suite still runs its EXIT cleanup (2026-10-25)
 GIT_CEILING_DIRECTORIES="$T"; export GIT_CEILING_DIRECTORIES
 
-HUMAN_DOCS="README.md:150:yes docs/README.md:60:no docs/CONCEPTS.md:220:yes docs/BRAND.md:90:no docs/INSTALL.md:300:yes docs/WORKFLOW.md:300:yes"
+HUMAN_DOCS="README.md:150:yes docs/README.md:60:no docs/CONCEPTS.md:220:yes docs/BRAND.md:90:no docs/INSTALL.md:300:yes docs/WORKFLOW.md:300:yes docs/UMBRELLA.md:250:yes docs/CONFIG-LAYERING.md:100:yes"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }
 pass() { echo "ok - $1"; echo "$1" >> "$T/passed"; }
@@ -1299,17 +1300,23 @@ F02_R8_anchors_resolve() {
 
 # F02_R11 — release: a CHANGELOG heading equals the runtime VERSION, and the section naming E39-F02,
 # docs/agents/INSTALL.md and docs/INSTALL.md sits one MINOR (patch 0) above the section below it.
-f02_changelog_problem() {
-  _v="$(awk '
-    function flush() {
-      if (sec != "" && f == "" && body ~ /E39-F02/ && body ~ /docs\/agents\/INSTALL\.md/ && body ~ /docs\/INSTALL\.md/) f = sec
+# changelog_problem <file> <feature-id> <paths...> — the newest section naming the feature id and every path is one MINOR (patch 0)
+# above the section directly below it. Serves the slice 2, 3 and 4 release rows.
+changelog_problem() {
+  _cf="$1"; _cid="$2"; shift 2; _cpaths="$*"
+  _v="$(awk -v id="$_cid" -v paths="$_cpaths" '
+    function flush(   n, a, i, ok) {
+      ok = (sec != "" && index(body, id) > 0)
+      n = split(paths, a, " ")
+      for (i = 1; ok && i <= n; i++) if (index(body, a[i]) == 0) ok = 0
+      if (ok && f == "") f = sec
       else if (f != "" && o == "" && sec != "") o = sec
     }
     /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { flush(); v = $2; gsub(/[][]/, "", v); sec = v; body = ""; next }
     { body = body "\n" $0 }
-    END { flush(); print f; print o }' "$1")"
+    END { flush(); print f; print o }' "$_cf")"
   _f="$(printf '%s\n' "$_v" | sed -n '1p')"; _o="$(printf '%s\n' "$_v" | sed -n '2p')"
-  [ -n "$_f" ] || { echo "no section names E39-F02, docs/agents/INSTALL.md and docs/INSTALL.md"; return 0; }
+  [ -n "$_f" ] || { echo "no section names $_cid and: $_cpaths"; return 0; }
   [ -n "$_o" ] || { echo "the section $_f has no older section below it"; return 0; }
   IFS=. read -r _fa _fb _fc <<EOV
 $_f
@@ -1323,15 +1330,15 @@ EOV
 F02_R11_version_and_changelog() {
   _cur="$(cat "$ROOT/VERSION")"
   grep -qF "## [$_cur]" "$ROOT/CHANGELOG.md" || fail "F02 R11: CHANGELOG has no '## [$_cur]' section for the runtime VERSION"
-  _p="$(f02_changelog_problem "$ROOT/CHANGELOG.md")"
+  _p="$(changelog_problem "$ROOT/CHANGELOG.md" E39-F02 docs/agents/INSTALL.md docs/INSTALL.md)"
   [ -z "$_p" ] || fail "F02 R11: $_p"
   sed 's#docs/agents/INSTALL\.md#docs/agents/GONE.md#g' "$ROOT/CHANGELOG.md" > "$T/f11a.md"
-  [ -n "$(f02_changelog_problem "$T/f11a.md")" ] || fail "F02 R11: the changelog check misses a section without docs/agents/INSTALL.md"
+  [ -n "$(changelog_problem "$T/f11a.md" E39-F02 docs/agents/INSTALL.md docs/INSTALL.md)" ] || fail "F02 R11: the changelog check misses a section without docs/agents/INSTALL.md"
   _fv="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { v = $2; gsub(/[][]/, "", v); sec = v } /E39-F02/ { print sec; exit }' "$ROOT/CHANGELOG.md")"
   [ -n "$_fv" ] || fail "F02 R11: no CHANGELOG section names E39-F02"
   sed "s/^## \[$_fv\]/## [${_fv%.*}.1]/" "$ROOT/CHANGELOG.md" > "$T/f11b.md"
   grep -qF "## [${_fv%.*}.1]" "$T/f11b.md" || fail "F02 R11: setup: the PATCH mutant did not apply"
-  [ -n "$(f02_changelog_problem "$T/f11b.md")" ] || fail "F02 R11: the changelog check misses a PATCH-step E39-F02 section"
+  [ -n "$(changelog_problem "$T/f11b.md" E39-F02 docs/agents/INSTALL.md docs/INSTALL.md)" ] || fail "F02 R11: the changelog check misses a PATCH-step E39-F02 section"
   pass "F02_R11_version_and_changelog"
 }
 
@@ -1443,7 +1450,7 @@ F03_R6_suites_cite_counterpart() {
 # F03_R9 — the registry entry, the budget it carries and the index row pairing the two paths.
 F03_R9_registry_and_index() {
   printf '%s\n' "$HUMAN_DOCS" | tr ' ' '\n' | grep -qxF 'docs/WORKFLOW.md:300:yes' ||
-    fail "F03 R9: HUMAN_DOCS lacks the entry docs/WORKFLOW.md:300:yes"
+    fail "F03 R9: HUMAN_DOCS lacks the entry docs/WORKFLOW.md:300:yes docs/UMBRELLA.md:250:yes docs/CONFIG-LAYERING.md:100:yes"
   index_rows "$AGENTS_README" | awk '$1 == "docs/WORKFLOW.md" && $2 == "docs/agents/WORKFLOW.md" { f = 1 } END { exit !f }' ||
     fail "F03 R9: ## Index has no row pairing docs/WORKFLOW.md with docs/agents/WORKFLOW.md"
   pass "F03_R9_registry_and_index"
@@ -1679,12 +1686,12 @@ F03_R7_agent_citations() {
 
 # F03_R8 — sibling-doc citations re-point. wf_sibling_problems <root> lets a mirror be scanned.
 wf_sibling_problems() {
-  for _f in docs/RATIONALE.md docs/UMBRELLA.md; do
+  for _f in docs/RATIONALE.md docs/agents/UMBRELLA.md; do
     grep -qF 'docs/WORKFLOW.md' "$1/$_f" && echo "$_f still cites docs/WORKFLOW.md"
   done
   [ "$(grep -cF '[`docs/agents/WORKFLOW.md`](agents/WORKFLOW.md)' "$1/docs/RATIONALE.md")" -eq 4 ] || echo "docs/RATIONALE.md: the four ledger rows do not carry the counterpart link"
   grep -F 'cadence note' "$1/docs/RATIONALE.md" | grep -qF 'the `docs/agents/WORKFLOW.md` cadence note' || echo "docs/RATIONALE.md: the cadence-note token is not the counterpart path"
-  grep -qF 'see `docs/agents/WORKFLOW.md` for the' "$1/docs/UMBRELLA.md" || echo "docs/UMBRELLA.md: the landing-record pointer does not name docs/agents/WORKFLOW.md"
+  grep -qF 'see `docs/agents/WORKFLOW.md` for the' "$1/docs/agents/UMBRELLA.md" || echo "docs/agents/UMBRELLA.md: the landing-record pointer does not name docs/agents/WORKFLOW.md"
   [ "$(grep -cF 'docs/WORKFLOW.md' "$1/docs/SPEC-FORMAT.md")" -eq 1 ] || echo "docs/SPEC-FORMAT.md does not hold exactly one docs/WORKFLOW.md line"
   grep -qF 'into the ADR and plan templates, `agents/architect.md` and `docs/agents/WORKFLOW.md`. Four forms:' "$1/docs/SPEC-FORMAT.md" || echo "docs/SPEC-FORMAT.md: the grammar sentence does not name docs/agents/WORKFLOW.md"
   grep -qF 'See `docs/agents/WORKFLOW.md` → "Which Builder runs".' "$1/docs/agents/INSTALL.md" || echo "docs/agents/INSTALL.md: the arming-verdict pointer does not name docs/agents/WORKFLOW.md"
@@ -1700,8 +1707,8 @@ F03_R8_sibling_citations() {
   _bad="$(wf_sibling_problems "$ROOT")"
   [ -z "$_bad" ] || fail "F03 R8: $(printf '%s' "$_bad" | tr '\n' ';')"
   _w() { rm -rf "$T/f38"; mkdir -p "$T/f38"; cp "$ROOT/README.md" "$T/f38/"; cp -R "$ROOT/docs" "$T/f38/docs"; }
-  _w; sed 's#see `docs/agents/WORKFLOW\.md` for the#see `docs/WORKFLOW.md` for the#' "$T/f38/docs/UMBRELLA.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/UMBRELLA.md"
-  wf_sibling_problems "$T/f38" | grep -qF 'docs/UMBRELLA.md' || fail "F03 R8: the check misses a reverted docs/UMBRELLA.md sentence"
+  _w; sed 's#see `docs/agents/WORKFLOW\.md` for the#see `docs/WORKFLOW.md` for the#' "$T/f38/docs/agents/UMBRELLA.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/agents/UMBRELLA.md"
+  wf_sibling_problems "$T/f38" | grep -qF 'landing-record pointer does not name docs/agents/WORKFLOW.md' || fail "F03 R8: the check misses a reverted docs/agents/UMBRELLA.md sentence"
   _w; sed 's#See `docs/agents/WORKFLOW\.md` → "Which#See `docs/WORKFLOW.md` → "Which#' "$T/f38/docs/agents/INSTALL.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/agents/INSTALL.md"
   wf_sibling_problems "$T/f38" | grep -qF 'docs/agents/INSTALL.md' || fail "F03 R8: the check misses a reverted docs/agents/INSTALL.md pointer"
   _w; sed 's#(WORKFLOW\.md\#diagnosing-blocked-selection)#(../WORKFLOW.md\#diagnosing-blocked-selection)#' "$T/f38/docs/agents/README.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/agents/README.md"
@@ -1719,40 +1726,598 @@ F03_R8_sibling_citations() {
 
 # F03_R10 — release: a CHANGELOG heading equals the runtime VERSION, and the section naming E39-F03,
 # docs/agents/WORKFLOW.md and docs/WORKFLOW.md sits one MINOR (patch 0) above the section below it.
-f03_changelog_problem() {
-  _v="$(awk '
-    function flush() {
-      if (sec != "" && f == "" && body ~ /E39-F03/ && body ~ /docs\/agents\/WORKFLOW\.md/ && body ~ /docs\/WORKFLOW\.md/) f = sec
-      else if (f != "" && o == "" && sec != "") o = sec
-    }
-    /^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { flush(); v = $2; gsub(/[][]/, "", v); sec = v; body = ""; next }
-    { body = body "\n" $0 }
-    END { flush(); print f; print o }' "$1")"
-  _f="$(printf '%s\n' "$_v" | sed -n '1p')"; _o="$(printf '%s\n' "$_v" | sed -n '2p')"
-  [ -n "$_f" ] || { echo "no section names E39-F03, docs/agents/WORKFLOW.md and docs/WORKFLOW.md"; return 0; }
-  [ -n "$_o" ] || { echo "the section $_f has no older section below it"; return 0; }
-  IFS=. read -r _fa _fb _fc <<EOV
-$_f
-EOV
-  IFS=. read -r _oa _ob _oc <<EOV
-$_o
-EOV
-  [ "$_fa" -eq "$_oa" ] && [ "$_fb" -eq $((_ob + 1)) ] && [ "$_fc" -eq 0 ] || echo "$_f is not one MINOR above $_o with patch 0"
-  return 0
-}
 F03_R10_version_and_changelog() {
   _cur="$(cat "$ROOT/VERSION")"
   grep -qF "## [$_cur]" "$ROOT/CHANGELOG.md" || fail "F03 R10: CHANGELOG has no '## [$_cur]' section for the runtime VERSION"
-  _p="$(f03_changelog_problem "$ROOT/CHANGELOG.md")"
+  _p="$(changelog_problem "$ROOT/CHANGELOG.md" E39-F03 docs/agents/WORKFLOW.md docs/WORKFLOW.md)"
   [ -z "$_p" ] || fail "F03 R10: $_p"
   sed 's#docs/agents/WORKFLOW\.md#docs/agents/GONE.md#g' "$ROOT/CHANGELOG.md" > "$T/f310a.md"
-  [ -n "$(f03_changelog_problem "$T/f310a.md")" ] || fail "F03 R10: the changelog check misses a section without docs/agents/WORKFLOW.md"
+  [ -n "$(changelog_problem "$T/f310a.md" E39-F03 docs/agents/WORKFLOW.md docs/WORKFLOW.md)" ] || fail "F03 R10: the changelog check misses a section without docs/agents/WORKFLOW.md"
   _fv="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { v = $2; gsub(/[][]/, "", v); sec = v } /E39-F03/ { print sec; exit }' "$ROOT/CHANGELOG.md")"
   [ -n "$_fv" ] || fail "F03 R10: no CHANGELOG section names E39-F03"
   sed "s/^## \[$_fv\]/## [${_fv%.*}.1]/" "$ROOT/CHANGELOG.md" > "$T/f310b.md"
   grep -qF "## [${_fv%.*}.1]" "$T/f310b.md" || fail "F03 R10: setup: the PATCH mutant did not apply"
-  [ -n "$(f03_changelog_problem "$T/f310b.md")" ] || fail "F03 R10: the changelog check misses a PATCH-step E39-F03 section"
+  [ -n "$(changelog_problem "$T/f310b.md" E39-F03 docs/agents/WORKFLOW.md docs/WORKFLOW.md)" ] || fail "F03 R10: the changelog check misses a PATCH-step E39-F03 section"
   pass "F03_R10_version_and_changelog"
+}
+
+# ---------------------------------------------------------------- E39-F04 — UMBRELLA + CONFIG-LAYERING split
+# Rows named F04_R<n>_<slug>; <n> is the E39-F04 spec's R-id. Rows that read a doc take a root or a
+# file so a mutant copy under $T can be scanned; none reads VERSION as a literal or diffs main.
+UM_H="docs/UMBRELLA.md"
+UM_A="docs/agents/UMBRELLA.md"
+CL_H="docs/CONFIG-LAYERING.md"
+CL_A="docs/agents/CONFIG-LAYERING.md"
+
+# um_announce_problem <file> <H1> <announcement> — line 1 is the base H1, the first non-empty line after it the blockquote.
+um_announce_problem() {
+  [ -f "$1" ] || { echo "$1 does not exist"; return 0; }
+  [ "$(sed -n '1p' "$1")" = "$2" ] || echo "line 1 is not the base H1"
+  _first="$(sed -n '2,$p' "$1" | grep -v '^[[:space:]]*$' | sed -n '1p')"
+  [ "$_first" = "$3" ] || echo "the first non-empty line after the H1 is not the announcement (got: $_first)"
+  return 0
+}
+UM_ANNOUNCE='> For agents — exact contracts; the human guide is [docs/UMBRELLA.md](../UMBRELLA.md).'
+CL_ANNOUNCE='> For agents — exact contracts; the human guide is [docs/CONFIG-LAYERING.md](../CONFIG-LAYERING.md).'
+F04_R1_counterpart_announcement() {
+  _bad="$(um_announce_problem "$ROOT/$UM_A" '# Umbrella coordinator (cross-repo features)' "$UM_ANNOUNCE")"
+  [ -z "$_bad" ] || fail "F04 R1: docs/agents/UMBRELLA.md: $_bad"
+  rm -rf "$T/f41"; mkdir -p "$T/f41"
+  sed 's/the human guide is/the human guide:/' "$ROOT/$UM_A" > "$T/f41/m.md"
+  cmp -s "$ROOT/$UM_A" "$T/f41/m.md" && fail "F04 R1: setup: the mutant did not apply"
+  [ -n "$(um_announce_problem "$T/f41/m.md" '# Umbrella coordinator (cross-repo features)' "$UM_ANNOUNCE")" ] || fail "F04 R1: the check misses a reworded announcement"
+  pass "F04_R1_counterpart_announcement"
+}
+UM_HEADS='# Umbrella coordinator (cross-repo features)
+## Opt-in switch (single-repo stays inert)
+## Installing the umbrella (cascade)
+### The landing audit — "complete" means committed
+## The thin child (v0.54.0+)
+### Standalone entry still works — that is the acceptance bar
+### What this does and does not change
+## Migrating an existing child (`--thin`)
+### Pristine-only, and all-or-nothing
+### An unreachable umbrella converts nothing, and is never fatal
+## `--standalone` — the way back
+## Shared spec repository (opt-in)
+## Concepts
+## Spec home = umbrella; slices = child repos
+## Contract artifact (one contract, no drift)
+## The coordinator loop (dispatch + gating)
+## Integration verification (rollup)
+## Promoting a single install to a coordinator
+## Manifest reference'
+um_heads_problem() { [ "$(unfenced "$1" | grep '^#')" = "$UM_HEADS" ] || echo "the headings are not the 19 base headings in base order"; return 0; }
+F04_R1_counterpart_headings_in_order() {
+  _bad="$(um_heads_problem "$ROOT/$UM_A")"
+  [ -z "$_bad" ] || fail "F04 R1: docs/agents/UMBRELLA.md: $_bad"
+  [ "$(printf '%s\n' "$UM_HEADS" | wc -l | tr -d ' ')" -eq 19 ] || fail "F04 R1: setup: the expected list is not 19 headings"
+  rm -rf "$T/f42"; mkdir -p "$T/f42"
+  awk '/^## Concepts$/ { print "## Manifest reference"; next } /^## Manifest reference$/ { print "## Concepts"; next } { print }' "$ROOT/$UM_A" > "$T/f42/a.md"
+  cmp -s "$ROOT/$UM_A" "$T/f42/a.md" && fail "F04 R1: setup: the swap mutant did not apply"
+  [ -n "$(um_heads_problem "$T/f42/a.md")" ] || fail "F04 R1: the check misses two swapped headings"
+  sed 's/^## Manifest reference$/## Manifest keys/' "$ROOT/$UM_A" > "$T/f42/b.md"
+  cmp -s "$ROOT/$UM_A" "$T/f42/b.md" && fail "F04 R1: setup: the rename mutant did not apply"
+  [ -n "$(um_heads_problem "$T/f42/b.md")" ] || fail "F04 R1: the check misses a renamed heading"
+  pass "F04_R1_counterpart_headings_in_order"
+}
+# um_retarget_problems <file> <dir-of-file-root> — targets are retargeted for docs/agents/ and resolve from there.
+# <ban>: space-separated prefixes no target may start with; <need>: targets that must be present.
+um_retarget_problems() {
+  _t="$(link_targets "$1")"
+  for _b in $3; do
+    printf '%s\n' "$_t" | awk -v b="$_b" 'index($0, b) == 1 { f = 1 } END { exit !f }' && echo "a target still starts $_b"
+  done
+  for _n in $4; do
+    printf '%s\n' "$_t" | grep -qxF -- "$_n" || echo "target $_n is absent"
+  done
+  for _x in $(printf '%s\n' "$_t" | grep -vE '^(#|https?:|mailto:)' | sed 's/#.*//' | sort -u); do
+    [ -e "$(dirname "$1")/$_x" ] || echo "target $_x does not resolve from docs/agents/"
+  done
+  return 0
+}
+F04_R1_counterpart_retargets() {
+  _ban='../agents/ ../specs/ ../umbrella. ./'
+  _need='../../agents/reviewer.md#what-you-check INSTALL.md#umbrella-mode-cascade-install ../CONFIG-LAYERING.md'
+  _bad="$(um_retarget_problems "$ROOT/$UM_A" x "$_ban" "$_need")"
+  [ -z "$_bad" ] || fail "F04 R1: docs/agents/UMBRELLA.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f43"; mkdir -p "$T/f43"
+  sed 's#(\.\./\.\./agents/reviewer\.md#(../agents/reviewer.md#' "$ROOT/$UM_A" > "$T/f43/a.md"
+  cmp -s "$ROOT/$UM_A" "$T/f43/a.md" && fail "F04 R1: setup: the reviewer-link mutant did not apply"
+  [ -n "$(um_retarget_problems "$T/f43/a.md" x "$_ban" "$_need")" ] || fail "F04 R1: the check misses a restored ../agents/reviewer.md target"
+  sed 's#(\.\./CONFIG-LAYERING\.md)#(./CONFIG-LAYERING.md)#' "$ROOT/$UM_A" > "$T/f43/b.md"
+  cmp -s "$ROOT/$UM_A" "$T/f43/b.md" && fail "F04 R1: setup: the CONFIG-LAYERING-link mutant did not apply"
+  [ -n "$(um_retarget_problems "$T/f43/b.md" x "$_ban" "$_need")" ] || fail "F04 R1: the check misses a restored ./CONFIG-LAYERING.md target"
+  pass "F04_R1_counterpart_retargets"
+}
+
+CL_HEADS='# Config layering — shared vs personal
+## The three layers
+## What the installer does
+## Personal prompt files
+## Practical guidance'
+cl_heads_problem() { [ "$(unfenced "$1" | grep '^#')" = "$CL_HEADS" ] || echo "the headings are not the 5 base headings in base order"; return 0; }
+F04_R2_cl_counterpart_announcement() {
+  _bad="$(um_announce_problem "$ROOT/$CL_A" '# Config layering — shared vs personal' "$CL_ANNOUNCE")"
+  [ -z "$_bad" ] || fail "F04 R2: docs/agents/CONFIG-LAYERING.md: $_bad"
+  rm -rf "$T/f44"; mkdir -p "$T/f44"
+  sed 's/the human guide is/the human guide:/' "$ROOT/$CL_A" > "$T/f44/m.md"
+  cmp -s "$ROOT/$CL_A" "$T/f44/m.md" && fail "F04 R2: setup: the mutant did not apply"
+  [ -n "$(um_announce_problem "$T/f44/m.md" '# Config layering — shared vs personal' "$CL_ANNOUNCE")" ] || fail "F04 R2: the check misses a reworded announcement"
+  pass "F04_R2_cl_counterpart_announcement"
+}
+F04_R2_cl_counterpart_headings_in_order() {
+  _bad="$(cl_heads_problem "$ROOT/$CL_A")"
+  [ -z "$_bad" ] || fail "F04 R2: docs/agents/CONFIG-LAYERING.md: $_bad"
+  rm -rf "$T/f45"; mkdir -p "$T/f45"
+  awk '/^## What the installer does$/ { print "## Personal prompt files"; next } /^## Personal prompt files$/ { print "## What the installer does"; next } { print }' "$ROOT/$CL_A" > "$T/f45/a.md"
+  cmp -s "$ROOT/$CL_A" "$T/f45/a.md" && fail "F04 R2: setup: the swap mutant did not apply"
+  [ -n "$(cl_heads_problem "$T/f45/a.md")" ] || fail "F04 R2: the check misses two swapped headings"
+  # unfence the gitignore block: its # lines then read as headings (the fenced ones are not counted today)
+  grep -qE '^```gitignore$' "$ROOT/$CL_A" || fail "F04 R2: setup: the counterpart has no gitignore fence"
+  sed 's/^```gitignore$/```text/;' "$ROOT/$CL_A" | awk '/^```text$/ { skip = 1; next } skip && /^```$/ { skip = 0; next } { print }' > "$T/f45/b.md"
+  cmp -s "$ROOT/$CL_A" "$T/f45/b.md" && fail "F04 R2: setup: the unfence mutant did not apply"
+  [ -n "$(cl_heads_problem "$T/f45/b.md")" ] || fail "F04 R2: the check misses the # lines of an unfenced gitignore block"
+  pass "F04_R2_cl_counterpart_headings_in_order"
+}
+F04_R2_cl_counterpart_retargets() {
+  _ban='./'
+  _need='../UMBRELLA.md UMBRELLA.md ../INSTALL.md INSTALL.md#worker-roster-workersroster--opt-in-local-only'
+  _bad="$(um_retarget_problems "$ROOT/$CL_A" x "$_ban" "$_need")"
+  [ -z "$_bad" ] || fail "F04 R2: docs/agents/CONFIG-LAYERING.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f46"; mkdir -p "$T/f46"
+  sed 's#(UMBRELLA\.md)#(./UMBRELLA.md)#' "$ROOT/$CL_A" > "$T/f46/a.md"
+  cmp -s "$ROOT/$CL_A" "$T/f46/a.md" && fail "F04 R2: setup: the thin-child mutant did not apply"
+  [ -n "$(um_retarget_problems "$T/f46/a.md" x "$_ban" "$_need")" ] || fail "F04 R2: the check misses a restored ./UMBRELLA.md on the thin-child line"
+  sed 's#(INSTALL\.md\#worker-roster#(../agents/INSTALL.md\#worker-roster#' "$ROOT/$CL_A" > "$T/f46/b.md"
+  cmp -s "$ROOT/$CL_A" "$T/f46/b.md" && fail "F04 R2: setup: the worker-roster mutant did not apply"
+  [ -n "$(um_retarget_problems "$T/f46/b.md" x "$_ban" "$_need")" ] || fail "F04 R2: the check misses a ../agents/INSTALL.md worker-roster target"
+  pass "F04_R2_cl_counterpart_retargets"
+}
+
+# F04_R8 — each of the six suites of the coupling table cites the counterpart; tests/test_install.sh keeps
+# the human path on exactly the installed-contract loop (UMBRELLA) and the loop plus the one installed-file
+# existence check (CONFIG-LAYERING); the other five hold neither human path. <root> lets a mirror be scanned.
+UM_SUITES="install planner_topology promote umbrella_01_coordinator umbrella_13_standalone"
+CL_SUITES="install feedback_config"
+um_suite_problems() {
+  for _s in $UM_SUITES; do
+    grep -qF 'docs/agents/UMBRELLA.md' "$1/tests/test_$_s.sh" || echo "tests/test_$_s.sh does not cite docs/agents/UMBRELLA.md"
+  done
+  for _s in $CL_SUITES; do
+    grep -qF 'docs/agents/CONFIG-LAYERING.md' "$1/tests/test_$_s.sh" || echo "tests/test_$_s.sh does not cite docs/agents/CONFIG-LAYERING.md"
+  done
+  for _s in planner_topology promote umbrella_01_coordinator umbrella_13_standalone feedback_config; do
+    grep -qF 'docs/UMBRELLA.md' "$1/tests/test_$_s.sh" && echo "tests/test_$_s.sh still cites docs/UMBRELLA.md"
+    grep -qF 'docs/CONFIG-LAYERING.md' "$1/tests/test_$_s.sh" && echo "tests/test_$_s.sh still cites docs/CONFIG-LAYERING.md"
+  done
+  [ "$(grep -cF 'docs/UMBRELLA.md' "$1/tests/test_install.sh")" -eq 1 ] || echo "tests/test_install.sh does not hold docs/UMBRELLA.md on exactly one line"
+  [ "$(grep -cF 'docs/CONFIG-LAYERING.md' "$1/tests/test_install.sh")" -eq 2 ] || echo "tests/test_install.sh does not hold docs/CONFIG-LAYERING.md on exactly two lines"
+  return 0
+}
+F04_R8_suites_cite_counterparts() {
+  _bad="$(um_suite_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F04 R8: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f48"; mkdir -p "$T/f48/tests"; cp "$ROOT"/tests/test_*.sh "$T/f48/tests/"; }
+  _w; sed 's#docs/agents/UMBRELLA\.md#docs/UMBRELLA.md#g' "$T/f48/tests/test_umbrella_01_coordinator.sh" > "$T/f48/n" && mv "$T/f48/n" "$T/f48/tests/test_umbrella_01_coordinator.sh"
+  um_suite_problems "$T/f48" | grep -qF 'test_umbrella_01_coordinator.sh' || fail "F04 R8: the check misses a suite reverted to docs/UMBRELLA.md"
+  _w; sed 's#\[ -f "\$T/\.harness/docs/CONFIG-LAYERING\.md" \]#[ -f "$T/.harness/docs/agents/CONFIG-LAYERING.md" ]#' "$T/f48/tests/test_install.sh" > "$T/f48/n" && mv "$T/f48/n" "$T/f48/tests/test_install.sh"
+  cmp -s "$ROOT/tests/test_install.sh" "$T/f48/tests/test_install.sh" && fail "F04 R8: setup: the existence-check mutant did not apply"
+  um_suite_problems "$T/f48" | grep -qF 'exactly two lines' || fail "F04 R8: the check misses a re-pointed installed-file existence check"
+  _w; printf '# see docs/CONFIG-LAYERING.md\n' >> "$T/f48/tests/test_feedback_config.sh"
+  um_suite_problems "$T/f48" | grep -qF 'test_feedback_config.sh still cites' || fail "F04 R8: the check misses a stray docs/CONFIG-LAYERING.md in test_feedback_config.sh"
+  _w; printf '# see docs/UMBRELLA.md\n' >> "$T/f48/tests/test_install.sh"
+  um_suite_problems "$T/f48" | grep -qF 'exactly one line' || fail "F04 R8: the check misses a second docs/UMBRELLA.md line in test_install.sh"
+  pass "F04_R8_suites_cite_counterparts"
+}
+
+# F04_R11 — the registry entries, the budgets they carry and the two index rows pairing the paths.
+F04_R11_registry_and_index() {
+  _reg() { printf '%s\n' "$HUMAN_DOCS" | tr ' ' '\n' | grep -qxF "$1"; }
+  _reg 'docs/UMBRELLA.md:250:yes' || fail "F04 R11: HUMAN_DOCS lacks the entry docs/UMBRELLA.md:250:yes"
+  _reg 'docs/CONFIG-LAYERING.md:100:yes' || fail "F04 R11: HUMAN_DOCS lacks the entry docs/CONFIG-LAYERING.md:100:yes"
+  index_rows "$AGENTS_README" | awk '$1 == "docs/UMBRELLA.md" && $2 == "docs/agents/UMBRELLA.md" { f = 1 } END { exit !f }' ||
+    fail "F04 R11: ## Index has no row pairing docs/UMBRELLA.md with docs/agents/UMBRELLA.md"
+  index_rows "$AGENTS_README" | awk '$1 == "docs/CONFIG-LAYERING.md" && $2 == "docs/agents/CONFIG-LAYERING.md" { f = 1 } END { exit !f }' ||
+    fail "F04 R11: ## Index has no row pairing docs/CONFIG-LAYERING.md with docs/agents/CONFIG-LAYERING.md"
+  pass "F04_R11_registry_and_index"
+}
+
+# F04_R3 — the human UMBRELLA's shape. shape_problems is the slice-2 helper, called with this slice's lists.
+HUMAN_UM_HEADS='## What the umbrella is
+## Set it up
+## Thin children and full copies
+## A shared spec repository
+## How a cross-repo feature runs
+## From one repo to a coordinator
+## Further reading'
+HUMAN_UM_ANCHORS='agents/UMBRELLA.md#opt-in-switch-single-repo-stays-inert
+agents/UMBRELLA.md#installing-the-umbrella-cascade
+agents/UMBRELLA.md#the-thin-child-v0540
+agents/UMBRELLA.md#migrating-an-existing-child---thin
+agents/UMBRELLA.md#--standalone--the-way-back
+agents/UMBRELLA.md#shared-spec-repository-opt-in
+agents/UMBRELLA.md#concepts
+agents/UMBRELLA.md#spec-home--umbrella-slices--child-repos
+agents/UMBRELLA.md#contract-artifact-one-contract-no-drift
+agents/UMBRELLA.md#the-coordinator-loop-dispatch--gating
+agents/UMBRELLA.md#integration-verification-rollup
+agents/UMBRELLA.md#promoting-a-single-install-to-a-coordinator
+agents/UMBRELLA.md#manifest-reference'
+F04_R3_umbrella_shape() {
+  [ -f "$ROOT/$UM_H" ] || fail "F04 R3: docs/UMBRELLA.md does not exist"
+  _bad="$(shape_problems "$ROOT/$UM_H" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md)"
+  [ -z "$_bad" ] || fail "F04 R3: docs/UMBRELLA.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  [ "$(printf '%s\n' "$HUMAN_UM_ANCHORS" | wc -l | tr -d ' ')" -eq 13 ] || fail "F04 R3: setup: the anchor list is not 13 entries"
+  # mutants on private copies: each must be reported
+  rm -rf "$T/f43b"; mkdir -p "$T/f43b/docs"; DOCS_DIR="$T/f43b/docs"
+  sed 's/^## Set it up$/## Install/' "$ROOT/$UM_H" > "$T/f43b/docs/a.md"
+  cmp -s "$ROOT/$UM_H" "$T/f43b/docs/a.md" && fail "F04 R3: setup: the rename mutant did not apply"
+  [ -n "$(shape_problems "$T/f43b/docs/a.md" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md)" ] || fail "F04 R3: the shape check misses a renamed ## heading"
+  grep -vF '#manifest-reference' "$ROOT/$UM_H" > "$T/f43b/docs/b.md"
+  cmp -s "$ROOT/$UM_H" "$T/f43b/docs/b.md" && fail "F04 R3: setup: the anchor mutant did not apply"
+  [ -n "$(shape_problems "$T/f43b/docs/b.md" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md)" ] || fail "F04 R3: the shape check misses a dropped further-reading anchor"
+  { cat "$ROOT/$UM_H"; printf '\n[x](../AGENTS.md)\n'; } > "$T/f43b/docs/c.md"
+  cp "$ROOT/AGENTS.md" "$T/f43b/AGENTS.md"
+  shape_problems "$T/f43b/docs/c.md" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md | grep -qF 'leaves docs/' || fail "F04 R3: the shape check misses a link that leaves docs/"
+  { printf '# One feature\n'; for _i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17; do echo; done; sed -n '2,$p' "$ROOT/$UM_H" | grep -vF '](agents/UMBRELLA.md)'; printf '\n[agents](agents/UMBRELLA.md)\n'; } > "$T/f43b/docs/d.md"
+  shape_problems "$T/f43b/docs/d.md" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md | grep -qF 'first 15 lines' || fail "F04 R3: the shape check misses a counterpart link past line 15"
+  DOCS_DIR="$ROOT/docs"
+  # budget 250 (the registry entry's number) through the slice-1 helper
+  { cat "$ROOT/$UM_H"; yes x | head -n 251; } > "$T/f43b/e.md"
+  lint_budget "$T/f43b/e.md" 250 && fail "F04 R3: lint_budget accepts a doc over 250 lines"
+  pass "F04_R3_umbrella_shape"
+}
+
+# F04_R4 — the two UMBRELLA diagrams. um_diagram_problems <file> checks both sections and the done-edge rule.
+UM_SETUP_TOKENS='--umbrella
+.harness/
+umbrella.manifest.yaml
+coordinator
+child
+umbrella.root
+--thin
+--shared-repo
+landing audit'
+UM_LOOP_TOKENS='select
+dispatch
+depends_on
+merged
+failed
+gh pr view
+integration_command
+done'
+um_diagram_problems() {
+  diagram_problems "$1" "## Set it up" "$UM_SETUP_TOKENS" 'exit 3
+--dry-run
+git'
+  diagram_problems "$1" "## How a cross-repo feature runs" "$UM_LOOP_TOKENS" 'slices
+contract
+in-session
+delegate'
+  # exactly one line of the loop diagram carries an edge whose target is the done node, and it names integration_command
+  _de="$(slice "$1" "## How a cross-repo feature runs" | mermaid_blocks | grep -E -- '--> *(\|[^|]*\| *)?done([^A-Za-z0-9_-]|$)' || true)"
+  [ "$(printf '%s\n' "$_de" | grep -c .)" -eq 1 ] || echo "the loop diagram does not hold exactly one edge into the done node"
+  printf '%s\n' "$_de" | grep -qF 'integration_command' || echo "the done edge does not leave the integration_command node"
+  return 0
+}
+F04_R4_umbrella_diagrams() {
+  _bad="$(um_diagram_problems "$ROOT/$UM_H")"
+  [ -z "$_bad" ] || fail "F04 R4: docs/UMBRELLA.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f44d"; mkdir -p "$T/f44d"
+  _m() { sed "$2" "$ROOT/$UM_H" > "$T/f44d/m.md"
+         cmp -s "$ROOT/$UM_H" "$T/f44d/m.md" && fail "F04 R4: setup: the $1 mutant did not apply"
+         um_diagram_problems "$T/f44d/m.md" | grep -qF -- "$3" || fail "F04 R4: the check misses the $1 mutant"; }
+  _m 'landing-audit node' 's/^    root --> audit\[.*$//' "landing audit"
+  _m 'graph' 's/^flowchart TB$/graph TB/' 'is not a flowchart'
+  _m 'dry-run prose' 's/`--dry-run`/`--nothing`/g' '--dry-run'
+  _m 'failed node' 's/^    dispatch -->|"Builder or Reviewer.*$//' "'failed'"
+  _m 'delegate prose' 's/delegate/handoff/g' "'delegate'"
+  # a second done edge, and a done edge that no longer leaves the integration node
+  { cat "$ROOT/$UM_H"; } | awk '/^    observe -->\|"merged: true"\| select$/ { print "    observe -->|\"merged: true\"| done"; next } { print }' > "$T/f44d/n.md"
+  cmp -s "$ROOT/$UM_H" "$T/f44d/n.md" && fail "F04 R4: setup: the second-done-edge mutant did not apply"
+  um_diagram_problems "$T/f44d/n.md" | grep -qF 'exactly one edge' || fail "F04 R4: the check misses a second done edge"
+  sed 's/^    integ\[\(.*\)\] -->|"exit 0"| done/    check[\1] -->|"exit 0"| done/; s/run verification.integration_command/run the check/' "$ROOT/$UM_H" > "$T/f44d/o.md"
+  cmp -s "$ROOT/$UM_H" "$T/f44d/o.md" && fail "F04 R4: setup: the renamed-integration-node mutant did not apply"
+  um_diagram_problems "$T/f44d/o.md" | grep -qF 'does not leave the integration_command node' || fail "F04 R4: the check misses a done edge that does not leave the integration node"
+  # a second mermaid block in the section
+  awk '/^## Set it up$/ { print; print ""; print "```mermaid"; print "flowchart LR"; print "    x --> y"; print "```"; next } { print }' "$ROOT/$UM_H" > "$T/f44d/p.md"
+  um_diagram_problems "$T/f44d/p.md" | grep -qF 'exactly one mermaid block' || fail "F04 R4: the check misses a second mermaid block"
+  pass "F04_R4_umbrella_diagrams"
+}
+
+# F04_R5 — the human UMBRELLA sentences are true (one- or two-token pins on the doc folded outside
+# fences) and the known over-claims are absent. um_accuracy_problems / um_over_claims take a file so mutants are checked.
+um_accuracy_problems() {
+  _t="$(unfenced "$1" | folded)"
+  _pin() { printf '%s' "$_t" | grep -qE -- "$2" || echo "$1 missing"; }
+  _pin U1a 'engaged only when'
+  _pin U1b 'coordinator is inert'
+  _pin U2a 'never writes source code'
+  _pin U2b "child repo.s own"
+  _pin U3a 'every slice is .done. and .merged.'
+  _pin U3b 'no integration gate'
+  _pin U4a 'never commits'
+  _pin U4b '--dry-run. skips'
+  _pin U5a 'pointer stubs'
+  _pin U5b 'real,? local file in every layout'
+  _pin U6a 'on its own'
+  _pin U6b 'says so and exits zero'
+  _pin U7a 'whole or not at all'
+  _pin U7b 'never fatal'
+  _pin U8a 'clears .umbrella\.root.'
+  _pin U8b 'not a permanent opt-out'
+  _pin U9a 'only when it has no .\.git. yet'
+  _pin U9b 'never a gitlink'
+  _pin U10a 'equal[^.]{0,40}basename'
+  _pin U10b 'adds no remote'
+}
+um_over_claims() {
+  _t="$(unfenced "$1" | folded)"
+  for _o in 'monorepo' 'commits for you' 'merges for you' 'always converts' 'converts every child' \
+            'done as soon as' 'boolean flag' 'v0.52.0' 'v0.54.0' 'E99-F102' 'left alone by every run'; do
+    printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
+  done
+  return 0
+}
+F04_R5_umbrella_sentences() {
+  _bad="$(um_accuracy_problems "$ROOT/$UM_H")"
+  [ -z "$_bad" ] || fail "F04 R5: docs/UMBRELLA.md lacks pinned sentence(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f45u"; mkdir -p "$T/f45u"
+  _m() { sed "$2" "$ROOT/$UM_H" > "$T/f45u/m.md"
+         cmp -s "$ROOT/$UM_H" "$T/f45u/m.md" && fail "F04 R5: setup: the mutant for $1 did not apply"
+         um_accuracy_problems "$T/f45u/m.md" | grep -qF "$1 missing" || fail "F04 R5: the pin $1 survives its mutant"; }
+  _m U1a 's/is engaged only when/is engaged when/'
+  _m U1b 's/the coordinator is inert and/the coordinator idles and/'
+  _m U2a 's/never writes source code/does not write much code/'
+  _m U2b "s/by the child repo's own SDD loop/by an SDD loop/"
+  _m U3a 's/is `done` only when every slice is `done` and `merged` and/is `done` when most slices are in and/'
+  _m U3b 's/means there is no integration gate/means the gate is skipped/'
+  _m U4a 's/it never commits, and/it commits nothing extra, and/'
+  _m U4b 's/and `--dry-run` skips it/and a preview run skips it/'
+  _m U5a 's/keeps pointer stubs for/keeps small files for/'
+  _m U5b 's/a real, local file in every layout/a local file in most layouts/'
+  _m U6a 's/A child entered on its own still runs/A child still runs/'
+  _m U6b 's/and exits zero\./and carries on./'
+  _m U7a 's/the child converts whole or not at all, and/the child converts file by file, and/'
+  _m U7b 's/converts nothing and is never fatal/converts nothing/'
+  _m U8a 's/and clears `umbrella.root`;/and edits `umbrella.root`;/'
+  _m U8b 's/it is not a permanent opt-out —/it is a permanent opt-out —/'
+  _m U9a 's/only when it has no `.git` yet/at the umbrella root/'
+  _m U9b 's/each child stays its own repository, never a gitlink\./each child stays its own repository./'
+  _m U10a "s/each entry key must equal its child directory's basename, and/each entry key names a child, and/"
+  _m U10b 's/and adds no remote\./and adds a remote./'
+  pass "F04_R5_umbrella_sentences"
+}
+F04_R5_umbrella_no_over_claims() {
+  _bad="$(um_over_claims "$ROOT/$UM_H")"
+  [ -z "$_bad" ] || fail "F04 R5: docs/UMBRELLA.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f45v"; mkdir -p "$T/f45v"
+  for _m in 'The umbrella is a MONOREPO.' 'The audit commits for you.' 'The loop merges for you.' 'A thin run always converts.' 'It converts every child.' \
+            'A feature is done as soon as slices land.' 'It is a boolean flag.' '(v0.52.0)' '(v0.54.0+)' '(E99-F102)' 'A full-copy child is left alone by every run.'; do
+    { cat "$ROOT/$UM_H"; printf '\n%s\n' "$_m"; } > "$T/f45v/m.md"
+    [ -n "$(um_over_claims "$T/f45v/m.md")" ] || fail "F04 R5: the over-claim check misses '$_m'"
+  done
+  { cat "$ROOT/$UM_H"; printf '\n```text\nmonorepo commits for you merges for you always converts converts every child done as soon as boolean flag v0.52.0 v0.54.0 E99-F102 left alone by every run\n```\n'; } > "$T/f45v/m.md"
+  [ -z "$(um_over_claims "$T/f45v/m.md")" ] || fail "F04 R5: the over-claim check flags text inside a fence"
+  pass "F04_R5_umbrella_no_over_claims"
+}
+
+# F04_R6 — the human CONFIG-LAYERING's shape and layers diagram.
+HUMAN_CL_HEADS='## Where each setting lives
+## What the installer ignores for you
+## Your own prompt notes
+## In an umbrella
+## Further reading'
+HUMAN_CL_ANCHORS='agents/CONFIG-LAYERING.md#the-three-layers
+agents/CONFIG-LAYERING.md#what-the-installer-does
+agents/CONFIG-LAYERING.md#personal-prompt-files
+agents/CONFIG-LAYERING.md#practical-guidance'
+CL_DIAGRAM_TOKENS='~/.claude/CLAUDE.md
+CLAUDE.md
+AGENTS.md
+.harness/
+.claude/settings.local.json
+AGENTS.local.md
+CLAUDE.local.md
+AGENTS.override.md
+committed
+gitignored'
+cl_shape_diagram_problems() {
+  shape_problems "$1" "$HUMAN_CL_HEADS" "$HUMAN_CL_ANCHORS" CONFIG-LAYERING.md
+  diagram_problems "$1" "## Where each setting lives" "$CL_DIAGRAM_TOKENS" 'project
+personal
+user-global'
+}
+F04_R6_cl_shape_and_diagram() {
+  [ -f "$ROOT/$CL_H" ] || fail "F04 R6: docs/CONFIG-LAYERING.md does not exist"
+  _bad="$(cl_shape_diagram_problems "$ROOT/$CL_H")"
+  [ -z "$_bad" ] || fail "F04 R6: docs/CONFIG-LAYERING.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f46c"; mkdir -p "$T/f46c/docs"; DOCS_DIR="$T/f46c/docs"
+  _m() { sed "$2" "$ROOT/$CL_H" > "$T/f46c/docs/m.md"
+         cmp -s "$ROOT/$CL_H" "$T/f46c/docs/m.md" && fail "F04 R6: setup: the $1 mutant did not apply"
+         cl_shape_diagram_problems "$T/f46c/docs/m.md" | grep -qF -- "$3" || fail "F04 R6: the check misses the $1 mutant"; }
+  _m 'renamed heading' 's/^## In an umbrella$/## Umbrella/' 'headings are not the pinned'
+  _m 'dropped anchor' '/#practical-guidance/d' 'does not link'
+  _m 'dropped diagram token' 's/, AGENTS.override.md, \.claude\/scheduled/, \.claude\/scheduled/' "does not name 'AGENTS.override.md'"
+  _m 'graph' 's/^flowchart LR$/graph LR/' 'is not a flowchart'
+  _m 'user-global prose' 's/user-global/global-user/g' "'user-global'"
+  { cat "$ROOT/$CL_H"; printf '\n[x](../AGENTS.md)\n'; } > "$T/f46c/docs/c.md"
+  cp "$ROOT/AGENTS.md" "$T/f46c/AGENTS.md"
+  cl_shape_diagram_problems "$T/f46c/docs/c.md" | grep -qF 'leaves docs/' || fail "F04 R6: the check misses a link that leaves docs/"
+  { printf '# Shared\n'; for _i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17; do echo; done; sed -n '2,$p' "$ROOT/$CL_H" | grep -vF '](agents/CONFIG-LAYERING.md)'; printf '\n[agents](agents/CONFIG-LAYERING.md)\n'; } > "$T/f46c/docs/d.md"
+  cl_shape_diagram_problems "$T/f46c/docs/d.md" | grep -qF 'first 15 lines' || fail "F04 R6: the check misses a counterpart link past line 15"
+  DOCS_DIR="$ROOT/docs"
+  { cat "$ROOT/$CL_H"; yes x | head -n 101; } > "$T/f46c/e.md"
+  lint_budget "$T/f46c/e.md" 100 && fail "F04 R6: lint_budget accepts a doc over 100 lines"
+  pass "F04_R6_cl_shape_and_diagram"
+}
+
+# F04_R7 — the human CONFIG-LAYERING sentences are true and the known over-claims are absent.
+cl_accuracy_problems() {
+  _t="$(unfenced "$1" | folded)"
+  _pin() { printf '%s' "$_t" | grep -qE -- "$2" || echo "$1 missing"; }
+  _pin L1a 'shared and committed'
+  _pin L1b 'local and gitignored'
+  _pin L2 'one shared, checked-in'
+  _pin L3a 'are additive:'
+  _pin L3b 'remain authoritative'
+  _pin L4a 'append-only'
+  _pin L4b 'specific files'
+  _pin L5a 'not inherited'
+  _pin L5b "child.s own .feedback:. block governs"
+  _pin L6a 'links only'
+  _pin L6b 'never linked'
+  _pin L7a 'workers\.roster'
+  _pin L7b 'every install, gate or no gate'
+  _pin L8a 'still project layer'
+  _pin L8b 'never a stub'
+}
+cl_over_claims() {
+  _t="$(unfenced "$1" | folded)"
+  for _o in 'one CLAUDE.md per developer' 'overrides the project' 'local file wins' 'every ignored file' \
+            'ignores the whole' 'inherits feedback' 'E30-F01' 'E32-F01' 'Two ignores'; do
+    printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
+  done
+  return 0
+}
+F04_R7_cl_sentences() {
+  _bad="$(cl_accuracy_problems "$ROOT/$CL_H")"
+  [ -z "$_bad" ] || fail "F04 R7: docs/CONFIG-LAYERING.md lacks pinned sentence(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f47c"; mkdir -p "$T/f47c"
+  _m() { sed "$2" "$ROOT/$CL_H" > "$T/f47c/m.md"
+         cmp -s "$ROOT/$CL_H" "$T/f47c/m.md" && fail "F04 R7: setup: the mutant for $1 did not apply"
+         cl_accuracy_problems "$T/f47c/m.md" | grep -qF "$1 missing" || fail "F04 R7: the pin $1 survives its mutant"; }
+  _m L1a 's/Project facts are shared and committed;/Project facts are shared;/'
+  _m L1b 's/per-developer state is local and gitignored/per-developer state is local/'
+  _m L2 's/Keep one shared, checked-in `CLAUDE.md`/Keep a shared `CLAUDE.md`/'
+  _m L3a 's/are additive: when/apply: when/'
+  _m L3b 's/the committed instructions remain authoritative/the committed instructions usually win/'
+  _m L4a 's/seeds or extends the project-root `.gitignore` append-only and/seeds the project-root `.gitignore` and/'
+  _m L4b 's/ignores specific files under/ignores files under/'
+  _m L5a 's/is not inherited:/is inherited:/'
+  _m L5b "s/each child's own \`feedback:\` block governs/the coordinator's block governs/"
+  _m L6a 's/links only an existing/links an existing/'
+  _m L6b 's/is never linked, and/is linked too, and/'
+  _m L7a 's/is written only while `workers.roster` is on/is written when the roster is on/'
+  _m L7b 's/on every install, gate or no gate/on most installs/'
+  _m L8a 's/ — still project layer, just short —/ —/'
+  _m L8b 's/is never a stub/is a stub/'
+  pass "F04_R7_cl_sentences"
+}
+F04_R7_cl_no_over_claims() {
+  _bad="$(cl_over_claims "$ROOT/$CL_H")"
+  [ -z "$_bad" ] || fail "F04 R7: docs/CONFIG-LAYERING.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f47d"; mkdir -p "$T/f47d"
+  for _m in 'Each developer keeps ONE CLAUDE.MD PER DEVELOPER.' 'A personal file overrides the project.' 'A local file wins.' 'It ignores every ignored file.' \
+            'The installer ignores the whole .claude/.' 'A child inherits feedback.' '(E30-F01)' '(E32-F01)' 'Two ignores sit outside the list.'; do
+    { cat "$ROOT/$CL_H"; printf '\n%s\n' "$_m"; } > "$T/f47d/m.md"
+    [ -n "$(cl_over_claims "$T/f47d/m.md")" ] || fail "F04 R7: the over-claim check misses '$_m'"
+  done
+  { cat "$ROOT/$CL_H"; printf '\n```text\none CLAUDE.md per developer overrides the project local file wins every ignored file ignores the whole inherits feedback E30-F01 E32-F01 Two ignores\n```\n'; } > "$T/f47d/m.md"
+  [ -z "$(cl_over_claims "$T/f47d/m.md")" ] || fail "F04 R7: the over-claim check flags text inside a fence"
+  pass "F04_R7_cl_no_over_claims"
+}
+
+# F04_R9 — agent, store, seed and installer citations name the counterpart. um_code_problems <root> lets a mirror be scanned.
+um_code_problems() {
+  for _f in agents/architect.md agents/orchestrator.md store/local.md harness.config.yaml umbrella.manifest.example.yaml; do
+    grep -qF 'docs/UMBRELLA.md' "$1/$_f" && echo "$_f still cites docs/UMBRELLA.md"
+    grep -qF 'docs/agents/UMBRELLA.md' "$1/$_f" || echo "$_f does not cite docs/agents/UMBRELLA.md"
+  done
+  _i="$1/harness-install.sh"
+  [ "$(grep -cF 'docs/UMBRELLA.md' "$_i")" -eq 2 ] || echo "harness-install.sh does not hold docs/UMBRELLA.md on exactly two lines"
+  grep -F 'docs/UMBRELLA.md' "$_i" | grep -qF 'see .harness/docs/UMBRELLA.md, then run /sdd-next' || echo "harness-install.sh: the printed coordinator hint no longer names docs/UMBRELLA.md"
+  grep -F 'docs/UMBRELLA.md' "$_i" | grep -qF 'See docs/UMBRELLA.md\n' || echo "harness-install.sh: the telemetry comment printf no longer ends See docs/UMBRELLA.md"
+  [ "$(grep -cF 'docs/CONFIG-LAYERING.md' "$_i")" -eq 1 ] || echo "harness-install.sh does not hold docs/CONFIG-LAYERING.md on exactly one line"
+  grep -F 'docs/CONFIG-LAYERING.md' "$_i" | grep -qF '(see .harness/docs/CONFIG-LAYERING.md)' || echo "harness-install.sh: the printed .gitignore header no longer names docs/CONFIG-LAYERING.md"
+  grep -qF 'See docs/agents/UMBRELLA.md -> "Migrating an existing child".' "$_i" || echo "harness-install.sh: the usage line does not name docs/agents/UMBRELLA.md"
+  grep -qxF '  # .harness/docs/agents/CONFIG-LAYERING.md.' "$_i" || echo "harness-install.sh: the Full model comment does not name .harness/docs/agents/CONFIG-LAYERING.md"
+  [ "$(grep -cF 'docs/agents/UMBRELLA.md' "$_i")" -eq 8 ] || echo "harness-install.sh does not hold docs/agents/UMBRELLA.md on exactly eight lines"
+  return 0
+}
+F04_R9_code_citations() {
+  _bad="$(um_code_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F04 R9: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f49"; mkdir -p "$T/f49/agents" "$T/f49/store"
+         cp "$ROOT/harness-install.sh" "$ROOT/harness.config.yaml" "$ROOT/umbrella.manifest.example.yaml" "$T/f49/"
+         cp "$ROOT/agents/architect.md" "$ROOT/agents/orchestrator.md" "$T/f49/agents/"; cp "$ROOT/store/local.md" "$T/f49/store/"; }
+  _x() { sed "$2" "$T/f49/$3" > "$T/f49/n" && mv "$T/f49/n" "$T/f49/$3"; }
+  _w; _x r 's#docs/agents/UMBRELLA\.md#docs/UMBRELLA.md#' agents/architect.md
+  um_code_problems "$T/f49" | grep -qF 'agents/architect.md still cites' || fail "F04 R9: the check misses a reverted agents/architect.md citation"
+  _w; _x r 's#docs/agents/UMBRELLA\.md → Manifest reference#docs/UMBRELLA.md → Manifest reference#' harness.config.yaml
+  um_code_problems "$T/f49" | grep -qF 'harness.config.yaml still cites' || fail "F04 R9: the check misses a reverted harness.config.yaml line"
+  _w; _x r 's#See docs/agents/UMBRELLA\.md -> "Migrating#See docs/UMBRELLA.md -> "Migrating#' harness-install.sh
+  um_code_problems "$T/f49" | grep -qF 'exactly two lines' || fail "F04 R9: the check misses a reverted installer usage line"
+  _w; _x r 's#see \.harness/docs/UMBRELLA\.md, then#see .harness/docs/agents/UMBRELLA.md, then#' harness-install.sh
+  um_code_problems "$T/f49" | grep -qF 'printed coordinator hint' || fail "F04 R9: the check misses a re-pointed printed coordinator hint"
+  _w; _x r 's#^  \# \.harness/docs/agents/CONFIG-LAYERING\.md\.$#  \# .harness/docs/CONFIG-LAYERING.md.#' harness-install.sh
+  um_code_problems "$T/f49" | grep -qF 'exactly one line' || fail "F04 R9: the check misses a reverted Full model comment"
+  pass "F04_R9_code_citations"
+}
+
+# F04_R10 — sibling-doc citations re-point. um_sibling_problems <root> lets a mirror be scanned.
+um_sibling_problems() {
+  for _f in docs/RATIONALE.md; do
+    grep -qF 'docs/UMBRELLA.md' "$1/$_f" && echo "$_f still cites docs/UMBRELLA.md"
+    grep -qF 'docs/CONFIG-LAYERING.md' "$1/$_f" && echo "$_f still cites docs/CONFIG-LAYERING.md"
+  done
+  grep -qF '[`docs/agents/UMBRELLA.md`](agents/UMBRELLA.md)' "$1/docs/RATIONALE.md" || echo "docs/RATIONALE.md: the D11 ledger row does not carry the UMBRELLA counterpart link"
+  grep -qF '[`docs/agents/CONFIG-LAYERING.md`](agents/CONFIG-LAYERING.md)' "$1/docs/RATIONALE.md" || echo "docs/RATIONALE.md: the D13 ledger row does not carry the CONFIG-LAYERING counterpart link"
+  for _s in promoting-a-single-install-to-a-coordinator shared-spec-repository-opt-in migrating-an-existing-child---thin; do
+    grep -qF "(UMBRELLA.md#$_s)" "$1/docs/agents/INSTALL.md" || echo "docs/agents/INSTALL.md does not link UMBRELLA.md#$_s"
+  done
+  grep -qF '(../UMBRELLA.md#' "$1/docs/agents/INSTALL.md" && echo "docs/agents/INSTALL.md: a stale ../UMBRELLA.md# anchor remains"
+  grep -qF '(../UMBRELLA.md)' "$1/docs/agents/INSTALL.md" || echo "docs/agents/INSTALL.md lost its plain (../UMBRELLA.md) link"
+  grep -qF '(../CONFIG-LAYERING.md)' "$1/docs/agents/INSTALL.md" || echo "docs/agents/INSTALL.md lost its plain (../CONFIG-LAYERING.md) link"
+  grep -qF 'See `docs/UMBRELLA.md`.' "$1/docs/agents/README.md" || echo "docs/agents/README.md lost its plain UMBRELLA pointer"
+  grep -qF 'See `docs/CONFIG-LAYERING.md`.' "$1/docs/agents/README.md" || echo "docs/agents/README.md lost its plain CONFIG-LAYERING pointer"
+  for _f in docs/INSTALL.md docs/README.md; do
+    grep -qF 'UMBRELLA.md](' "$1/$_f" || echo "$_f lost its plain UMBRELLA.md link"
+    grep -qF 'CONFIG-LAYERING.md](' "$1/$_f" || echo "$_f lost its plain CONFIG-LAYERING.md link"
+  done
+  for _f in README.md docs/INSTALL.md docs/README.md; do
+    grep -qF 'agents/UMBRELLA.md' "$1/$_f" && echo "$_f was re-pointed at the UMBRELLA counterpart"
+    grep -qF 'agents/CONFIG-LAYERING.md' "$1/$_f" && echo "$_f was re-pointed at the CONFIG-LAYERING counterpart"
+  done
+  return 0
+}
+F04_R10_sibling_citations() {
+  _bad="$(um_sibling_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F04 R10: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f410"; mkdir -p "$T/f410"; cp "$ROOT/README.md" "$T/f410/"; cp -R "$ROOT/docs" "$T/f410/docs"; }
+  _x() { sed "$1" "$T/f410/$2" > "$T/f410/n" && mv "$T/f410/n" "$T/f410/$2"; }
+  _w; _x 's#\[`docs/agents/UMBRELLA\.md`\](agents/UMBRELLA\.md)#[`docs/UMBRELLA.md`](UMBRELLA.md)#' docs/RATIONALE.md
+  um_sibling_problems "$T/f410" | grep -qF 'docs/RATIONALE.md' || fail "F04 R10: the check misses a reverted D11 ledger row"
+  _w; _x 's#\[`docs/agents/CONFIG-LAYERING\.md`\](agents/CONFIG-LAYERING\.md)#[`docs/CONFIG-LAYERING.md`](CONFIG-LAYERING.md)#' docs/RATIONALE.md
+  um_sibling_problems "$T/f410" | grep -qF 'D13 ledger row' || fail "F04 R10: the check misses a reverted D13 ledger row"
+  _w; _x 's#(UMBRELLA\.md\#shared-spec-repository-opt-in)#(../UMBRELLA.md\#shared-spec-repository-opt-in)#' docs/agents/INSTALL.md
+  um_sibling_problems "$T/f410" | grep -qF 'docs/agents/INSTALL.md' || fail "F04 R10: the check misses a reverted docs/agents/INSTALL.md anchor"
+  _w; _x 's#(\.\./UMBRELLA\.md)#(UMBRELLA.md)#' docs/agents/INSTALL.md
+  um_sibling_problems "$T/f410" | grep -qF 'lost its plain (../UMBRELLA.md)' || fail "F04 R10: the check misses a re-pointed plain INSTALL link"
+  _w; _x 's#UMBRELLA\.md\](UMBRELLA\.md)#UMBRELLA.md](agents/UMBRELLA.md)#' docs/README.md
+  um_sibling_problems "$T/f410" | grep -qF 'docs/README.md' || fail "F04 R10: the check misses a re-pointed docs/README.md link"
+  _w; _x 's#See `docs/UMBRELLA\.md`\.#See `docs/agents/UMBRELLA.md`.#' docs/agents/README.md
+  um_sibling_problems "$T/f410" | grep -qF 'docs/agents/README.md' || fail "F04 R10: the check misses a re-pointed docs/agents/README.md pointer"
+  pass "F04_R10_sibling_citations"
+}
+
+# F04_R12 — release: a CHANGELOG heading equals the runtime VERSION, and the section naming E39-F04 and the four
+# doc paths sits one MINOR (patch 0) above the section below it (the shared changelog_problem helper).
+F04_R12_version_and_changelog() {
+  _cur="$(cat "$ROOT/VERSION")"
+  grep -qF "## [$_cur]" "$ROOT/CHANGELOG.md" || fail "F04 R12: CHANGELOG has no '## [$_cur]' section for the runtime VERSION"
+  _p="$(changelog_problem "$ROOT/CHANGELOG.md" E39-F04 docs/agents/UMBRELLA.md docs/UMBRELLA.md docs/agents/CONFIG-LAYERING.md docs/CONFIG-LAYERING.md)"
+  [ -z "$_p" ] || fail "F04 R12: $_p"
+  sed 's#docs/agents/CONFIG-LAYERING\.md#docs/agents/GONE.md#g' "$ROOT/CHANGELOG.md" > "$T/f412a.md"
+  cmp -s "$ROOT/CHANGELOG.md" "$T/f412a.md" && fail "F04 R12: setup: the path mutant did not apply"
+  [ -n "$(changelog_problem "$T/f412a.md" E39-F04 docs/agents/UMBRELLA.md docs/UMBRELLA.md docs/agents/CONFIG-LAYERING.md docs/CONFIG-LAYERING.md)" ] || fail "F04 R12: the changelog check misses a section without docs/agents/CONFIG-LAYERING.md"
+  _fv="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { v = $2; gsub(/[][]/, "", v); sec = v } /E39-F04/ { print sec; exit }' "$ROOT/CHANGELOG.md")"
+  [ -n "$_fv" ] || fail "F04 R12: no CHANGELOG section names E39-F04"
+  sed "s/^## \[$_fv\]/## [${_fv%.*}.1]/" "$ROOT/CHANGELOG.md" > "$T/f412b.md"
+  grep -qF "## [${_fv%.*}.1]" "$T/f412b.md" || fail "F04 R12: setup: the PATCH mutant did not apply"
+  [ -n "$(changelog_problem "$T/f412b.md" E39-F04 docs/agents/UMBRELLA.md docs/UMBRELLA.md docs/agents/CONFIG-LAYERING.md docs/CONFIG-LAYERING.md)" ] || fail "F04 R12: the changelog check misses a PATCH-step E39-F04 section"
+  pass "F04_R12_version_and_changelog"
 }
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
@@ -1792,6 +2357,19 @@ row F03_R5_accuracy_sentences; row F03_R5_no_over_claims
 row F03_R7_agent_citations
 row F03_R8_sibling_citations
 row F03_R10_version_and_changelog
+# ---- E39-F04
+row F04_R1_counterpart_announcement; row F04_R1_counterpart_headings_in_order; row F04_R1_counterpart_retargets
+row F04_R2_cl_counterpart_announcement; row F04_R2_cl_counterpart_headings_in_order; row F04_R2_cl_counterpart_retargets
+row F04_R8_suites_cite_counterparts
+row F04_R11_registry_and_index
+row F04_R3_umbrella_shape
+row F04_R4_umbrella_diagrams
+row F04_R5_umbrella_sentences; row F04_R5_umbrella_no_over_claims
+row F04_R6_cl_shape_and_diagram
+row F04_R7_cl_sentences; row F04_R7_cl_no_over_claims
+row F04_R9_code_citations
+row F04_R10_sibling_citations
+row F04_R12_version_and_changelog
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"

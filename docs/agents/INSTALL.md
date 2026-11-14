@@ -998,7 +998,7 @@ optional opaque `scaffold_cmd`, re-bases each draft `path:` to the umbrella root
 `umbrella.manifest.yaml`, and then reuses the normal cascade. It fails closed on an
 invalid draft or an unsafe child path. Preview it with `--dry-run`. The full contract,
 including the key-equals-directory rule and the landing-audit gate, is in
-[`UMBRELLA.md`](../UMBRELLA.md#promoting-a-single-install-to-a-coordinator).
+[`UMBRELLA.md`](UMBRELLA.md#promoting-a-single-install-to-a-coordinator).
 
 ### Shared spec repository (`--shared-repo`)
 
@@ -1017,7 +1017,7 @@ their own repos, never gitlinks — on top of the per-developer state every inst
 The umbrella becomes a **spec repository** that tracks `.harness/` + umbrella docs;
 teammates clone it for the shared specs/task state, then clone the product repos beside the
 harness. Preview it first with `--shared-repo --dry-run`. See
-[`UMBRELLA.md`](../UMBRELLA.md#shared-spec-repository-opt-in) and the shipped
+[`UMBRELLA.md`](UMBRELLA.md#shared-spec-repository-opt-in) and the shipped
 `umbrella.gitignore.example`. Omit the flag and nothing about the root changes.
 
 Umbrella mode is **idempotent and additive**: re-running rediscovers newly-added git
@@ -1049,7 +1049,7 @@ without one of them.
 ```
 
 The full procedure, the refusal report and what clearing `umbrella.root` does and does not
-buy are in [`UMBRELLA.md`](../UMBRELLA.md#migrating-an-existing-child---thin).
+buy are in [`UMBRELLA.md`](UMBRELLA.md#migrating-an-existing-child---thin).
 
 ## Per-role model routing (`models:`) — opt-in
 

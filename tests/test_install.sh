@@ -510,25 +510,25 @@ test_existing_entrypoint_prose_preserved() {
 }
 
 test_config_layering_documents_personal_prompt_layer() {
-  grep -qF 'personal prompt' "$T/.harness/docs/CONFIG-LAYERING.md" \
+  grep -qF 'personal prompt' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
     || fail "CONFIG-LAYERING.md missing personal prompt layer"
-  grep -qF 'AGENTS.local.md' "$T/.harness/docs/CONFIG-LAYERING.md" \
+  grep -qF 'AGENTS.local.md' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
     || fail "CONFIG-LAYERING.md missing portable AGENTS.local.md convention"
-  grep -qF 'additive' "$T/.harness/docs/CONFIG-LAYERING.md" \
+  grep -qF 'additive' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
     || fail "CONFIG-LAYERING.md missing additive local prompt guidance"
 }
 
 test_config_layering_documents_native_local_prompt_files() {
-  grep -qF 'CLAUDE.local.md' "$T/.harness/docs/CONFIG-LAYERING.md" \
+  grep -qF 'CLAUDE.local.md' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
     || fail "CONFIG-LAYERING.md missing Claude native local prompt file"
-  grep -qF 'AGENTS.override.md' "$T/.harness/docs/CONFIG-LAYERING.md" \
+  grep -qF 'AGENTS.override.md' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
     || fail "CONFIG-LAYERING.md missing Codex native override file"
 }
 
 test_config_layering_documents_local_prompt_caveats() {
-  grep -qF 'fresh worktrees' "$T/.harness/docs/CONFIG-LAYERING.md" \
+  grep -qF 'fresh worktrees' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
     || fail "CONFIG-LAYERING.md missing fresh-worktree caveat"
-  grep -qF 'native local-file support differs by CLI' "$T/.harness/docs/CONFIG-LAYERING.md" \
+  grep -qF 'native local-file support differs by CLI' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
     || fail "CONFIG-LAYERING.md missing per-tool native support caveat"
 }
 
@@ -690,7 +690,7 @@ test_drift_report_installed_contract() {
 }
 
 test_docs_for_humans_installed_contract() {
-  for _f in docs/agents/README.md docs/README.md docs/CONCEPTS.md docs/BRAND.md docs/INSTALL.md docs/agents/INSTALL.md docs/WORKFLOW.md docs/agents/WORKFLOW.md; do
+  for _f in docs/agents/README.md docs/README.md docs/CONCEPTS.md docs/BRAND.md docs/INSTALL.md docs/agents/INSTALL.md docs/WORKFLOW.md docs/agents/WORKFLOW.md docs/UMBRELLA.md docs/agents/UMBRELLA.md docs/CONFIG-LAYERING.md docs/agents/CONFIG-LAYERING.md; do
     cmp -s "$SRC/$_f" "$T/.harness/$_f" || fail "E39-F01: installed $_f is missing or differs from source"
   done
   find "$T/.harness" -name assets | grep -q . && fail "E39-F01: a path named assets was installed under .harness/"
@@ -1065,23 +1065,23 @@ test_entrypoints_reference_local_overrides
 pass "entrypoints reference optional local overrides with committed-instructions precedence"
 
 # E09-F02: config layering docs describe the personal prompt layer and caveats.
-grep -qF 'personal prompt' "$T/.harness/docs/CONFIG-LAYERING.md" \
+grep -qF 'personal prompt' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
   || fail "CONFIG-LAYERING.md missing personal prompt layer"
-grep -qF 'AGENTS.local.md' "$T/.harness/docs/CONFIG-LAYERING.md" \
+grep -qF 'AGENTS.local.md' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
   || fail "CONFIG-LAYERING.md missing portable AGENTS.local.md convention"
-grep -qF 'CLAUDE.local.md' "$T/.harness/docs/CONFIG-LAYERING.md" \
+grep -qF 'CLAUDE.local.md' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
   || fail "CONFIG-LAYERING.md missing Claude native local prompt file"
-grep -qF 'AGENTS.override.md' "$T/.harness/docs/CONFIG-LAYERING.md" \
+grep -qF 'AGENTS.override.md' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
   || fail "CONFIG-LAYERING.md missing Codex native override file"
-grep -qF 'additive' "$T/.harness/docs/CONFIG-LAYERING.md" \
+grep -qF 'additive' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
   || fail "CONFIG-LAYERING.md missing additive local prompt guidance"
-grep -qF 'fresh worktrees' "$T/.harness/docs/CONFIG-LAYERING.md" \
+grep -qF 'fresh worktrees' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
   || fail "CONFIG-LAYERING.md missing fresh-worktree caveat"
-grep -qF 'native local-file support differs by CLI' "$T/.harness/docs/CONFIG-LAYERING.md" \
+grep -qF 'native local-file support differs by CLI' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
   || fail "CONFIG-LAYERING.md missing per-tool native support caveat"
-grep -qF '.claude/worktrees/' "$T/.harness/docs/CONFIG-LAYERING.md" \
+grep -qF '.claude/worktrees/' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
   || fail "CONFIG-LAYERING.md missing worktree local-only directory"
-grep -qF 'absolute symlink' "$T/.harness/docs/CONFIG-LAYERING.md" \
+grep -qF 'absolute symlink' "$T/.harness/docs/agents/CONFIG-LAYERING.md" \
   || fail "CONFIG-LAYERING.md missing worktree personal-layer link policy"
 test_config_layering_documents_personal_prompt_layer
 test_config_layering_documents_native_local_prompt_files
@@ -3233,17 +3233,17 @@ test_glossary_ownership_documented() {
   printf '%s' "$_bl11_prose" | grep -qF 'glossary' \
     && fail "R11: docs/INSTALL.md's --thin/--standalone prose-tier enumeration (site 681) still names the glossary"
 
-  # ── docs/UMBRELLA.md — Prose tier row + the D1 sentence ────────────────────────────────
-  _um11="$(doc_section "$_tg11/.harness/docs/UMBRELLA.md" 'The thin child')"
-  [ -n "$_um11" ] || fail "R11: could not extract the installed docs/UMBRELLA.md thin-child section"
+  # ── docs/agents/UMBRELLA.md — Prose tier row + the D1 sentence ────────────────────────────────
+  _um11="$(doc_section "$_tg11/.harness/docs/agents/UMBRELLA.md" 'The thin child')"
+  [ -n "$_um11" ] || fail "R11: could not extract the installed docs/agents/UMBRELLA.md thin-child section"
   printf '%s\n' "$_um11" | grep '\*\*Prose\*\*' | grep -qF 'glossary' \
-    && fail "R11: docs/UMBRELLA.md's Prose tier row still names the glossary"
+    && fail "R11: docs/agents/UMBRELLA.md's Prose tier row still names the glossary"
   printf '%s\n' "$_um11" | tr '\n' ' ' | grep -qiE 'glossary\.md[^.]{0,80}neither tier' \
-    || fail "R11: docs/UMBRELLA.md's thin-child section does not record decision D1 (the glossary is neither tier)"
+    || fail "R11: docs/agents/UMBRELLA.md's thin-child section does not record decision D1 (the glossary is neither tier)"
 
-  # ── docs/CONFIG-LAYERING.md — the thin-child sentence ──────────────────────────────────
-  _cl11="$(doc_section "$_tg11/.harness/docs/CONFIG-LAYERING.md" 'The three layers')"
-  [ -n "$_cl11" ] || fail "R11: could not extract the installed docs/CONFIG-LAYERING.md three-layers section"
+  # ── docs/agents/CONFIG-LAYERING.md — the thin-child sentence ──────────────────────────────────
+  _cl11="$(doc_section "$_tg11/.harness/docs/agents/CONFIG-LAYERING.md" 'The three layers')"
+  [ -n "$_cl11" ] || fail "R11: could not extract the installed docs/agents/CONFIG-LAYERING.md three-layers section"
   # `-F 'pointer stub'`, not `grep 'pointer .stub'` (round-1 defect, Finding 1): the doc says
   # "**pointer stubs**" — ONE space between "pointer" and "stub" — and the old regex demanded
   # a literal character in that gap, so stage 1 was empty for every possible input and the
@@ -3254,9 +3254,9 @@ test_glossary_ownership_documented() {
   # `[ -n … ] || fail` guard below runs (found the hard way testing this very fix).
   _cl11_stub="$(printf '%s\n' "$_cl11" | grep -F 'pointer stub' || true)"
   [ -n "$_cl11_stub" ] \
-    || fail "R11: could not locate docs/CONFIG-LAYERING.md's pointer-stub sentence by its 'pointer stub' shape — the anchor is stale"
+    || fail "R11: could not locate docs/agents/CONFIG-LAYERING.md's pointer-stub sentence by its 'pointer stub' shape — the anchor is stale"
   printf '%s' "$_cl11_stub" | grep -qF 'glossary' \
-    && fail "R11: docs/CONFIG-LAYERING.md's thin-child pointer-stub sentence still names the glossary"
+    && fail "R11: docs/agents/CONFIG-LAYERING.md's thin-child pointer-stub sentence still names the glossary"
 
   # ── harness.config.yaml — the seeded umbrella.root comment ─────────────────────────────
   _cc11="$(config_key_comment "$_tg11/.harness/harness.config.yaml" 'CHILD-SIDE key')"
