@@ -1754,6 +1754,96 @@ F03_R10_version_and_changelog() {
   [ -n "$(f03_changelog_problem "$T/f310b.md")" ] || fail "F03 R10: the changelog check misses a PATCH-step E39-F03 section"
   pass "F03_R10_version_and_changelog"
 }
+
+# ---------------------------------------------------------------- E39-F04 — UMBRELLA + CONFIG-LAYERING split
+# Rows named F04_R<n>_<slug>; <n> is the E39-F04 spec's R-id. Rows that read a doc take a root or a
+# file so a mutant copy under $T can be scanned; none reads VERSION as a literal or diffs main.
+UM_H="docs/UMBRELLA.md"
+UM_A="docs/agents/UMBRELLA.md"
+CL_H="docs/CONFIG-LAYERING.md"
+CL_A="docs/agents/CONFIG-LAYERING.md"
+
+# um_announce_problem <file> <H1> <announcement> — line 1 is the base H1, the first non-empty line after it the blockquote.
+um_announce_problem() {
+  [ -f "$1" ] || { echo "$1 does not exist"; return 0; }
+  [ "$(sed -n '1p' "$1")" = "$2" ] || echo "line 1 is not the base H1"
+  _first="$(sed -n '2,$p' "$1" | grep -v '^[[:space:]]*$' | sed -n '1p')"
+  [ "$_first" = "$3" ] || echo "the first non-empty line after the H1 is not the announcement (got: $_first)"
+  return 0
+}
+UM_ANNOUNCE='> For agents — exact contracts; the human guide is [docs/UMBRELLA.md](../UMBRELLA.md).'
+CL_ANNOUNCE='> For agents — exact contracts; the human guide is [docs/CONFIG-LAYERING.md](../CONFIG-LAYERING.md).'
+F04_R1_counterpart_announcement() {
+  _bad="$(um_announce_problem "$ROOT/$UM_A" '# Umbrella coordinator (cross-repo features)' "$UM_ANNOUNCE")"
+  [ -z "$_bad" ] || fail "F04 R1: docs/agents/UMBRELLA.md: $_bad"
+  rm -rf "$T/f41"; mkdir -p "$T/f41"
+  sed 's/the human guide is/the human guide:/' "$ROOT/$UM_A" > "$T/f41/m.md"
+  cmp -s "$ROOT/$UM_A" "$T/f41/m.md" && fail "F04 R1: setup: the mutant did not apply"
+  [ -n "$(um_announce_problem "$T/f41/m.md" '# Umbrella coordinator (cross-repo features)' "$UM_ANNOUNCE")" ] || fail "F04 R1: the check misses a reworded announcement"
+  pass "F04_R1_counterpart_announcement"
+}
+UM_HEADS='# Umbrella coordinator (cross-repo features)
+## Opt-in switch (single-repo stays inert)
+## Installing the umbrella (cascade)
+### The landing audit — "complete" means committed
+## The thin child (v0.54.0+)
+### Standalone entry still works — that is the acceptance bar
+### What this does and does not change
+## Migrating an existing child (`--thin`)
+### Pristine-only, and all-or-nothing
+### An unreachable umbrella converts nothing, and is never fatal
+## `--standalone` — the way back
+## Shared spec repository (opt-in)
+## Concepts
+## Spec home = umbrella; slices = child repos
+## Contract artifact (one contract, no drift)
+## The coordinator loop (dispatch + gating)
+## Integration verification (rollup)
+## Promoting a single install to a coordinator
+## Manifest reference'
+um_heads_problem() { [ "$(unfenced "$1" | grep '^#')" = "$UM_HEADS" ] || echo "the headings are not the 19 base headings in base order"; return 0; }
+F04_R1_counterpart_headings_in_order() {
+  _bad="$(um_heads_problem "$ROOT/$UM_A")"
+  [ -z "$_bad" ] || fail "F04 R1: docs/agents/UMBRELLA.md: $_bad"
+  [ "$(printf '%s\n' "$UM_HEADS" | wc -l | tr -d ' ')" -eq 19 ] || fail "F04 R1: setup: the expected list is not 19 headings"
+  rm -rf "$T/f42"; mkdir -p "$T/f42"
+  awk '/^## Concepts$/ { print "## Manifest reference"; next } /^## Manifest reference$/ { print "## Concepts"; next } { print }' "$ROOT/$UM_A" > "$T/f42/a.md"
+  cmp -s "$ROOT/$UM_A" "$T/f42/a.md" && fail "F04 R1: setup: the swap mutant did not apply"
+  [ -n "$(um_heads_problem "$T/f42/a.md")" ] || fail "F04 R1: the check misses two swapped headings"
+  sed 's/^## Manifest reference$/## Manifest keys/' "$ROOT/$UM_A" > "$T/f42/b.md"
+  cmp -s "$ROOT/$UM_A" "$T/f42/b.md" && fail "F04 R1: setup: the rename mutant did not apply"
+  [ -n "$(um_heads_problem "$T/f42/b.md")" ] || fail "F04 R1: the check misses a renamed heading"
+  pass "F04_R1_counterpart_headings_in_order"
+}
+# um_retarget_problems <file> <dir-of-file-root> — targets are retargeted for docs/agents/ and resolve from there.
+# <ban>: space-separated prefixes no target may start with; <need>: targets that must be present.
+um_retarget_problems() {
+  _t="$(link_targets "$1")"
+  for _b in $3; do
+    printf '%s\n' "$_t" | awk -v b="$_b" 'index($0, b) == 1 { f = 1 } END { exit !f }' && echo "a target still starts $_b"
+  done
+  for _n in $4; do
+    printf '%s\n' "$_t" | grep -qxF -- "$_n" || echo "target $_n is absent"
+  done
+  for _x in $(printf '%s\n' "$_t" | grep -vE '^(#|https?:|mailto:)' | sed 's/#.*//' | sort -u); do
+    [ -e "$(dirname "$1")/$_x" ] || echo "target $_x does not resolve from docs/agents/"
+  done
+  return 0
+}
+F04_R1_counterpart_retargets() {
+  _ban='../agents/ ../specs/ ../umbrella. ./'
+  _need='../../agents/reviewer.md#what-you-check INSTALL.md#umbrella-mode-cascade-install ../CONFIG-LAYERING.md'
+  _bad="$(um_retarget_problems "$ROOT/$UM_A" x "$_ban" "$_need")"
+  [ -z "$_bad" ] || fail "F04 R1: docs/agents/UMBRELLA.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f43"; mkdir -p "$T/f43"
+  sed 's#(\.\./\.\./agents/reviewer\.md#(../agents/reviewer.md#' "$ROOT/$UM_A" > "$T/f43/a.md"
+  cmp -s "$ROOT/$UM_A" "$T/f43/a.md" && fail "F04 R1: setup: the reviewer-link mutant did not apply"
+  [ -n "$(um_retarget_problems "$T/f43/a.md" x "$_ban" "$_need")" ] || fail "F04 R1: the check misses a restored ../agents/reviewer.md target"
+  sed 's#(\.\./CONFIG-LAYERING\.md)#(./CONFIG-LAYERING.md)#' "$ROOT/$UM_A" > "$T/f43/b.md"
+  cmp -s "$ROOT/$UM_A" "$T/f43/b.md" && fail "F04 R1: setup: the CONFIG-LAYERING-link mutant did not apply"
+  [ -n "$(um_retarget_problems "$T/f43/b.md" x "$_ban" "$_need")" ] || fail "F04 R1: the check misses a restored ./CONFIG-LAYERING.md target"
+  pass "F04_R1_counterpart_retargets"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -1792,6 +1882,8 @@ row F03_R5_accuracy_sentences; row F03_R5_no_over_claims
 row F03_R7_agent_citations
 row F03_R8_sibling_citations
 row F03_R10_version_and_changelog
+# ---- E39-F04
+row F04_R1_counterpart_announcement; row F04_R1_counterpart_headings_in_order; row F04_R1_counterpart_retargets
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
