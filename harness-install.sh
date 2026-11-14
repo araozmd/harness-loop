@@ -73,7 +73,7 @@
 #     CLAUDE.md / AGENTS.md / GEMINI.md are regenerated each run; existing prose in
 #     those files is preserved (only the marked block is replaced).
 #
-# Umbrella mode (--umbrella, see docs/UMBRELLA.md): cascades a single install across
+# Umbrella mode (--umbrella, see docs/agents/UMBRELLA.md): cascades a single install across
 # an umbrella directory — writes the coordinator profile into the umbrella, discovers
 # its immediate git children (depth 1), installs the normal child profile into each,
 # and auto-populates umbrella.manifest.yaml. Single-target mode (no --umbrella) is
@@ -91,7 +91,7 @@
 # direct child named by the entry key, and a declared child that already exists but is not
 # a git work tree. --dry-run previews it; --shared-repo composes.
 #
-# Body layout (--thin / --standalone, E24-F04, see docs/UMBRELLA.md → "Migrating an
+# Body layout (--thin / --standalone, E24-F04, see docs/agents/UMBRELLA.md → "Migrating an
 # existing child"). A child of an umbrella holds its prose tier either as a full local copy
 # or as pointer stubs resolved from umbrella.root (E24-F03 / ADR-0004). These two flags are
 # the ONLY way to move a target between those layouts; neither is ever implied.
@@ -112,7 +112,7 @@
 #                 with --thin, before anything is written. It is not a permanent opt-out —
 #                 a later explicit --thin run converts the target again.
 #
-# Shared spec repository (--shared-repo, umbrella mode only, see docs/UMBRELLA.md):
+# Shared spec repository (--shared-repo, umbrella mode only, see docs/agents/UMBRELLA.md):
 # OPT-IN. After the cascade, make the umbrella ROOT its own git repo that tracks the
 # shared .harness/ + umbrella docs and GIT-IGNORES the product child repos (each its own
 # repo). `git init` runs ONLY if the umbrella root has no .git yet (an existing repo is
@@ -155,12 +155,12 @@ migrate_config() {
   if ! grep -Eq '^[[:space:]]*integration_command:' "$_cfg"; then
     if grep -Eq '^verification:[[:space:]]*(#.*)?$' "$_cfg"; then
       _mc_insert_after "$_cfg" '^verification:[[:space:]]*(#.*)?$' \
-        '  integration_command: ""   # umbrella integration gate (see docs/UMBRELLA.md)'
+        '  integration_command: ""   # umbrella integration gate (see docs/agents/UMBRELLA.md)'
     else
       {
         printf '\n'
         printf 'verification:\n'
-        printf '  integration_command: ""   # umbrella integration gate (see docs/UMBRELLA.md)\n'
+        printf '  integration_command: ""   # umbrella integration gate (see docs/agents/UMBRELLA.md)\n'
       } >> "$_cfg"
     fi
   fi
@@ -4486,7 +4486,7 @@ EOF
   # pristine test runs before the stub test so a shipped example that ever began with the
   # sentinel could not be misread. `$SRC` is the running installer's own source — the same
   # reference `copy()` uses — never the umbrella body (D1: this path left the prose tier
-  # entirely; see harness-install.sh's HARNESS_BODY_PROSE comment above and docs/UMBRELLA.md).
+  # entirely; see harness-install.sh's HARNESS_BODY_PROSE comment above and docs/agents/UMBRELLA.md).
   _gloss="$H/specs/glossary.md"; _gloss_src="$SRC/specs/glossary.md"
   if [ -L "$_gloss" ] || { [ -e "$_gloss" ] && [ ! -f "$_gloss" ]; }; then
     info "specs/glossary.md preserved (not a regular file — left exactly as found)"
@@ -4656,7 +4656,7 @@ $_tlog" ;;                                       # relative override → also ig
   # harness-GENERATED .claude/agents and .claude/commands DO. Seed/extend the project-root
   # .gitignore with TARGETED, append-only ignores (never clobbering existing entries), so a
   # shared repo stays free of one developer's local state. Full model:
-  # .harness/docs/CONFIG-LAYERING.md.
+  # .harness/docs/agents/CONFIG-LAYERING.md.
   # *.mutbak is deliberately NOT seeded (2026-09-04 reversal of E99-F71's ignore). The
   # ignore contradicted reviewer.md's own discipline: mutation backups must stay VISIBLE in
   # `git status` so a killed mid-campaign lane leaves detectable residue (the E99-F207
@@ -4821,7 +4821,7 @@ BODY LAYOUT  (E24-F03 + E24-F04 / ADR-0004):
                    all-or-nothing: every prose-tier path must be byte-identical to the
                    umbrella's copy, or nothing converts and every differing path is named.
                    Without the flag the run REPORTS whether it would convert and converts
-                   nothing. See docs/UMBRELLA.md -> "Migrating an existing child".
+                   nothing. See docs/agents/UMBRELLA.md -> "Migrating an existing child".
     thin -> full   re-run the installer with --standalone: the full prose body is
                    materialised from that installer's own source and umbrella.root is
                    cleared. That is the documented way back for a child being detached.
@@ -10867,7 +10867,7 @@ while [ "$#" -gt 0 ]; do
       ;;
     --shared-repo)
       # Opt-in: version-control the umbrella root (git init + ignore product children).
-      # Umbrella mode only; validated below. See docs/UMBRELLA.md "Shared spec repository".
+      # Umbrella mode only; validated below. See docs/agents/UMBRELLA.md "Shared spec repository".
       SHARED_REPO=1
       shift
       ;;

@@ -188,7 +188,7 @@ hand-off; it must exit 0 — the Reviewer rejects on exit 1 (check 8).
 ## Umbrella mode (cross-repo features) — only when the feature has `slices[]`
 
 If the TaskStore feature you are speccing carries a `slices[]` array, it is a
-cross-repo feature (see `docs/UMBRELLA.md`). Two things become **mandatory** on top of
+cross-repo feature (see `docs/agents/UMBRELLA.md`). Two things become **mandatory** on top of
 the normal 4-file spec — skipping either is how inter-repo drift (e.g. one repo calls a
 field `first_org_id` while another spells it `onboarding_org_id`) slips through:
 

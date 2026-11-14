@@ -445,7 +445,7 @@ rather than declaring `done` by fiat — but it **does persist** the derived res
 slice or the integration gate is red) — not "never written". This guarantees there is
 no path to a green feature with a red slice, while still unblocking dependents. The umbrella
 dispatch/gating loop that consumes these semantics is specified in
-`docs/UMBRELLA.md` and the "Umbrella mode" section of `agents/orchestrator.md`.
+`docs/agents/UMBRELLA.md` and the "Umbrella mode" section of `agents/orchestrator.md`.
 
 ### Epic-done rollup (all features `done` ⇒ epic `done`, derived then persisted)
 Beside the sliced-feature rollup above — and **additively**, not inside it — the same

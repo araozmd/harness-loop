@@ -2233,6 +2233,43 @@ F04_R7_cl_no_over_claims() {
   [ -z "$(cl_over_claims "$T/f47d/m.md")" ] || fail "F04 R7: the over-claim check flags text inside a fence"
   pass "F04_R7_cl_no_over_claims"
 }
+
+# F04_R9 — agent, store, seed and installer citations name the counterpart. um_code_problems <root> lets a mirror be scanned.
+um_code_problems() {
+  for _f in agents/architect.md agents/orchestrator.md store/local.md harness.config.yaml umbrella.manifest.example.yaml; do
+    grep -qF 'docs/UMBRELLA.md' "$1/$_f" && echo "$_f still cites docs/UMBRELLA.md"
+    grep -qF 'docs/agents/UMBRELLA.md' "$1/$_f" || echo "$_f does not cite docs/agents/UMBRELLA.md"
+  done
+  _i="$1/harness-install.sh"
+  [ "$(grep -cF 'docs/UMBRELLA.md' "$_i")" -eq 2 ] || echo "harness-install.sh does not hold docs/UMBRELLA.md on exactly two lines"
+  grep -F 'docs/UMBRELLA.md' "$_i" | grep -qF 'see .harness/docs/UMBRELLA.md, then run /sdd-next' || echo "harness-install.sh: the printed coordinator hint no longer names docs/UMBRELLA.md"
+  grep -F 'docs/UMBRELLA.md' "$_i" | grep -qF 'See docs/UMBRELLA.md\n' || echo "harness-install.sh: the telemetry comment printf no longer ends See docs/UMBRELLA.md"
+  [ "$(grep -cF 'docs/CONFIG-LAYERING.md' "$_i")" -eq 1 ] || echo "harness-install.sh does not hold docs/CONFIG-LAYERING.md on exactly one line"
+  grep -F 'docs/CONFIG-LAYERING.md' "$_i" | grep -qF '(see .harness/docs/CONFIG-LAYERING.md)' || echo "harness-install.sh: the printed .gitignore header no longer names docs/CONFIG-LAYERING.md"
+  grep -qF 'See docs/agents/UMBRELLA.md -> "Migrating an existing child".' "$_i" || echo "harness-install.sh: the usage line does not name docs/agents/UMBRELLA.md"
+  grep -qxF '  # .harness/docs/agents/CONFIG-LAYERING.md.' "$_i" || echo "harness-install.sh: the Full model comment does not name .harness/docs/agents/CONFIG-LAYERING.md"
+  [ "$(grep -cF 'docs/agents/UMBRELLA.md' "$_i")" -eq 8 ] || echo "harness-install.sh does not hold docs/agents/UMBRELLA.md on exactly eight lines"
+  return 0
+}
+F04_R9_code_citations() {
+  _bad="$(um_code_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F04 R9: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f49"; mkdir -p "$T/f49/agents" "$T/f49/store"
+         cp "$ROOT/harness-install.sh" "$ROOT/harness.config.yaml" "$ROOT/umbrella.manifest.example.yaml" "$T/f49/"
+         cp "$ROOT/agents/architect.md" "$ROOT/agents/orchestrator.md" "$T/f49/agents/"; cp "$ROOT/store/local.md" "$T/f49/store/"; }
+  _x() { sed "$2" "$T/f49/$3" > "$T/f49/n" && mv "$T/f49/n" "$T/f49/$3"; }
+  _w; _x r 's#docs/agents/UMBRELLA\.md#docs/UMBRELLA.md#' agents/architect.md
+  um_code_problems "$T/f49" | grep -qF 'agents/architect.md still cites' || fail "F04 R9: the check misses a reverted agents/architect.md citation"
+  _w; _x r 's#docs/agents/UMBRELLA\.md → Manifest reference#docs/UMBRELLA.md → Manifest reference#' harness.config.yaml
+  um_code_problems "$T/f49" | grep -qF 'harness.config.yaml still cites' || fail "F04 R9: the check misses a reverted harness.config.yaml line"
+  _w; _x r 's#See docs/agents/UMBRELLA\.md -> "Migrating#See docs/UMBRELLA.md -> "Migrating#' harness-install.sh
+  um_code_problems "$T/f49" | grep -qF 'exactly two lines' || fail "F04 R9: the check misses a reverted installer usage line"
+  _w; _x r 's#see \.harness/docs/UMBRELLA\.md, then#see .harness/docs/agents/UMBRELLA.md, then#' harness-install.sh
+  um_code_problems "$T/f49" | grep -qF 'printed coordinator hint' || fail "F04 R9: the check misses a re-pointed printed coordinator hint"
+  _w; _x r 's#^  \# \.harness/docs/agents/CONFIG-LAYERING\.md\.$#  \# .harness/docs/CONFIG-LAYERING.md.#' harness-install.sh
+  um_code_problems "$T/f49" | grep -qF 'exactly one line' || fail "F04 R9: the check misses a reverted Full model comment"
+  pass "F04_R9_code_citations"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2281,6 +2318,7 @@ row F04_R4_umbrella_diagrams
 row F04_R5_umbrella_sentences; row F04_R5_umbrella_no_over_claims
 row F04_R6_cl_shape_and_diagram
 row F04_R7_cl_sentences; row F04_R7_cl_no_over_claims
+row F04_R9_code_citations
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
