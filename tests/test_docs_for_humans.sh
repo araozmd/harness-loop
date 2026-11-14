@@ -1937,6 +1937,52 @@ F04_R11_registry_and_index() {
     fail "F04 R11: ## Index has no row pairing docs/CONFIG-LAYERING.md with docs/agents/CONFIG-LAYERING.md"
   pass "F04_R11_registry_and_index"
 }
+
+# F04_R3 — the human UMBRELLA's shape. shape_problems is the slice-2 helper, called with this slice's lists.
+HUMAN_UM_HEADS='## What the umbrella is
+## Set it up
+## Thin children and full copies
+## A shared spec repository
+## How a cross-repo feature runs
+## From one repo to a coordinator
+## Further reading'
+HUMAN_UM_ANCHORS='agents/UMBRELLA.md#opt-in-switch-single-repo-stays-inert
+agents/UMBRELLA.md#installing-the-umbrella-cascade
+agents/UMBRELLA.md#the-thin-child-v0540
+agents/UMBRELLA.md#migrating-an-existing-child---thin
+agents/UMBRELLA.md#--standalone--the-way-back
+agents/UMBRELLA.md#shared-spec-repository-opt-in
+agents/UMBRELLA.md#concepts
+agents/UMBRELLA.md#spec-home--umbrella-slices--child-repos
+agents/UMBRELLA.md#contract-artifact-one-contract-no-drift
+agents/UMBRELLA.md#the-coordinator-loop-dispatch--gating
+agents/UMBRELLA.md#integration-verification-rollup
+agents/UMBRELLA.md#promoting-a-single-install-to-a-coordinator
+agents/UMBRELLA.md#manifest-reference'
+F04_R3_umbrella_shape() {
+  [ -f "$ROOT/$UM_H" ] || fail "F04 R3: docs/UMBRELLA.md does not exist"
+  _bad="$(shape_problems "$ROOT/$UM_H" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md)"
+  [ -z "$_bad" ] || fail "F04 R3: docs/UMBRELLA.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  [ "$(printf '%s\n' "$HUMAN_UM_ANCHORS" | wc -l | tr -d ' ')" -eq 13 ] || fail "F04 R3: setup: the anchor list is not 13 entries"
+  # mutants on private copies: each must be reported
+  rm -rf "$T/f43b"; mkdir -p "$T/f43b/docs"; DOCS_DIR="$T/f43b/docs"
+  sed 's/^## Set it up$/## Install/' "$ROOT/$UM_H" > "$T/f43b/docs/a.md"
+  cmp -s "$ROOT/$UM_H" "$T/f43b/docs/a.md" && fail "F04 R3: setup: the rename mutant did not apply"
+  [ -n "$(shape_problems "$T/f43b/docs/a.md" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md)" ] || fail "F04 R3: the shape check misses a renamed ## heading"
+  grep -vF '#manifest-reference' "$ROOT/$UM_H" > "$T/f43b/docs/b.md"
+  cmp -s "$ROOT/$UM_H" "$T/f43b/docs/b.md" && fail "F04 R3: setup: the anchor mutant did not apply"
+  [ -n "$(shape_problems "$T/f43b/docs/b.md" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md)" ] || fail "F04 R3: the shape check misses a dropped further-reading anchor"
+  { cat "$ROOT/$UM_H"; printf '\n[x](../AGENTS.md)\n'; } > "$T/f43b/docs/c.md"
+  cp "$ROOT/AGENTS.md" "$T/f43b/AGENTS.md"
+  shape_problems "$T/f43b/docs/c.md" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md | grep -qF 'leaves docs/' || fail "F04 R3: the shape check misses a link that leaves docs/"
+  { printf '# One feature\n'; for _i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17; do echo; done; sed -n '2,$p' "$ROOT/$UM_H" | grep -vF '](agents/UMBRELLA.md)'; printf '\n[agents](agents/UMBRELLA.md)\n'; } > "$T/f43b/docs/d.md"
+  shape_problems "$T/f43b/docs/d.md" "$HUMAN_UM_HEADS" "$HUMAN_UM_ANCHORS" UMBRELLA.md | grep -qF 'first 15 lines' || fail "F04 R3: the shape check misses a counterpart link past line 15"
+  DOCS_DIR="$ROOT/docs"
+  # budget 250 (the registry entry's number) through the slice-1 helper
+  { cat "$ROOT/$UM_H"; yes x | head -n 251; } > "$T/f43b/e.md"
+  lint_budget "$T/f43b/e.md" 250 && fail "F04 R3: lint_budget accepts a doc over 250 lines"
+  pass "F04_R3_umbrella_shape"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -1980,6 +2026,7 @@ row F04_R1_counterpart_announcement; row F04_R1_counterpart_headings_in_order; r
 row F04_R2_cl_counterpart_announcement; row F04_R2_cl_counterpart_headings_in_order; row F04_R2_cl_counterpart_retargets
 row F04_R8_suites_cite_counterparts
 row F04_R11_registry_and_index
+row F04_R3_umbrella_shape
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
