@@ -2416,7 +2416,7 @@
         {
           "id": "E39-F04",
           "title": "UMBRELLA + CONFIG-LAYERING split (coordinator and config-layer diagrams); re-point suites and installer hints",
-          "status": "pending",
+          "status": "in-progress",
           "sdd": true,
           "autonomous": true,
           "depends_on": [
