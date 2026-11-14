@@ -14,7 +14,7 @@ repository.
 
 Umbrella mode is engaged only when `umbrella.manifest` in `harness.config.yaml` points at a manifest file that exists; with the key unset or the file absent, the coordinator is inert and the single-repo flow runs unchanged.
 
-The umbrella never writes source code: each slice is built, reviewed and opened as a PR by the child repo's own SDD loop, and the umbrella only orders, gates and rolls up.
+The umbrella never writes source code: each slice is built, reviewed and opened as a PR by the child repo's own SDD loop, and the umbrella only orders, dispatches, gates and rolls up.
 
 Four words carry the model:
 
@@ -38,8 +38,9 @@ One command stands the umbrella up, from the harness checkout:
 ```
 
 It installs the coordinator profile into `<umbrella>/.harness/`, finds the immediate children
-that are `git` repositories (one level down), installs the normal child profile into each and
-fills `umbrella.manifest.yaml`. Run it again whenever you add a child: it is idempotent and
+that are `git` repositories (one level down), installs the normal child profile into each whose
+directory name matches `[a-z0-9-]+` (any other is skipped with a warning) and fills
+`umbrella.manifest.yaml`. Run it again whenever you add a child: it is idempotent and
 never clobbers a manifest entry that is already filled in. Add `--dry-run` to see what it
 would do; it writes nothing.
 
@@ -83,7 +84,7 @@ drawn by what reads the file: an agent follows a pointer, a program cannot.
 
 A thin child keeps pointer stubs for the prose tier — `AGENTS.md`, `agents/`, `docs/`, `specs/_templates/` — and a full local copy of the program tier — `init.sh`, `store/`, `tools/` and the example files; `specs/glossary.md` is neither: a real, local file in every layout.
 
-The generated front-end glue (`.claude/`, `.agents/`, `.opencode/`, `.codex/`) is local too. The
+The generated front-end glue (such as `.claude/`, `.agents/`, `.opencode/`, `.codex/` and `.pi/`) is local too. The
 cascade records the link as `umbrella.root` in each child's `harness.config.yaml`.
 
 A child entered on its own still runs `init.sh`, its verification gate and its PR loop; when the umbrella is unreachable, `init.sh` says so and exits zero.
@@ -101,10 +102,7 @@ To convert a child that already holds a full copy, ask for it:
 
 A child that was behind is named and upgraded by that run, so run the command until it
 converges: normally once, twice when children were behind. After a child is thin, later
-cascades maintain it without the flag. A full-copy child is left alone by every run that does
-not pass `--thin`; an ordinary run converts nothing and reports what it would convert. Do not run an unflagged
-cascade as a preview before migrating, because it overwrites the prose tier of a full-copy
-child from source.
+cascades maintain it without the flag. A run that does not pass `--thin` never converts a full-copy child: it reports what it would convert, and it still re-installs that child's prose tier from source. So do not run an unflagged cascade as a preview before migrating — it destroys the very differences it reports.
 
 To go back, run `./harness-install.sh --standalone /path/to/child`.
 
@@ -165,8 +163,7 @@ the workflow contract.
 
 ## From one repo to a coordinator
 
-A single install can become a coordinator without starting over. The Planner leaves a draft
-manifest at `.harness/umbrella.manifest.draft.yaml`; promotion turns it into the live one.
+A single install can become a coordinator without starting over. When the architecture names more than one deployable, the Planner leaves a draft manifest at `.harness/umbrella.manifest.draft.yaml`; promotion turns it into the live one.
 
 `--from-manifest <file>` with `--umbrella <dir>` promotes an existing single install into a coordinator from the Planner's draft manifest; each entry key must equal its child directory's basename, and promotion runs `git init` locally and adds no remote.
 

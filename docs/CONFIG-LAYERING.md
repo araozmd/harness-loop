@@ -17,7 +17,7 @@ flowchart LR
     project["project — CLAUDE.md and AGENTS.md with the harness block, .harness/, the generated .claude/agents and .claude/commands; committed, one copy for the whole team"]
     personal["personal — .claude/settings.local.json, AGENTS.local.md, CLAUDE.local.md, AGENTS.override.md, .claude/scheduled_tasks.lock, .claude/worktrees/; gitignored, never shared"]
     user -->|"plus the project's facts"| project -->|"plus your local additions"| personal
-    personal -. "additive only: on a conflict the committed instructions win" .-> project
+    personal -. "personal prompt files are additive: on a conflict the committed instructions win" .-> project
 ```
 
 The project layer holds what is true for everyone: architecture, conventions and the harness
@@ -31,7 +31,7 @@ commands.
 
 The installer seeds or extends the project-root `.gitignore` append-only and ignores specific files under `.claude/`, never the whole directory, so the generated `.claude/agents/*` and `.claude/commands/*` stay tracked and committed.
 
-The paths it seeds into the root `.gitignore`:
+The personal-layer paths it seeds into the root `.gitignore`:
 
 - `.claude/settings.local.json`
 - `.claude/scheduled_tasks.lock`
@@ -40,10 +40,7 @@ The paths it seeds into the root `.gitignore`:
 - `CLAUDE.local.md`
 - `AGENTS.override.md`
 
-The seeded file also carries a commented example for per-tool scratch directories such as
-`.playwright-mcp/`; add your own lines for the tools you use. Two ignores sit outside that list:
-the local telemetry log, covered by the `.harness/.gitignore` the harness seeds, and the worker
-roster below.
+A newly seeded file also carries a commented example for per-tool scratch directories such as `.playwright-mcp/`; add your own lines for the tools you use. Other ignores live elsewhere: the `.harness/.gitignore` the harness seeds covers the local telemetry log, the worker roster below, a Jira PAT file, per-run `progress/` directories and similar machine-local files; and under `--shared-repo` the umbrella root's `.gitignore` also gets one line per child repository.
 
 `.harness/workers.json` is written only while `workers.roster` is on, describes which CLIs your machine can invoke, and is ignored by the installer on every install, gate or no gate.
 

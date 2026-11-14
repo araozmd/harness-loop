@@ -2055,7 +2055,7 @@ um_accuracy_problems() {
 um_over_claims() {
   _t="$(unfenced "$1" | folded)"
   for _o in 'monorepo' 'commits for you' 'merges for you' 'always converts' 'converts every child' \
-            'done as soon as' 'boolean flag' 'v0.52.0' 'v0.54.0' 'E99-F102'; do
+            'done as soon as' 'boolean flag' 'v0.52.0' 'v0.54.0' 'E99-F102' 'left alone by every run'; do
     printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
   done
   return 0
@@ -2094,11 +2094,11 @@ F04_R5_umbrella_no_over_claims() {
   [ -z "$_bad" ] || fail "F04 R5: docs/UMBRELLA.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
   rm -rf "$T/f45v"; mkdir -p "$T/f45v"
   for _m in 'The umbrella is a MONOREPO.' 'The audit commits for you.' 'The loop merges for you.' 'A thin run always converts.' 'It converts every child.' \
-            'A feature is done as soon as slices land.' 'It is a boolean flag.' '(v0.52.0)' '(v0.54.0+)' '(E99-F102)'; do
+            'A feature is done as soon as slices land.' 'It is a boolean flag.' '(v0.52.0)' '(v0.54.0+)' '(E99-F102)' 'A full-copy child is left alone by every run.'; do
     { cat "$ROOT/$UM_H"; printf '\n%s\n' "$_m"; } > "$T/f45v/m.md"
     [ -n "$(um_over_claims "$T/f45v/m.md")" ] || fail "F04 R5: the over-claim check misses '$_m'"
   done
-  { cat "$ROOT/$UM_H"; printf '\n```text\nmonorepo commits for you merges for you always converts converts every child done as soon as boolean flag v0.52.0 v0.54.0 E99-F102\n```\n'; } > "$T/f45v/m.md"
+  { cat "$ROOT/$UM_H"; printf '\n```text\nmonorepo commits for you merges for you always converts converts every child done as soon as boolean flag v0.52.0 v0.54.0 E99-F102 left alone by every run\n```\n'; } > "$T/f45v/m.md"
   [ -z "$(um_over_claims "$T/f45v/m.md")" ] || fail "F04 R5: the over-claim check flags text inside a fence"
   pass "F04_R5_umbrella_no_over_claims"
 }
@@ -2176,7 +2176,7 @@ cl_accuracy_problems() {
 cl_over_claims() {
   _t="$(unfenced "$1" | folded)"
   for _o in 'one CLAUDE.md per developer' 'overrides the project' 'local file wins' 'every ignored file' \
-            'ignores the whole' 'inherits feedback' 'E30-F01' 'E32-F01'; do
+            'ignores the whole' 'inherits feedback' 'E30-F01' 'E32-F01' 'Two ignores'; do
     printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
   done
   return 0
@@ -2210,11 +2210,11 @@ F04_R7_cl_no_over_claims() {
   [ -z "$_bad" ] || fail "F04 R7: docs/CONFIG-LAYERING.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
   rm -rf "$T/f47d"; mkdir -p "$T/f47d"
   for _m in 'Each developer keeps ONE CLAUDE.MD PER DEVELOPER.' 'A personal file overrides the project.' 'A local file wins.' 'It ignores every ignored file.' \
-            'The installer ignores the whole .claude/.' 'A child inherits feedback.' '(E30-F01)' '(E32-F01)'; do
+            'The installer ignores the whole .claude/.' 'A child inherits feedback.' '(E30-F01)' '(E32-F01)' 'Two ignores sit outside the list.'; do
     { cat "$ROOT/$CL_H"; printf '\n%s\n' "$_m"; } > "$T/f47d/m.md"
     [ -n "$(cl_over_claims "$T/f47d/m.md")" ] || fail "F04 R7: the over-claim check misses '$_m'"
   done
-  { cat "$ROOT/$CL_H"; printf '\n```text\none CLAUDE.md per developer overrides the project local file wins every ignored file ignores the whole inherits feedback E30-F01 E32-F01\n```\n'; } > "$T/f47d/m.md"
+  { cat "$ROOT/$CL_H"; printf '\n```text\none CLAUDE.md per developer overrides the project local file wins every ignored file ignores the whole inherits feedback E30-F01 E32-F01 Two ignores\n```\n'; } > "$T/f47d/m.md"
   [ -z "$(cl_over_claims "$T/f47d/m.md")" ] || fail "F04 R7: the over-claim check flags text inside a fence"
   pass "F04_R7_cl_no_over_claims"
 }
