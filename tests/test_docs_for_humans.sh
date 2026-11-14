@@ -1983,6 +1983,63 @@ F04_R3_umbrella_shape() {
   lint_budget "$T/f43b/e.md" 250 && fail "F04 R3: lint_budget accepts a doc over 250 lines"
   pass "F04_R3_umbrella_shape"
 }
+
+# F04_R4 — the two UMBRELLA diagrams. um_diagram_problems <file> checks both sections and the done-edge rule.
+UM_SETUP_TOKENS='--umbrella
+.harness/
+umbrella.manifest.yaml
+coordinator
+child
+umbrella.root
+--thin
+--shared-repo
+landing audit'
+UM_LOOP_TOKENS='select
+dispatch
+depends_on
+merged
+failed
+gh pr view
+integration_command
+done'
+um_diagram_problems() {
+  diagram_problems "$1" "## Set it up" "$UM_SETUP_TOKENS" 'exit 3
+--dry-run
+git'
+  diagram_problems "$1" "## How a cross-repo feature runs" "$UM_LOOP_TOKENS" 'slices
+contract
+in-session
+delegate'
+  # exactly one line of the loop diagram carries an edge whose target is the done node, and it names integration_command
+  _de="$(slice "$1" "## How a cross-repo feature runs" | mermaid_blocks | grep -E -- '--> *(\|[^|]*\| *)?done([^A-Za-z0-9_-]|$)' || true)"
+  [ "$(printf '%s\n' "$_de" | grep -c .)" -eq 1 ] || echo "the loop diagram does not hold exactly one edge into the done node"
+  printf '%s\n' "$_de" | grep -qF 'integration_command' || echo "the done edge does not leave the integration_command node"
+  return 0
+}
+F04_R4_umbrella_diagrams() {
+  _bad="$(um_diagram_problems "$ROOT/$UM_H")"
+  [ -z "$_bad" ] || fail "F04 R4: docs/UMBRELLA.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f44d"; mkdir -p "$T/f44d"
+  _m() { sed "$2" "$ROOT/$UM_H" > "$T/f44d/m.md"
+         cmp -s "$ROOT/$UM_H" "$T/f44d/m.md" && fail "F04 R4: setup: the $1 mutant did not apply"
+         um_diagram_problems "$T/f44d/m.md" | grep -qF -- "$3" || fail "F04 R4: the check misses the $1 mutant"; }
+  _m 'landing-audit node' 's/^    root --> audit\[.*$//' "landing audit"
+  _m 'graph' 's/^flowchart TB$/graph TB/' 'is not a flowchart'
+  _m 'dry-run prose' 's/`--dry-run`/`--nothing`/g' '--dry-run'
+  _m 'failed node' 's/^    dispatch -->|"Builder or Reviewer.*$//' "'failed'"
+  _m 'delegate prose' 's/delegate/handoff/g' "'delegate'"
+  # a second done edge, and a done edge that no longer leaves the integration node
+  { cat "$ROOT/$UM_H"; } | awk '/^    observe -->\|"merged: true"\| select$/ { print "    observe -->|\"merged: true\"| done"; next } { print }' > "$T/f44d/n.md"
+  cmp -s "$ROOT/$UM_H" "$T/f44d/n.md" && fail "F04 R4: setup: the second-done-edge mutant did not apply"
+  um_diagram_problems "$T/f44d/n.md" | grep -qF 'exactly one edge' || fail "F04 R4: the check misses a second done edge"
+  sed 's/^    integ\[\(.*\)\] -->|"exit 0"| done/    check[\1] -->|"exit 0"| done/; s/run verification.integration_command/run the check/' "$ROOT/$UM_H" > "$T/f44d/o.md"
+  cmp -s "$ROOT/$UM_H" "$T/f44d/o.md" && fail "F04 R4: setup: the renamed-integration-node mutant did not apply"
+  um_diagram_problems "$T/f44d/o.md" | grep -qF 'does not leave the integration_command node' || fail "F04 R4: the check misses a done edge that does not leave the integration node"
+  # a second mermaid block in the section
+  awk '/^## Set it up$/ { print; print ""; print "```mermaid"; print "flowchart LR"; print "    x --> y"; print "```"; next } { print }' "$ROOT/$UM_H" > "$T/f44d/p.md"
+  um_diagram_problems "$T/f44d/p.md" | grep -qF 'exactly one mermaid block' || fail "F04 R4: the check misses a second mermaid block"
+  pass "F04_R4_umbrella_diagrams"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2027,6 +2084,7 @@ row F04_R2_cl_counterpart_announcement; row F04_R2_cl_counterpart_headings_in_or
 row F04_R8_suites_cite_counterparts
 row F04_R11_registry_and_index
 row F04_R3_umbrella_shape
+row F04_R4_umbrella_diagrams
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
