@@ -2270,6 +2270,52 @@ F04_R9_code_citations() {
   um_code_problems "$T/f49" | grep -qF 'exactly one line' || fail "F04 R9: the check misses a reverted Full model comment"
   pass "F04_R9_code_citations"
 }
+
+# F04_R10 — sibling-doc citations re-point. um_sibling_problems <root> lets a mirror be scanned.
+um_sibling_problems() {
+  for _f in docs/RATIONALE.md; do
+    grep -qF 'docs/UMBRELLA.md' "$1/$_f" && echo "$_f still cites docs/UMBRELLA.md"
+    grep -qF 'docs/CONFIG-LAYERING.md' "$1/$_f" && echo "$_f still cites docs/CONFIG-LAYERING.md"
+  done
+  grep -qF '[`docs/agents/UMBRELLA.md`](agents/UMBRELLA.md)' "$1/docs/RATIONALE.md" || echo "docs/RATIONALE.md: the D11 ledger row does not carry the UMBRELLA counterpart link"
+  grep -qF '[`docs/agents/CONFIG-LAYERING.md`](agents/CONFIG-LAYERING.md)' "$1/docs/RATIONALE.md" || echo "docs/RATIONALE.md: the D13 ledger row does not carry the CONFIG-LAYERING counterpart link"
+  for _s in promoting-a-single-install-to-a-coordinator shared-spec-repository-opt-in migrating-an-existing-child---thin; do
+    grep -qF "(UMBRELLA.md#$_s)" "$1/docs/agents/INSTALL.md" || echo "docs/agents/INSTALL.md does not link UMBRELLA.md#$_s"
+  done
+  grep -qF '(../UMBRELLA.md#' "$1/docs/agents/INSTALL.md" && echo "docs/agents/INSTALL.md: a stale ../UMBRELLA.md# anchor remains"
+  grep -qF '(../UMBRELLA.md)' "$1/docs/agents/INSTALL.md" || echo "docs/agents/INSTALL.md lost its plain (../UMBRELLA.md) link"
+  grep -qF '(../CONFIG-LAYERING.md)' "$1/docs/agents/INSTALL.md" || echo "docs/agents/INSTALL.md lost its plain (../CONFIG-LAYERING.md) link"
+  grep -qF 'See `docs/UMBRELLA.md`.' "$1/docs/agents/README.md" || echo "docs/agents/README.md lost its plain UMBRELLA pointer"
+  grep -qF 'See `docs/CONFIG-LAYERING.md`.' "$1/docs/agents/README.md" || echo "docs/agents/README.md lost its plain CONFIG-LAYERING pointer"
+  for _f in docs/INSTALL.md docs/README.md; do
+    grep -qF 'UMBRELLA.md](' "$1/$_f" || echo "$_f lost its plain UMBRELLA.md link"
+    grep -qF 'CONFIG-LAYERING.md](' "$1/$_f" || echo "$_f lost its plain CONFIG-LAYERING.md link"
+  done
+  for _f in README.md docs/INSTALL.md docs/README.md; do
+    grep -qF 'agents/UMBRELLA.md' "$1/$_f" && echo "$_f was re-pointed at the UMBRELLA counterpart"
+    grep -qF 'agents/CONFIG-LAYERING.md' "$1/$_f" && echo "$_f was re-pointed at the CONFIG-LAYERING counterpart"
+  done
+  return 0
+}
+F04_R10_sibling_citations() {
+  _bad="$(um_sibling_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F04 R10: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f410"; mkdir -p "$T/f410"; cp "$ROOT/README.md" "$T/f410/"; cp -R "$ROOT/docs" "$T/f410/docs"; }
+  _x() { sed "$1" "$T/f410/$2" > "$T/f410/n" && mv "$T/f410/n" "$T/f410/$2"; }
+  _w; _x 's#\[`docs/agents/UMBRELLA\.md`\](agents/UMBRELLA\.md)#[`docs/UMBRELLA.md`](UMBRELLA.md)#' docs/RATIONALE.md
+  um_sibling_problems "$T/f410" | grep -qF 'docs/RATIONALE.md' || fail "F04 R10: the check misses a reverted D11 ledger row"
+  _w; _x 's#\[`docs/agents/CONFIG-LAYERING\.md`\](agents/CONFIG-LAYERING\.md)#[`docs/CONFIG-LAYERING.md`](CONFIG-LAYERING.md)#' docs/RATIONALE.md
+  um_sibling_problems "$T/f410" | grep -qF 'D13 ledger row' || fail "F04 R10: the check misses a reverted D13 ledger row"
+  _w; _x 's#(UMBRELLA\.md\#shared-spec-repository-opt-in)#(../UMBRELLA.md\#shared-spec-repository-opt-in)#' docs/agents/INSTALL.md
+  um_sibling_problems "$T/f410" | grep -qF 'docs/agents/INSTALL.md' || fail "F04 R10: the check misses a reverted docs/agents/INSTALL.md anchor"
+  _w; _x 's#(\.\./UMBRELLA\.md)#(UMBRELLA.md)#' docs/agents/INSTALL.md
+  um_sibling_problems "$T/f410" | grep -qF 'lost its plain (../UMBRELLA.md)' || fail "F04 R10: the check misses a re-pointed plain INSTALL link"
+  _w; _x 's#UMBRELLA\.md\](UMBRELLA\.md)#UMBRELLA.md](agents/UMBRELLA.md)#' docs/README.md
+  um_sibling_problems "$T/f410" | grep -qF 'docs/README.md' || fail "F04 R10: the check misses a re-pointed docs/README.md link"
+  _w; _x 's#See `docs/UMBRELLA\.md`\.#See `docs/agents/UMBRELLA.md`.#' docs/agents/README.md
+  um_sibling_problems "$T/f410" | grep -qF 'docs/agents/README.md' || fail "F04 R10: the check misses a re-pointed docs/agents/README.md pointer"
+  pass "F04_R10_sibling_citations"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2319,6 +2365,7 @@ row F04_R5_umbrella_sentences; row F04_R5_umbrella_no_over_claims
 row F04_R6_cl_shape_and_diagram
 row F04_R7_cl_sentences; row F04_R7_cl_no_over_claims
 row F04_R9_code_citations
+row F04_R10_sibling_citations
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
