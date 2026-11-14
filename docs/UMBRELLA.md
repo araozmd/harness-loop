@@ -39,7 +39,7 @@ One command stands the umbrella up, from the harness checkout:
 
 It installs the coordinator profile into `<umbrella>/.harness/`, finds the immediate children
 that are `git` repositories (one level down), installs the normal child profile into each whose
-directory name matches `[a-z0-9-]+` (any other is skipped with a warning) and fills
+directory name matches `[a-z0-9-]+` (any other is skipped — a hidden directory silently, the rest with a warning) and fills
 `umbrella.manifest.yaml`. Run it again whenever you add a child: it is idempotent and
 never clobbers a manifest entry that is already filled in. Add `--dry-run` to see what it
 would do; it writes nothing.
@@ -149,7 +149,8 @@ flowchart TB
 Each slice's tasks and tests reference the one pinned contract, so the slices agree on the
 seam they share. A slice that completes is recorded as `done` and keeps its PR URL; that does
 not unblock its dependents, which wait for the merge. The coordinator checks the merge with
-`gh pr view` on the PR URL. A slice that fails is marked `failed`, its dependents stop, and
+`gh pr view` on the PR URL; a slice with no recorded PR falls back to a default-branch landing
+check or an explicit human `merged: true`. A slice that fails is marked `failed`, its dependents stop, and
 the coordinator surfaces the failure instead of improvising a fix. A slice that names a
 repository the manifest does not declare is refused.
 
