@@ -2117,6 +2117,122 @@ F04_R5_umbrella_no_over_claims() {
   [ -z "$(um_over_claims "$T/f45v/m.md")" ] || fail "F04 R5: the over-claim check flags text inside a fence"
   pass "F04_R5_umbrella_no_over_claims"
 }
+
+# F04_R6 — the human CONFIG-LAYERING's shape and layers diagram.
+HUMAN_CL_HEADS='## Where each setting lives
+## What the installer ignores for you
+## Your own prompt notes
+## In an umbrella
+## Further reading'
+HUMAN_CL_ANCHORS='agents/CONFIG-LAYERING.md#the-three-layers
+agents/CONFIG-LAYERING.md#what-the-installer-does
+agents/CONFIG-LAYERING.md#personal-prompt-files
+agents/CONFIG-LAYERING.md#practical-guidance'
+CL_DIAGRAM_TOKENS='~/.claude/CLAUDE.md
+CLAUDE.md
+AGENTS.md
+.harness/
+.claude/settings.local.json
+AGENTS.local.md
+CLAUDE.local.md
+AGENTS.override.md
+committed
+gitignored'
+cl_shape_diagram_problems() {
+  shape_problems "$1" "$HUMAN_CL_HEADS" "$HUMAN_CL_ANCHORS" CONFIG-LAYERING.md
+  diagram_problems "$1" "## Where each setting lives" "$CL_DIAGRAM_TOKENS" 'project
+personal
+user-global'
+}
+F04_R6_cl_shape_and_diagram() {
+  [ -f "$ROOT/$CL_H" ] || fail "F04 R6: docs/CONFIG-LAYERING.md does not exist"
+  _bad="$(cl_shape_diagram_problems "$ROOT/$CL_H")"
+  [ -z "$_bad" ] || fail "F04 R6: docs/CONFIG-LAYERING.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f46c"; mkdir -p "$T/f46c/docs"; DOCS_DIR="$T/f46c/docs"
+  _m() { sed "$2" "$ROOT/$CL_H" > "$T/f46c/docs/m.md"
+         cmp -s "$ROOT/$CL_H" "$T/f46c/docs/m.md" && fail "F04 R6: setup: the $1 mutant did not apply"
+         cl_shape_diagram_problems "$T/f46c/docs/m.md" | grep -qF -- "$3" || fail "F04 R6: the check misses the $1 mutant"; }
+  _m 'renamed heading' 's/^## In an umbrella$/## Umbrella/' 'headings are not the pinned'
+  _m 'dropped anchor' '/#practical-guidance/d' 'does not link'
+  _m 'dropped diagram token' 's/, AGENTS.override.md, \.claude\/scheduled/, \.claude\/scheduled/' "does not name 'AGENTS.override.md'"
+  _m 'graph' 's/^flowchart LR$/graph LR/' 'is not a flowchart'
+  _m 'user-global prose' 's/user-global/global-user/g' "'user-global'"
+  { cat "$ROOT/$CL_H"; printf '\n[x](../AGENTS.md)\n'; } > "$T/f46c/docs/c.md"
+  cp "$ROOT/AGENTS.md" "$T/f46c/AGENTS.md"
+  cl_shape_diagram_problems "$T/f46c/docs/c.md" | grep -qF 'leaves docs/' || fail "F04 R6: the check misses a link that leaves docs/"
+  { printf '# Shared\n'; for _i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17; do echo; done; sed -n '2,$p' "$ROOT/$CL_H" | grep -vF '](agents/CONFIG-LAYERING.md)'; printf '\n[agents](agents/CONFIG-LAYERING.md)\n'; } > "$T/f46c/docs/d.md"
+  cl_shape_diagram_problems "$T/f46c/docs/d.md" | grep -qF 'first 15 lines' || fail "F04 R6: the check misses a counterpart link past line 15"
+  DOCS_DIR="$ROOT/docs"
+  { cat "$ROOT/$CL_H"; yes x | head -n 101; } > "$T/f46c/e.md"
+  lint_budget "$T/f46c/e.md" 100 && fail "F04 R6: lint_budget accepts a doc over 100 lines"
+  pass "F04_R6_cl_shape_and_diagram"
+}
+
+# F04_R7 — the human CONFIG-LAYERING sentences are true and the known over-claims are absent.
+cl_accuracy_problems() {
+  _t="$(unfenced "$1" | folded)"
+  _pin() { printf '%s' "$_t" | grep -qE -- "$2" || echo "$1 missing"; }
+  _pin L1a 'shared and committed'
+  _pin L1b 'local and gitignored'
+  _pin L2 'one shared, checked-in'
+  _pin L3a 'are additive:'
+  _pin L3b 'remain authoritative'
+  _pin L4a 'append-only'
+  _pin L4b 'specific files'
+  _pin L5a 'not inherited'
+  _pin L5b "child.s own .feedback:. block governs"
+  _pin L6a 'links only'
+  _pin L6b 'never linked'
+  _pin L7a 'workers\.roster'
+  _pin L7b 'every install, gate or no gate'
+  _pin L8a 'still project layer'
+  _pin L8b 'never a stub'
+}
+cl_over_claims() {
+  _t="$(unfenced "$1" | folded)"
+  for _o in 'one CLAUDE.md per developer' 'overrides the project' 'local file wins' 'every ignored file' \
+            'ignores the whole' 'inherits feedback' 'E30-F01' 'E32-F01'; do
+    printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
+  done
+  return 0
+}
+F04_R7_cl_sentences() {
+  _bad="$(cl_accuracy_problems "$ROOT/$CL_H")"
+  [ -z "$_bad" ] || fail "F04 R7: docs/CONFIG-LAYERING.md lacks pinned sentence(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f47c"; mkdir -p "$T/f47c"
+  _m() { sed "$2" "$ROOT/$CL_H" > "$T/f47c/m.md"
+         cmp -s "$ROOT/$CL_H" "$T/f47c/m.md" && fail "F04 R7: setup: the mutant for $1 did not apply"
+         cl_accuracy_problems "$T/f47c/m.md" | grep -qF "$1 missing" || fail "F04 R7: the pin $1 survives its mutant"; }
+  _m L1a 's/Project facts are shared and committed;/Project facts are shared;/'
+  _m L1b 's/per-developer state is local and gitignored/per-developer state is local/'
+  _m L2 's/Keep one shared, checked-in `CLAUDE.md`/Keep a shared `CLAUDE.md`/'
+  _m L3a 's/are additive: when/apply: when/'
+  _m L3b 's/the committed instructions remain authoritative/the committed instructions usually win/'
+  _m L4a 's/seeds or extends the project-root `.gitignore` append-only and/seeds the project-root `.gitignore` and/'
+  _m L4b 's/ignores specific files under/ignores files under/'
+  _m L5a 's/is not inherited:/is inherited:/'
+  _m L5b "s/each child's own \`feedback:\` block governs/the coordinator's block governs/"
+  _m L6a 's/links only an existing/links an existing/'
+  _m L6b 's/is never linked, and/is linked too, and/'
+  _m L7a 's/is written only while `workers.roster` is on/is written when the roster is on/'
+  _m L7b 's/on every install, gate or no gate/on most installs/'
+  _m L8a 's/ — still project layer, just short —/ —/'
+  _m L8b 's/is never a stub/is a stub/'
+  pass "F04_R7_cl_sentences"
+}
+F04_R7_cl_no_over_claims() {
+  _bad="$(cl_over_claims "$ROOT/$CL_H")"
+  [ -z "$_bad" ] || fail "F04 R7: docs/CONFIG-LAYERING.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f47d"; mkdir -p "$T/f47d"
+  for _m in 'Each developer keeps ONE CLAUDE.MD PER DEVELOPER.' 'A personal file overrides the project.' 'A local file wins.' 'It ignores every ignored file.' \
+            'The installer ignores the whole .claude/.' 'A child inherits feedback.' '(E30-F01)' '(E32-F01)'; do
+    { cat "$ROOT/$CL_H"; printf '\n%s\n' "$_m"; } > "$T/f47d/m.md"
+    [ -n "$(cl_over_claims "$T/f47d/m.md")" ] || fail "F04 R7: the over-claim check misses '$_m'"
+  done
+  { cat "$ROOT/$CL_H"; printf '\n```text\none CLAUDE.md per developer overrides the project local file wins every ignored file ignores the whole inherits feedback E30-F01 E32-F01\n```\n'; } > "$T/f47d/m.md"
+  [ -z "$(cl_over_claims "$T/f47d/m.md")" ] || fail "F04 R7: the over-claim check flags text inside a fence"
+  pass "F04_R7_cl_no_over_claims"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2163,6 +2279,8 @@ row F04_R11_registry_and_index
 row F04_R3_umbrella_shape
 row F04_R4_umbrella_diagrams
 row F04_R5_umbrella_sentences; row F04_R5_umbrella_no_over_claims
+row F04_R6_cl_shape_and_diagram
+row F04_R7_cl_sentences; row F04_R7_cl_no_over_claims
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
