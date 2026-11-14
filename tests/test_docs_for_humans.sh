@@ -1888,6 +1888,42 @@ F04_R2_cl_counterpart_retargets() {
   [ -n "$(um_retarget_problems "$T/f46/b.md" x "$_ban" "$_need")" ] || fail "F04 R2: the check misses a ../agents/INSTALL.md worker-roster target"
   pass "F04_R2_cl_counterpart_retargets"
 }
+
+# F04_R8 — each of the six suites of the coupling table cites the counterpart; tests/test_install.sh keeps
+# the human path on exactly the installed-contract loop (UMBRELLA) and the loop plus the one installed-file
+# existence check (CONFIG-LAYERING); the other five hold neither human path. <root> lets a mirror be scanned.
+UM_SUITES="install planner_topology promote umbrella_01_coordinator umbrella_13_standalone"
+CL_SUITES="install feedback_config"
+um_suite_problems() {
+  for _s in $UM_SUITES; do
+    grep -qF 'docs/agents/UMBRELLA.md' "$1/tests/test_$_s.sh" || echo "tests/test_$_s.sh does not cite docs/agents/UMBRELLA.md"
+  done
+  for _s in $CL_SUITES; do
+    grep -qF 'docs/agents/CONFIG-LAYERING.md' "$1/tests/test_$_s.sh" || echo "tests/test_$_s.sh does not cite docs/agents/CONFIG-LAYERING.md"
+  done
+  for _s in planner_topology promote umbrella_01_coordinator umbrella_13_standalone feedback_config; do
+    grep -qF 'docs/UMBRELLA.md' "$1/tests/test_$_s.sh" && echo "tests/test_$_s.sh still cites docs/UMBRELLA.md"
+    grep -qF 'docs/CONFIG-LAYERING.md' "$1/tests/test_$_s.sh" && echo "tests/test_$_s.sh still cites docs/CONFIG-LAYERING.md"
+  done
+  [ "$(grep -cF 'docs/UMBRELLA.md' "$1/tests/test_install.sh")" -eq 1 ] || echo "tests/test_install.sh does not hold docs/UMBRELLA.md on exactly one line"
+  [ "$(grep -cF 'docs/CONFIG-LAYERING.md' "$1/tests/test_install.sh")" -eq 2 ] || echo "tests/test_install.sh does not hold docs/CONFIG-LAYERING.md on exactly two lines"
+  return 0
+}
+F04_R8_suites_cite_counterparts() {
+  _bad="$(um_suite_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F04 R8: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f48"; mkdir -p "$T/f48/tests"; cp "$ROOT"/tests/test_*.sh "$T/f48/tests/"; }
+  _w; sed 's#docs/agents/UMBRELLA\.md#docs/UMBRELLA.md#g' "$T/f48/tests/test_umbrella_01_coordinator.sh" > "$T/f48/n" && mv "$T/f48/n" "$T/f48/tests/test_umbrella_01_coordinator.sh"
+  um_suite_problems "$T/f48" | grep -qF 'test_umbrella_01_coordinator.sh' || fail "F04 R8: the check misses a suite reverted to docs/UMBRELLA.md"
+  _w; sed 's#\[ -f "\$T/\.harness/docs/CONFIG-LAYERING\.md" \]#[ -f "$T/.harness/docs/agents/CONFIG-LAYERING.md" ]#' "$T/f48/tests/test_install.sh" > "$T/f48/n" && mv "$T/f48/n" "$T/f48/tests/test_install.sh"
+  cmp -s "$ROOT/tests/test_install.sh" "$T/f48/tests/test_install.sh" && fail "F04 R8: setup: the existence-check mutant did not apply"
+  um_suite_problems "$T/f48" | grep -qF 'exactly two lines' || fail "F04 R8: the check misses a re-pointed installed-file existence check"
+  _w; printf '# see docs/CONFIG-LAYERING.md\n' >> "$T/f48/tests/test_feedback_config.sh"
+  um_suite_problems "$T/f48" | grep -qF 'test_feedback_config.sh still cites' || fail "F04 R8: the check misses a stray docs/CONFIG-LAYERING.md in test_feedback_config.sh"
+  _w; printf '# see docs/UMBRELLA.md\n' >> "$T/f48/tests/test_install.sh"
+  um_suite_problems "$T/f48" | grep -qF 'exactly one line' || fail "F04 R8: the check misses a second docs/UMBRELLA.md line in test_install.sh"
+  pass "F04_R8_suites_cite_counterparts"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -1929,6 +1965,7 @@ row F03_R10_version_and_changelog
 # ---- E39-F04
 row F04_R1_counterpart_announcement; row F04_R1_counterpart_headings_in_order; row F04_R1_counterpart_retargets
 row F04_R2_cl_counterpart_announcement; row F04_R2_cl_counterpart_headings_in_order; row F04_R2_cl_counterpart_retargets
+row F04_R8_suites_cite_counterparts
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"

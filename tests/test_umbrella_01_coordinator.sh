@@ -400,13 +400,13 @@ else
 fi
 
 # ── R7 / R8: contract artifact pinned once, slices reference it ────────────────
-DOC="$SRC/docs/UMBRELLA.md"
-[ -f "$DOC" ] || fail "docs/UMBRELLA.md missing (R7)"
-grep -q "contract artifact" "$DOC" || fail "docs/UMBRELLA.md does not document the contract artifact (R7)"
-grep -q "exactly one" "$DOC" || fail "docs/UMBRELLA.md does not pin exactly one contract artifact (R7)"
+DOC="$SRC/docs/agents/UMBRELLA.md"
+[ -f "$DOC" ] || fail "docs/agents/UMBRELLA.md missing (R7)"
+grep -q "contract artifact" "$DOC" || fail "docs/agents/UMBRELLA.md does not document the contract artifact (R7)"
+grep -q "exactly one" "$DOC" || fail "docs/agents/UMBRELLA.md does not pin exactly one contract artifact (R7)"
 pass "shared spec pins exactly one contract artifact, referenced by id (R7) [test_contract_artifact_pinned_once]"
 grep -qi "Every emitted slice" "$DOC" || grep -qi "each emitted slice" "$DOC" \
-  || fail "docs/UMBRELLA.md does not require slices to reference the contract artifact (R8)"
+  || fail "docs/agents/UMBRELLA.md does not require slices to reference the contract artifact (R8)"
 pass "each emitted slice references the pinned contract artifact (R8) [test_slice_references_contract]"
 
 # ── Config + Orchestrator instruction presence (R5, R15, R18, R9-R17 home) ─────

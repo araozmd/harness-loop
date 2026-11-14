@@ -20,7 +20,7 @@ set -eu
 SRC="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 INSTALL="$SRC/harness-install.sh"
 INSTALL_DOC="$SRC/docs/agents/INSTALL.md"
-UMBRELLA_DOC="$SRC/docs/UMBRELLA.md"
+UMBRELLA_DOC="$SRC/docs/agents/UMBRELLA.md"
 T="$(mktemp -d 2>/dev/null || mktemp -d -t harness-promote)"
 trap 'rm -rf "$T"' EXIT
 trap 'exit 1' HUP INT TERM  # a killed suite still runs its EXIT cleanup (2026-10-25)
@@ -33,7 +33,7 @@ pass() { echo "ok - $1"; }
 
 [ -f "$INSTALL" ] || fail "harness-install.sh not found at $INSTALL"
 [ -f "$INSTALL_DOC" ] || fail "docs/INSTALL.md not found at $INSTALL_DOC"
-[ -f "$UMBRELLA_DOC" ] || fail "docs/UMBRELLA.md not found at $UMBRELLA_DOC"
+[ -f "$UMBRELLA_DOC" ] || fail "docs/agents/UMBRELLA.md not found at $UMBRELLA_DOC"
 
 # git is required by every promotion case (create + git init + the landing audit). Its
 # absence is a NAMED suite-level skip, never a silent pass.
@@ -162,10 +162,10 @@ test_promotion_docs_contract() {
     || fail "R1 docs: usage-header extraction is empty/stale (got $(printf '%s\n' "$_hdr" | grep -c '' || true) lines) — the anchor checks would be vacuous"
   require_tokens "R1 usage header" "$_hdr" "--from-manifest <file>" "umbrella mode" "--from-manifest"
 
-  # (2) docs/UMBRELLA.md promotion section, bounded `^## ` → next `^## `.
+  # (2) docs/agents/UMBRELLA.md promotion section, bounded `^## ` → next `^## `.
   _umb="$(awk '/^## Promoting a single install to a coordinator/{k=1;next} k && /^## /{exit} k' "$UMBRELLA_DOC")"
   [ "$(printf '%s\n' "$_umb" | grep -c '' || true)" -ge 15 ] \
-    || fail "R1 docs: docs/UMBRELLA.md promotion section extraction is empty/stale — the anchor checks would be vacuous"
+    || fail "R1 docs: docs/agents/UMBRELLA.md promotion section extraction is empty/stale — the anchor checks would be vacuous"
   require_tokens "R1 UMBRELLA.md" "$_umb" \
     "--from-manifest <file>" "umbrella.manifest.draft.yaml" "single install" \
     "scaffold_cmd" "--shared-repo" "--dry-run"

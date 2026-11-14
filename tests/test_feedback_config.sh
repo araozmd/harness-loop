@@ -416,14 +416,14 @@ test_umbrella_resolution_docs() {
   printf '%s' "$_isec" | grep -qF '`progress/feedback/`' \
     || fail "R10: INSTALL.md feedback section does not name progress/feedback/ as the fallback dir"
 
-  _lsec="$(folded_section '## The three layers' "$SRC/docs/CONFIG-LAYERING.md")"
-  [ -n "$_lsec" ] || fail "R10: could not extract '## The three layers' from docs/CONFIG-LAYERING.md — heading anchor is stale"
+  _lsec="$(folded_section '## The three layers' "$SRC/docs/agents/CONFIG-LAYERING.md")"
+  [ -n "$_lsec" ] || fail "R10: could not extract '## The three layers' from docs/agents/CONFIG-LAYERING.md — heading anchor is stale"
   printf '%s' "$_lsec" | grep -qF '`feedback:` block governs sessions rooted in that child' \
     || fail "R10: CONFIG-LAYERING.md does not state that the child's own block governs"
   printf '%s' "$_lsec" | grep -qF '**not inherited**' \
     || fail "R10: CONFIG-LAYERING.md does not state that feedback.* is not inherited in an umbrella"
 
-  pass "docs/INSTALL.md and docs/CONFIG-LAYERING.md both state the child-governs umbrella rule; INSTALL.md names the fallback dir (R10) [test_umbrella_resolution_docs]"
+  pass "docs/INSTALL.md and docs/agents/CONFIG-LAYERING.md both state the child-governs umbrella rule; INSTALL.md names the fallback dir (R10) [test_umbrella_resolution_docs]"
 }
 
 # ── R11 ─────────────────────────────────────────────────────────────────────────────────

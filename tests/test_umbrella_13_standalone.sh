@@ -204,11 +204,11 @@ is_stub "$KGLE/specs/glossary.md" \
   || fail "R9: the --thin conversion changed the child's edited glossary bytes"
 pass "R9 glossary_edit_does_not_block_thin_conversion — an edited glossary is not named, the child converts, and the edit survives"
 
-# ── docs contract: docs/UMBRELLA.md documents the migration and the reverse ─────────────
+# ── docs contract: docs/agents/UMBRELLA.md documents the migration and the reverse ─────────────
 # f04_docs_contract. FENCE-AWARE extraction: the bare house awk idiom stops at the first
 # `#` inside a fenced block, and T12 adds new fences to this very file — a `#` comment in
 # one would truncate the span and make every assertion below pass over text it never read.
-F04DOC="$SRC/docs/UMBRELLA.md"
+F04DOC="$SRC/docs/agents/UMBRELLA.md"
 F04_FENCE_AWK="$(cat "$SRC/tests/lib/fence.awk")"
 f04_span() {
   awk -v h="$2" "$F04_FENCE_AWK"'
@@ -219,7 +219,7 @@ f04_span() {
 }
 
 F04MIG="$(f04_span "$F04DOC" 'Migrating an existing child')"
-[ -n "$F04MIG" ] || fail "f04_docs_contract: docs/UMBRELLA.md has no 'Migrating an existing child' section"
+[ -n "$F04MIG" ] || fail "f04_docs_contract: docs/agents/UMBRELLA.md has no 'Migrating an existing child' section"
 # The migration COMMAND, and the absence assertion that matters: EVERY cascade invocation
 # in that section carries --thin. An unflagged cascade presented as step one is the wrong
 # doc a reviewer is most likely to write, and it destroys the differences it reports.
@@ -237,14 +237,14 @@ printf '%s\n' 2>/dev/null "$F04MIG" | grep -qi 'does not resolve to an installed
   || fail "f04_docs_contract: the unreachable-umbrella behavior is not documented in the migration section"
 
 F04STA="$(f04_span "$F04DOC" 'the way back')"
-[ -n "$F04STA" ] || fail "f04_docs_contract: docs/UMBRELLA.md has no '--standalone — the way back' section"
+[ -n "$F04STA" ] || fail "f04_docs_contract: docs/agents/UMBRELLA.md has no '--standalone — the way back' section"
 printf '%s\n' 2>/dev/null "$F04STA" | grep -q 'harness-install\.sh --standalone' \
   || fail "f04_docs_contract: the --standalone section never shows the command"
 printf '%s\n' 2>/dev/null "$F04STA" | grep -qi 'cleared' \
   || fail "f04_docs_contract: the --standalone section does not say umbrella.root is cleared"
 printf '%s\n' 2>/dev/null "$F04STA" | grep -qi 'not a permanent opt-out' \
   || fail "f04_docs_contract: the --standalone section oversells the flag — clearing the key is not a permanent opt-out"
-pass "f04_docs_contract — docs/UMBRELLA.md documents the migration command, the all-or-nothing rule and the reverse"
+pass "f04_docs_contract — docs/agents/UMBRELLA.md documents the migration command, the all-or-nothing rule and the reverse"
 
 # A final negative probe is not a suite failure.
 exit 0
