@@ -1844,6 +1844,50 @@ F04_R1_counterpart_retargets() {
   [ -n "$(um_retarget_problems "$T/f43/b.md" x "$_ban" "$_need")" ] || fail "F04 R1: the check misses a restored ./CONFIG-LAYERING.md target"
   pass "F04_R1_counterpart_retargets"
 }
+
+CL_HEADS='# Config layering — shared vs personal
+## The three layers
+## What the installer does
+## Personal prompt files
+## Practical guidance'
+cl_heads_problem() { [ "$(unfenced "$1" | grep '^#')" = "$CL_HEADS" ] || echo "the headings are not the 5 base headings in base order"; return 0; }
+F04_R2_cl_counterpart_announcement() {
+  _bad="$(um_announce_problem "$ROOT/$CL_A" '# Config layering — shared vs personal' "$CL_ANNOUNCE")"
+  [ -z "$_bad" ] || fail "F04 R2: docs/agents/CONFIG-LAYERING.md: $_bad"
+  rm -rf "$T/f44"; mkdir -p "$T/f44"
+  sed 's/the human guide is/the human guide:/' "$ROOT/$CL_A" > "$T/f44/m.md"
+  cmp -s "$ROOT/$CL_A" "$T/f44/m.md" && fail "F04 R2: setup: the mutant did not apply"
+  [ -n "$(um_announce_problem "$T/f44/m.md" '# Config layering — shared vs personal' "$CL_ANNOUNCE")" ] || fail "F04 R2: the check misses a reworded announcement"
+  pass "F04_R2_cl_counterpart_announcement"
+}
+F04_R2_cl_counterpart_headings_in_order() {
+  _bad="$(cl_heads_problem "$ROOT/$CL_A")"
+  [ -z "$_bad" ] || fail "F04 R2: docs/agents/CONFIG-LAYERING.md: $_bad"
+  rm -rf "$T/f45"; mkdir -p "$T/f45"
+  awk '/^## What the installer does$/ { print "## Personal prompt files"; next } /^## Personal prompt files$/ { print "## What the installer does"; next } { print }' "$ROOT/$CL_A" > "$T/f45/a.md"
+  cmp -s "$ROOT/$CL_A" "$T/f45/a.md" && fail "F04 R2: setup: the swap mutant did not apply"
+  [ -n "$(cl_heads_problem "$T/f45/a.md")" ] || fail "F04 R2: the check misses two swapped headings"
+  # unfence the gitignore block: its # lines then read as headings (the fenced ones are not counted today)
+  grep -qE '^```gitignore$' "$ROOT/$CL_A" || fail "F04 R2: setup: the counterpart has no gitignore fence"
+  sed 's/^```gitignore$/```text/;' "$ROOT/$CL_A" | awk '/^```text$/ { skip = 1; next } skip && /^```$/ { skip = 0; next } { print }' > "$T/f45/b.md"
+  cmp -s "$ROOT/$CL_A" "$T/f45/b.md" && fail "F04 R2: setup: the unfence mutant did not apply"
+  [ -n "$(cl_heads_problem "$T/f45/b.md")" ] || fail "F04 R2: the check misses the # lines of an unfenced gitignore block"
+  pass "F04_R2_cl_counterpart_headings_in_order"
+}
+F04_R2_cl_counterpart_retargets() {
+  _ban='./'
+  _need='../UMBRELLA.md UMBRELLA.md ../INSTALL.md INSTALL.md#worker-roster-workersroster--opt-in-local-only'
+  _bad="$(um_retarget_problems "$ROOT/$CL_A" x "$_ban" "$_need")"
+  [ -z "$_bad" ] || fail "F04 R2: docs/agents/CONFIG-LAYERING.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f46"; mkdir -p "$T/f46"
+  sed 's#(UMBRELLA\.md)#(./UMBRELLA.md)#' "$ROOT/$CL_A" > "$T/f46/a.md"
+  cmp -s "$ROOT/$CL_A" "$T/f46/a.md" && fail "F04 R2: setup: the thin-child mutant did not apply"
+  [ -n "$(um_retarget_problems "$T/f46/a.md" x "$_ban" "$_need")" ] || fail "F04 R2: the check misses a restored ./UMBRELLA.md on the thin-child line"
+  sed 's#(INSTALL\.md\#worker-roster#(../agents/INSTALL.md\#worker-roster#' "$ROOT/$CL_A" > "$T/f46/b.md"
+  cmp -s "$ROOT/$CL_A" "$T/f46/b.md" && fail "F04 R2: setup: the worker-roster mutant did not apply"
+  [ -n "$(um_retarget_problems "$T/f46/b.md" x "$_ban" "$_need")" ] || fail "F04 R2: the check misses a ../agents/INSTALL.md worker-roster target"
+  pass "F04_R2_cl_counterpart_retargets"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -1884,6 +1928,7 @@ row F03_R8_sibling_citations
 row F03_R10_version_and_changelog
 # ---- E39-F04
 row F04_R1_counterpart_announcement; row F04_R1_counterpart_headings_in_order; row F04_R1_counterpart_retargets
+row F04_R2_cl_counterpart_announcement; row F04_R2_cl_counterpart_headings_in_order; row F04_R2_cl_counterpart_retargets
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
