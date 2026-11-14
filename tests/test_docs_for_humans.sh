@@ -13,6 +13,7 @@
 #
 # E39-F02 registers docs/INSTALL.md and adds the F02_R* rows (anchor lint, scan-set plants).
 # E39-F03 registers docs/WORKFLOW.md and adds the F03_R* rows (WORKFLOW split).
+# E39-F04 registers docs/UMBRELLA.md and docs/CONFIG-LAYERING.md and adds the F04_R* rows (UMBRELLA + CONFIG-LAYERING split).
 #
 # Registry: HUMAN_DOCS lists <path>:<line-budget>:<diagram yes|no>. A later slice appends an
 # entry; an override above the default 300 carries a `# why:` comment on the line above it.
@@ -30,7 +31,7 @@ trap 'rm -rf "$T"' EXIT
 trap 'exit 1' HUP INT TERM  # a killed suite still runs its EXIT cleanup (2026-10-25)
 GIT_CEILING_DIRECTORIES="$T"; export GIT_CEILING_DIRECTORIES
 
-HUMAN_DOCS="README.md:150:yes docs/README.md:60:no docs/CONCEPTS.md:220:yes docs/BRAND.md:90:no docs/INSTALL.md:300:yes docs/WORKFLOW.md:300:yes"
+HUMAN_DOCS="README.md:150:yes docs/README.md:60:no docs/CONCEPTS.md:220:yes docs/BRAND.md:90:no docs/INSTALL.md:300:yes docs/WORKFLOW.md:300:yes docs/UMBRELLA.md:250:yes docs/CONFIG-LAYERING.md:100:yes"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }
 pass() { echo "ok - $1"; echo "$1" >> "$T/passed"; }
@@ -1443,7 +1444,7 @@ F03_R6_suites_cite_counterpart() {
 # F03_R9 — the registry entry, the budget it carries and the index row pairing the two paths.
 F03_R9_registry_and_index() {
   printf '%s\n' "$HUMAN_DOCS" | tr ' ' '\n' | grep -qxF 'docs/WORKFLOW.md:300:yes' ||
-    fail "F03 R9: HUMAN_DOCS lacks the entry docs/WORKFLOW.md:300:yes"
+    fail "F03 R9: HUMAN_DOCS lacks the entry docs/WORKFLOW.md:300:yes docs/UMBRELLA.md:250:yes docs/CONFIG-LAYERING.md:100:yes"
   index_rows "$AGENTS_README" | awk '$1 == "docs/WORKFLOW.md" && $2 == "docs/agents/WORKFLOW.md" { f = 1 } END { exit !f }' ||
     fail "F03 R9: ## Index has no row pairing docs/WORKFLOW.md with docs/agents/WORKFLOW.md"
   pass "F03_R9_registry_and_index"
@@ -1679,12 +1680,12 @@ F03_R7_agent_citations() {
 
 # F03_R8 — sibling-doc citations re-point. wf_sibling_problems <root> lets a mirror be scanned.
 wf_sibling_problems() {
-  for _f in docs/RATIONALE.md docs/UMBRELLA.md; do
+  for _f in docs/RATIONALE.md docs/agents/UMBRELLA.md; do
     grep -qF 'docs/WORKFLOW.md' "$1/$_f" && echo "$_f still cites docs/WORKFLOW.md"
   done
   [ "$(grep -cF '[`docs/agents/WORKFLOW.md`](agents/WORKFLOW.md)' "$1/docs/RATIONALE.md")" -eq 4 ] || echo "docs/RATIONALE.md: the four ledger rows do not carry the counterpart link"
   grep -F 'cadence note' "$1/docs/RATIONALE.md" | grep -qF 'the `docs/agents/WORKFLOW.md` cadence note' || echo "docs/RATIONALE.md: the cadence-note token is not the counterpart path"
-  grep -qF 'see `docs/agents/WORKFLOW.md` for the' "$1/docs/UMBRELLA.md" || echo "docs/UMBRELLA.md: the landing-record pointer does not name docs/agents/WORKFLOW.md"
+  grep -qF 'see `docs/agents/WORKFLOW.md` for the' "$1/docs/agents/UMBRELLA.md" || echo "docs/agents/UMBRELLA.md: the landing-record pointer does not name docs/agents/WORKFLOW.md"
   [ "$(grep -cF 'docs/WORKFLOW.md' "$1/docs/SPEC-FORMAT.md")" -eq 1 ] || echo "docs/SPEC-FORMAT.md does not hold exactly one docs/WORKFLOW.md line"
   grep -qF 'into the ADR and plan templates, `agents/architect.md` and `docs/agents/WORKFLOW.md`. Four forms:' "$1/docs/SPEC-FORMAT.md" || echo "docs/SPEC-FORMAT.md: the grammar sentence does not name docs/agents/WORKFLOW.md"
   grep -qF 'See `docs/agents/WORKFLOW.md` → "Which Builder runs".' "$1/docs/agents/INSTALL.md" || echo "docs/agents/INSTALL.md: the arming-verdict pointer does not name docs/agents/WORKFLOW.md"
@@ -1700,8 +1701,8 @@ F03_R8_sibling_citations() {
   _bad="$(wf_sibling_problems "$ROOT")"
   [ -z "$_bad" ] || fail "F03 R8: $(printf '%s' "$_bad" | tr '\n' ';')"
   _w() { rm -rf "$T/f38"; mkdir -p "$T/f38"; cp "$ROOT/README.md" "$T/f38/"; cp -R "$ROOT/docs" "$T/f38/docs"; }
-  _w; sed 's#see `docs/agents/WORKFLOW\.md` for the#see `docs/WORKFLOW.md` for the#' "$T/f38/docs/UMBRELLA.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/UMBRELLA.md"
-  wf_sibling_problems "$T/f38" | grep -qF 'docs/UMBRELLA.md' || fail "F03 R8: the check misses a reverted docs/UMBRELLA.md sentence"
+  _w; sed 's#see `docs/agents/WORKFLOW\.md` for the#see `docs/WORKFLOW.md` for the#' "$T/f38/docs/agents/UMBRELLA.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/agents/UMBRELLA.md"
+  wf_sibling_problems "$T/f38" | grep -qF 'landing-record pointer does not name docs/agents/WORKFLOW.md' || fail "F03 R8: the check misses a reverted docs/agents/UMBRELLA.md sentence"
   _w; sed 's#See `docs/agents/WORKFLOW\.md` → "Which#See `docs/WORKFLOW.md` → "Which#' "$T/f38/docs/agents/INSTALL.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/agents/INSTALL.md"
   wf_sibling_problems "$T/f38" | grep -qF 'docs/agents/INSTALL.md' || fail "F03 R8: the check misses a reverted docs/agents/INSTALL.md pointer"
   _w; sed 's#(WORKFLOW\.md\#diagnosing-blocked-selection)#(../WORKFLOW.md\#diagnosing-blocked-selection)#' "$T/f38/docs/agents/README.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/agents/README.md"
@@ -1924,6 +1925,18 @@ F04_R8_suites_cite_counterparts() {
   um_suite_problems "$T/f48" | grep -qF 'exactly one line' || fail "F04 R8: the check misses a second docs/UMBRELLA.md line in test_install.sh"
   pass "F04_R8_suites_cite_counterparts"
 }
+
+# F04_R11 — the registry entries, the budgets they carry and the two index rows pairing the paths.
+F04_R11_registry_and_index() {
+  _reg() { printf '%s\n' "$HUMAN_DOCS" | tr ' ' '\n' | grep -qxF "$1"; }
+  _reg 'docs/UMBRELLA.md:250:yes' || fail "F04 R11: HUMAN_DOCS lacks the entry docs/UMBRELLA.md:250:yes"
+  _reg 'docs/CONFIG-LAYERING.md:100:yes' || fail "F04 R11: HUMAN_DOCS lacks the entry docs/CONFIG-LAYERING.md:100:yes"
+  index_rows "$AGENTS_README" | awk '$1 == "docs/UMBRELLA.md" && $2 == "docs/agents/UMBRELLA.md" { f = 1 } END { exit !f }' ||
+    fail "F04 R11: ## Index has no row pairing docs/UMBRELLA.md with docs/agents/UMBRELLA.md"
+  index_rows "$AGENTS_README" | awk '$1 == "docs/CONFIG-LAYERING.md" && $2 == "docs/agents/CONFIG-LAYERING.md" { f = 1 } END { exit !f }' ||
+    fail "F04 R11: ## Index has no row pairing docs/CONFIG-LAYERING.md with docs/agents/CONFIG-LAYERING.md"
+  pass "F04_R11_registry_and_index"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -1966,6 +1979,7 @@ row F03_R10_version_and_changelog
 row F04_R1_counterpart_announcement; row F04_R1_counterpart_headings_in_order; row F04_R1_counterpart_retargets
 row F04_R2_cl_counterpart_announcement; row F04_R2_cl_counterpart_headings_in_order; row F04_R2_cl_counterpart_retargets
 row F04_R8_suites_cite_counterparts
+row F04_R11_registry_and_index
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
