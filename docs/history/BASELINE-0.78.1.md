@@ -1,5 +1,7 @@
 # Implemented baseline — 0.78.1
 
+> History — a dated record kept verbatim; it is not updated. Current layout and support are in [docs/INSTALL.md](../INSTALL.md).
+
 Documentation baseline recorded on 2026-09-14, before the next front-end changes.
 `VERSION` remains `0.78.1`: this audit corrects documentation without changing the
 installer, execution contracts, tools, or generated glue.
@@ -8,7 +10,7 @@ installer, execution contracts, tools, or generated glue.
 
 The installer still accepts all five front-end keys. Claude-first defaults park
 other front-ends until selected on fresh installs; their emitters remain present.
-See [installation and selection rules](INSTALL.md) for interactive, unattended,
+See [installation and selection rules](../INSTALL.md) for interactive, unattended,
 and explicit-host behavior.
 
 | Front-end | Implemented integration surface | Validation confidence at this baseline |
@@ -35,13 +37,13 @@ regenerates Claude glue only; it does not verify all five integrations.
 An installed project keeps its body under `.harness/`, with selected and enabled
 front-end glue at project root. Edit `.harness/specs/product.md`, configuration,
 and the durable `.harness/init.project.sh` hook for project adaptation. The
-installer refreshes `.harness/init.sh`. See [layout and ownership](agents/INSTALL.md#layout--ownership).
+installer refreshes `.harness/init.sh`. See [layout and ownership](../agents/INSTALL.md#layout--ownership).
 
 The default local TaskStore requires Unix Python 3 with stdlib `fcntl`, with no
 third-party Python packages. Node is optional for task selection with a prose
 fallback, and required for board mirrors. GitHub Projects and Jira Server/Data
 Center mirrors are implemented; the Jira TaskStore and Azure Boards mirror remain
-stubs. See the [store overview](../store/README.md) and [mirror contract](../store/board-mirror.md).
+stubs. See the [store overview](../../store/README.md) and [mirror contract](../../store/board-mirror.md).
 
 ## Future direction — separate implementation work
 

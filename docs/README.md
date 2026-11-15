@@ -16,4 +16,4 @@ Start with [CONCEPTS.md](CONCEPTS.md), then install and run.
 | [ABLATION.md](ABLATION.md) | The measurement protocol for deleting prompt text safely. |
 | [HARNESS.md](HARNESS.md) | What a harness is, in one page. |
 | [BRAND.md](BRAND.md) | Name, tagline, voice, palette and logo rules. |
-| [BASELINE-0.78.1.md](BASELINE-0.78.1.md) | The 0.78.1 implementation baseline, kept for the record. |
+| [history/BASELINE-0.78.1.md](history/BASELINE-0.78.1.md) | The 0.78.1 implementation baseline, archived verbatim. |

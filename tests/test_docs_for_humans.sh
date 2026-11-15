@@ -2432,6 +2432,54 @@ F05_R2_harness_counterpart_retargets() {
   _m 'Codex GitHub App' 's/Codex GitHub App/Codex review app/g' 'Codex GitHub App'
   pass "F05_R2_harness_counterpart_retargets"
 }
+
+# F05_R3 — the archive. history_problems <root> [<registry>] reads <root>/docs/history/*.md: the archive's
+# shape and links, that docs/README.md links every file there, and that the registry carries no entry under it.
+BL_ANNOUNCE='> History — a dated record kept verbatim; it is not updated. Current layout and support are in [docs/INSTALL.md](../INSTALL.md).'
+BL_HEADS='# Implemented baseline — 0.78.1
+## Current implementation and validation
+## Source checkout and installed projects
+## Future direction — separate implementation work'
+history_problems() {
+  _hr="$1"; _reg="${2:-$HUMAN_DOCS}"; _a="$_hr/$BL_A"
+  [ -f "$_a" ] || { echo "docs/history/BASELINE-0.78.1.md does not exist"; return 0; }
+  [ ! -e "$_hr/docs/BASELINE-0.78.1.md" ] || echo "docs/BASELINE-0.78.1.md still exists"
+  um_announce_problem "$_a" '# Implemented baseline — 0.78.1' "$BL_ANNOUNCE"
+  [ "$(unfenced "$_a" | grep '^#')" = "$BL_HEADS" ] || echo "the archive headings are not the 4 base headings in base order"
+  _t="$(link_targets "$_a")"
+  for _n in ../INSTALL.md ../agents/INSTALL.md#layout--ownership ../../store/README.md ../../store/board-mirror.md; do
+    printf '%s\n' "$_t" | grep -qxF -- "$_n" || echo "archive target $_n is absent"
+  done
+  printf '%s\n' "$_t" | awk 'index($0, "INSTALL.md") == 1 || index($0, "agents/") == 1 || index($0, "../store/") == 1 { f = 1 } END { exit !f }' && echo "an archive target is still the pre-move relative form"
+  for _x in $(printf '%s\n' "$_t" | grep -vE '^(#|https?:|mailto:)' | sed 's/#.*//' | sort -u); do
+    [ -e "$(dirname "$_a")/$_x" ] || echo "archive target $_x does not resolve from docs/history/"
+  done
+  for _h in "$_hr"/docs/history/*.md; do
+    [ -f "$_h" ] || continue
+    grep -qF "](history/$(basename "$_h"))" "$_hr/docs/README.md" || echo "docs/README.md does not link history/$(basename "$_h")"
+  done
+  for _e in $_reg; do
+    case "$_e" in docs/history/*) echo "the registry carries the history entry $_e" ;; esac
+  done
+  return 0
+}
+F05_R3_history_archive() {
+  _bad="$(history_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F05 R3: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f56"; mkdir -p "$T/f56"; cp -R "$ROOT/docs" "$T/f56/docs"; }
+  _w; : > "$T/f56/docs/history/EXTRA.md"
+  _o="$(history_problems "$T/f56")"; printf '%s\n' "$_o" | grep -qF 'history/EXTRA.md' || fail "F05 R3: the check misses an unlinked docs/history file"
+  _w; _o="$(history_problems "$T/f56" "$HUMAN_DOCS docs/history/X.md:50:no")"
+  printf '%s\n' "$_o" | grep -qF 'docs/history/X.md:50:no' || fail "F05 R3: the check misses a registry entry under docs/history/"
+  _w; sed 's#(\.\./INSTALL\.md)#(INSTALL.md)#' "$T/f56/$BL_A" > "$T/f56/n" && mv "$T/f56/n" "$T/f56/$BL_A"
+  _o="$(history_problems "$T/f56")"; printf '%s\n' "$_o" | grep -qF 'INSTALL.md' || fail "F05 R3: the check misses a restored INSTALL.md target"
+  _w; sed 's/it is not updated/it is updated/' "$T/f56/$BL_A" > "$T/f56/n" && mv "$T/f56/n" "$T/f56/$BL_A"
+  cmp -s "$ROOT/$BL_A" "$T/f56/$BL_A" && fail "F05 R3: setup: the blockquote mutant did not apply"
+  _o="$(history_problems "$T/f56")"; printf '%s\n' "$_o" | grep -qF 'announcement' || fail "F05 R3: the check misses a reworded history blockquote"
+  _w; mv "$T/f56/$BL_A" "$T/f56/docs/BASELINE-0.78.1.md"
+  _o="$(history_problems "$T/f56")"; printf '%s\n' "$_o" | grep -qF 'does not exist' || fail "F05 R3: the check misses an archive left at docs/BASELINE-0.78.1.md"
+  pass "F05_R3_history_archive"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2486,6 +2534,7 @@ row F04_R12_version_and_changelog
 # ---- E39-F05
 row F05_R1_counterpart_announcement; row F05_R1_counterpart_headings_in_order
 row F05_R2_harness_counterpart_announcement; row F05_R2_harness_counterpart_headings_in_order; row F05_R2_harness_counterpart_retargets
+row F05_R3_history_archive
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
