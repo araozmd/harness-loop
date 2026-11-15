@@ -16,6 +16,10 @@ Each file is the machine counterpart of one human doc. Humans start at
 | `docs/WORKFLOW.md` | `docs/agents/WORKFLOW.md` | The whole 0.111 WORKFLOW: host invocation, intake, inception and drill-down, the change-size and test-drift checks, observable slices, architecture-aligned specs, stage and NFRs, the doc-critic checkpoints, drift checks and the drift report, the epic lifecycle, the state machine, ownership, waves, blocked selection, parking and the landing record, the human gate, selective SDD and the fix lanes, the PR review loop, awaiting-merge, the deprecated stacked-PR lane, defect reporting, triage, context hygiene, the end-to-end example and Builder escalation |
 | `docs/UMBRELLA.md` | `docs/agents/UMBRELLA.md` | The whole 0.112 UMBRELLA: the opt-in switch, the cascade and the landing audit, the thin child and its tier table, migrating with `--thin`, `--standalone`, the shared spec repository, concepts, the contract artifact, the coordinator loop, integration verification, promotion and the manifest reference |
 | `docs/CONFIG-LAYERING.md` | `docs/agents/CONFIG-LAYERING.md` | The whole 0.112 CONFIG-LAYERING: the three layers, the installer's `.gitignore` seeding, personal prompt files and their caveats, practical guidance |
+| `docs/SPEC-FORMAT.md` | `docs/agents/SPEC-FORMAT.md` | The whole 0.113 SPEC-FORMAT: the hierarchy and ids, the four files, EARS and its patterns, the red/green task-pair grammar, the plan-row citation grammar, architecture alignment and the namespace rule, the implementation-readiness grammar, frontmatter |
+| `docs/HARNESS.md` | `docs/agents/HARNESS.md` | The whole 0.113 HARNESS: the four components, the five principles, the command table and the front-end contract paragraphs (the PR-loop gate, Codex roles and skill units, pi, the `--self` verdict, the Gemini retirement), the sources |
+
+Archived records live in `docs/history/` and are not paired with a human doc: [BASELINE-0.78.1.md](../history/BASELINE-0.78.1.md) is the 0.78.1 implementation baseline, kept verbatim.
 
 ## Conventions
 
@@ -59,7 +63,7 @@ enforce the parts that can be checked.
 
 ## Moved from the README (0.109)
 
-The [0.78.1 baseline](../BASELINE-0.78.1.md) preserves the historical five-front-end
+The [0.78.1 baseline](../history/BASELINE-0.78.1.md) preserves the historical five-front-end
 inventory and its validation limits. Gemini CLI legacy installer emitters remain retired;
 Antigravity is supported natively via shared `.agents/skills/` units and dynamic subagent dispatch.
 See [upgrade guidance](INSTALL.md#retiring-gemini)

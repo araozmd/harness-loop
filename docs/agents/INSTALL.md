@@ -223,7 +223,7 @@ and files with missing or ambiguous proof are preserved with path-specific
 warnings. It never recursively deletes `.agents/` or `.gemini/`. Preserved
 retired glue is excluded from active harness drift ownership. Review the
 warnings and decide separately whether to retain your custom legacy integration.
-The [v0.78.1 baseline](../BASELINE-0.78.1.md) remains the historical support record.
+The [v0.78.1 baseline](../history/BASELINE-0.78.1.md) remains the historical support record.
 
 ## Starting from nothing (new product)
 

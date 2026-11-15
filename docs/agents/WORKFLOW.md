@@ -300,7 +300,7 @@ observable condition that reopens it), cited from the plan's `## Deferred` subse
 subsection is either a `| Bolt-on | Deferred by | Trigger |` table whose rows each cite an
 `ADR-NNNN`, or the single line `Deferred: none — <why>`. Every plan row cites the `R-id` it
 serves or the `ADR-NNNN` that defers it; a bolt-on is never added without an `R-id`. The
-grammar is `docs/SPEC-FORMAT.md` → *Plan rows cite an R-id or an ADR*.
+grammar is `docs/agents/SPEC-FORMAT.md` → *Plan rows cite an R-id or an ADR*.
 
 Enforcement is `E36-F04`: `tools/plan-cite-check.py` turns the grammar into an exit code,
 `init.sh` runs it and the deferred-ADR trigger sweep warn-only at session start, the doc-critic

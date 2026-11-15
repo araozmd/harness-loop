@@ -31,7 +31,7 @@ trap 'rm -rf "$T"' EXIT
 trap 'exit 1' HUP INT TERM  # a killed suite still runs its EXIT cleanup (2026-10-25)
 GIT_CEILING_DIRECTORIES="$T"; export GIT_CEILING_DIRECTORIES
 
-HUMAN_DOCS="README.md:150:yes docs/README.md:60:no docs/CONCEPTS.md:220:yes docs/BRAND.md:90:no docs/INSTALL.md:300:yes docs/WORKFLOW.md:300:yes docs/UMBRELLA.md:250:yes docs/CONFIG-LAYERING.md:100:yes"
+HUMAN_DOCS="README.md:150:yes docs/README.md:60:no docs/CONCEPTS.md:220:yes docs/BRAND.md:90:no docs/INSTALL.md:300:yes docs/WORKFLOW.md:300:yes docs/UMBRELLA.md:250:yes docs/CONFIG-LAYERING.md:100:yes docs/SPEC-FORMAT.md:120:yes docs/HARNESS.md:20:no docs/ABLATION.md:100:yes"
 
 fail() { echo "FAIL: $1" >&2; exit 1; }
 pass() { echo "ok - $1"; echo "$1" >> "$T/passed"; }
@@ -2565,6 +2565,101 @@ F05_R4_specformat_shape() {
   lint_budget "$T/f54s/e.md" 120 && fail "F05 R4: lint_budget accepts a doc over 120 lines"
   pass "F05_R4_specformat_shape"
 }
+
+# F05_R11 — the registry entries, the two index rows pairing the paths and the history paragraph.
+F05_R11_registry_and_index() {
+  _reg() { printf '%s\n' "$HUMAN_DOCS" | tr ' ' '\n' | grep -qxF "$1"; }
+  _reg 'docs/SPEC-FORMAT.md:120:yes' || fail "F05 R11: HUMAN_DOCS lacks the entry docs/SPEC-FORMAT.md:120:yes"
+  _reg 'docs/HARNESS.md:20:no' || fail "F05 R11: HUMAN_DOCS lacks the entry docs/HARNESS.md:20:no"
+  _reg 'docs/ABLATION.md:100:yes' || fail "F05 R11: HUMAN_DOCS lacks the entry docs/ABLATION.md:100:yes"
+  index_rows "$AGENTS_README" | awk '$1 == "docs/SPEC-FORMAT.md" && $2 == "docs/agents/SPEC-FORMAT.md" { f = 1 } END { exit !f }' ||
+    fail "F05 R11: ## Index has no row pairing docs/SPEC-FORMAT.md with docs/agents/SPEC-FORMAT.md"
+  index_rows "$AGENTS_README" | awk '$1 == "docs/HARNESS.md" && $2 == "docs/agents/HARNESS.md" { f = 1 } END { exit !f }' ||
+    fail "F05 R11: ## Index has no row pairing docs/HARNESS.md with docs/agents/HARNESS.md"
+  slice "$AGENTS_README" "## Index" | folded | grep -qF 'Archived records live in `docs/history/`' ||
+    fail "F05 R11: ## Index lacks the history paragraph naming docs/history/"
+  slice "$AGENTS_README" "## Index" | grep -qF '[BASELINE-0.78.1.md](../history/BASELINE-0.78.1.md)' ||
+    fail "F05 R11: the history paragraph does not link ../history/BASELINE-0.78.1.md"
+  pass "F05_R11_registry_and_index"
+}
+
+# F05_R11 — sibling-doc citations re-point (D2). sf_sibling_problems <root> lets a mirror be scanned.
+sf_sibling_problems() {
+  grep -qF 'docs/SPEC-FORMAT.md' "$1/docs/RATIONALE.md" && echo "docs/RATIONALE.md still cites docs/SPEC-FORMAT.md"
+  grep -qF '[`docs/agents/SPEC-FORMAT.md`](agents/SPEC-FORMAT.md)' "$1/docs/RATIONALE.md" || echo "docs/RATIONALE.md: the D1 ledger row does not carry the SPEC-FORMAT counterpart link"
+  grep -qF 'docs/ABLATION.md' "$1/docs/RATIONALE.md" || echo "docs/RATIONALE.md lost its docs/ABLATION.md token"
+  grep -qF 'docs/SPEC-FORMAT.md' "$1/docs/agents/WORKFLOW.md" && echo "docs/agents/WORKFLOW.md still cites docs/SPEC-FORMAT.md"
+  grep -qF 'grammar is `docs/agents/SPEC-FORMAT.md` → *Plan rows cite an R-id or an ADR*.' "$1/docs/agents/WORKFLOW.md" || echo "docs/agents/WORKFLOW.md: the title pointer does not name docs/agents/SPEC-FORMAT.md"
+  for _f in docs/agents/README.md docs/agents/INSTALL.md; do
+    grep -qF '(../history/BASELINE-0.78.1.md)' "$1/$_f" || echo "$_f does not link ../history/BASELINE-0.78.1.md"
+    grep -qF '(../BASELINE-0.78.1.md)' "$1/$_f" && echo "$_f still links ../BASELINE-0.78.1.md"
+  done
+  grep -qF 'See `docs/SPEC-FORMAT.md`.' "$1/docs/agents/README.md" || echo "docs/agents/README.md lost its plain SPEC-FORMAT pointer"
+  for _n in '](SPEC-FORMAT.md)' '](HARNESS.md)' '](ABLATION.md)' '](history/BASELINE-0.78.1.md)'; do
+    grep -qF "$_n" "$1/docs/README.md" || echo "docs/README.md lacks the link $_n"
+  done
+  grep -qF '](BASELINE-0.78.1.md)' "$1/docs/README.md" && echo "docs/README.md still links ](BASELINE-0.78.1.md)"
+  grep -qF '[SPEC-FORMAT.md](SPEC-FORMAT.md)' "$1/docs/CONCEPTS.md" || echo "docs/CONCEPTS.md lost its plain SPEC-FORMAT.md link"
+  grep -qF '(SPEC-FORMAT.md)' "$1/docs/WORKFLOW.md" || echo "docs/WORKFLOW.md lost its plain SPEC-FORMAT.md link"
+  return 0
+}
+F05_R11_sibling_citations() {
+  _bad="$(sf_sibling_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F05 R11: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f511"; mkdir -p "$T/f511"; cp "$ROOT/README.md" "$T/f511/"; cp -R "$ROOT/docs" "$T/f511/docs"; }
+  _x() { sed "$1" "$T/f511/$2" > "$T/f511/n" && mv "$T/f511/n" "$T/f511/$2"; cmp -s "$ROOT/$2" "$T/f511/$2" && fail "F05 R11: setup: the mutant on $2 did not apply"; return 0; }
+  _w; _x 's#\[`docs/agents/SPEC-FORMAT\.md`\](agents/SPEC-FORMAT\.md)#[`docs/SPEC-FORMAT.md`](SPEC-FORMAT.md)#' docs/RATIONALE.md
+  _o="$(sf_sibling_problems "$T/f511")"; printf '%s\n' "$_o" | grep -qF 'docs/RATIONALE.md' || fail "F05 R11: the check misses a reverted D1 ledger row"
+  _w; _x 's#(\.\./history/BASELINE-0\.78\.1\.md)#(../BASELINE-0.78.1.md)#' docs/agents/INSTALL.md
+  _o="$(sf_sibling_problems "$T/f511")"; printf '%s\n' "$_o" | grep -qF 'docs/agents/INSTALL.md' || fail "F05 R11: the check misses a reverted docs/agents/INSTALL.md link"
+  _w; _x 's#\[SPEC-FORMAT\.md\](SPEC-FORMAT\.md)#[SPEC-FORMAT.md](agents/SPEC-FORMAT.md)#' docs/README.md
+  _o="$(sf_sibling_problems "$T/f511")"; printf '%s\n' "$_o" | grep -qF 'docs/README.md' || fail "F05 R11: the check misses a re-pointed docs/README.md SPEC-FORMAT link"
+  _w; _x 's#See `docs/SPEC-FORMAT\.md`\.#See `docs/agents/SPEC-FORMAT.md`.#' docs/agents/README.md
+  _o="$(sf_sibling_problems "$T/f511")"; printf '%s\n' "$_o" | grep -qF 'plain SPEC-FORMAT pointer' || fail "F05 R11: the check misses a re-pointed docs/agents/README.md pointer"
+  _w; _x 's#grammar is `docs/agents/SPEC-FORMAT\.md`#grammar is `docs/SPEC-FORMAT.md`#' docs/agents/WORKFLOW.md
+  _o="$(sf_sibling_problems "$T/f511")"; printf '%s\n' "$_o" | grep -qF 'docs/agents/WORKFLOW.md' || fail "F05 R11: the check misses a reverted docs/agents/WORKFLOW.md title pointer"
+  pass "F05_R11_sibling_citations"
+}
+
+# F05_R6 — the HARNESS pointer page. hp_accuracy_problems <file> pins sentences P1-P2 on the doc folded outside fences.
+hp_accuracy_problems() {
+  _t="$(unfenced "$1" | folded)"
+  _pin() { printf '%s' "$_t" | grep -qE -- "$2" || echo "$1 missing"; }
+  _pin P1 'context it reads[^.]{0,30}tools it may call[^.]{0,40}memory it keeps[^.]{0,60}verification'
+  _pin P2 'model is the engine; the harness is the chassis'
+}
+hp_shape_problems() {
+  [ "$(nlines "$1")" -le 20 ] || echo "exceeds 20 lines"
+  [ "$(sed -n '1p' "$1")" = "# What a harness is" ] || echo "line 1 is not '# What a harness is'"
+  sed -n '1,15p' "$1" | grep -qF '](agents/HARNESS.md)' || echo "no counterpart link within the first 15 lines"
+  unfenced "$1" | grep -q '^## ' && echo "the page holds a ## heading"
+  grep -q '^| D' "$1" && echo "the page holds a ledger row"
+  for _l in '[CONCEPTS.md](CONCEPTS.md)' '[WORKFLOW.md](WORKFLOW.md)' '[rationale and deletion ledger](RATIONALE.md)'; do
+    grep -qF -- "$_l" "$1" || echo "the page lacks the link $_l"
+  done
+  grep -qF '](agents/WORKFLOW.md)' "$1" && echo "the page links agents/WORKFLOW.md"
+  hp_accuracy_problems "$1"
+  return 0
+}
+F05_R6_harness_pointer_page() {
+  [ -f "$ROOT/$HA_H" ] || fail "F05 R6: docs/HARNESS.md does not exist"
+  _bad="$(hp_shape_problems "$ROOT/$HA_H")"
+  [ -z "$_bad" ] || fail "F05 R6: docs/HARNESS.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f56h"; mkdir -p "$T/f56h"
+  _m() { sed "$2" "$ROOT/$HA_H" > "$T/f56h/m.md"
+         cmp -s "$ROOT/$HA_H" "$T/f56h/m.md" && fail "F05 R6: setup: the $1 mutant did not apply"
+         _o="$(hp_shape_problems "$T/f56h/m.md")"; printf '%s\n' "$_o" | grep -qF -- "$3" || fail "F05 R6: the check misses the $1 mutant"; }
+  _m 'rationale link' 's#(RATIONALE\.md)#(agents/RATIONALE.md)#' 'rationale and deletion ledger'
+  _m 'P2' 's/the harness is$/the harness is not/; s/^the chassis\.$/the rest./' 'P2 missing'
+  _m 'WORKFLOW link' 's#\[WORKFLOW\.md\](WORKFLOW\.md)#[WORKFLOW.md](agents/WORKFLOW.md)#' 'WORKFLOW.md'
+  { cat "$ROOT/$HA_H"; printf '\n## Components\n'; } > "$T/f56h/n.md"
+  _o="$(hp_shape_problems "$T/f56h/n.md")"; printf '%s\n' "$_o" | grep -qF 'a ## heading' || fail "F05 R6: the check misses an added ## heading"
+  { cat "$ROOT/$HA_H"; printf '| D1 | x |\n'; } > "$T/f56h/o.md"
+  _o="$(hp_shape_problems "$T/f56h/o.md")"; printf '%s\n' "$_o" | grep -qF 'ledger row' || fail "F05 R6: the check misses an added ledger row"
+  { cat "$ROOT/$HA_H"; yes x | head -n 21; } > "$T/f56h/p.md"
+  lint_budget "$T/f56h/p.md" 20 && fail "F05 R6: lint_budget accepts a page over 20 lines"
+  pass "F05_R6_harness_pointer_page"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2622,6 +2717,9 @@ row F05_R2_harness_counterpart_announcement; row F05_R2_harness_counterpart_head
 row F05_R3_history_archive
 row F05_R9_suites_cite_counterparts
 row F05_R4_specformat_shape
+row F05_R11_registry_and_index
+row F05_R11_sibling_citations
+row F05_R6_harness_pointer_page
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
