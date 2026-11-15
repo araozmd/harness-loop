@@ -2660,6 +2660,96 @@ F05_R6_harness_pointer_page() {
   lint_budget "$T/f56h/p.md" 20 && fail "F05 R6: lint_budget accepts a page over 20 lines"
   pass "F05_R6_harness_pointer_page"
 }
+
+# F05_R5 — the human SPEC-FORMAT's hierarchy diagram, its sentences and the absent over-claims.
+SF_DIAGRAM_TOKENS='specs/product.md
+epic.md
+.spec.md
+.plan.md
+.tasks.md
+.tests.md
+R1'
+F05_R5_specformat_diagram() {
+  _bad="$(diagram_problems "$ROOT/$SF_H" "## Product, epic, feature" "$SF_DIAGRAM_TOKENS" 'E01
+F01
+glossary.md')"
+  [ -z "$_bad" ] || fail "F05 R5: docs/SPEC-FORMAT.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f55d"; mkdir -p "$T/f55d"
+  _m() { sed "$2" "$ROOT/$SF_H" > "$T/f55d/m.md"
+         cmp -s "$ROOT/$SF_H" "$T/f55d/m.md" && fail "F05 R5: setup: the $1 mutant did not apply"
+         _o="$(diagram_problems "$T/f55d/m.md" "## Product, epic, feature" "$SF_DIAGRAM_TOKENS" 'E01
+F01
+glossary.md')"; printf '%s\n' "$_o" | grep -qF -- "$3" || fail "F05 R5: the check misses the $1 mutant"; }
+  _m '.tests.md node' '/^    feature --> tests\[/d; s/ and the four spec files//' ".tests.md"
+  _m 'graph' 's/^flowchart TD$/graph TD/' 'is not a flowchart'
+  _m 'glossary prose' 's/`specs\/glossary\.md`/the vocabulary file/' 'glossary.md'
+  awk '/^## Product, epic, feature$/ { print; print ""; print "```mermaid"; print "flowchart LR"; print "    x --> y"; print "```"; next } { print }' "$ROOT/$SF_H" > "$T/f55d/n.md"
+  _o="$(diagram_problems "$T/f55d/n.md" "## Product, epic, feature" "$SF_DIAGRAM_TOKENS" 'E01
+F01
+glossary.md')"; printf '%s\n' "$_o" | grep -qF 'exactly one mermaid block' || fail "F05 R5: the check misses a second mermaid block"
+  pass "F05_R5_specformat_diagram"
+}
+# sf_accuracy_problems <file> — pins S1-S9 on the doc folded outside fences (one- to three-token regexes; wording
+# outside the regex is free, a dropped exception reds).
+sf_accuracy_problems() {
+  _t="$(unfenced "$1" | folded)"
+  _pin() { printf '%s' "$_t" | grep -qE -- "$2" || echo "$1 missing"; }
+  _pin S1 'A product holds epics, an epic holds features, and a feature owns the four files'
+  _pin S2 '[Nn]ever renumber a shipped requirement[^.]{0,40}append'
+  _pin S3 'one observable, testable behavior'
+  _pin S3 'use .shall.'
+  _pin S4 'four tables[^.]{0,160}cites a requirement or an ADR'
+  _pin S4 'setup or verify task[^.]{0,30}may cite none'
+  _pin S5 'writes the failing test[^.]{0,80}RED'
+  _pin S5 'minimal code[^.]{0,40}GREEN'
+  _pin S5 'commits after each GREEN'
+  _pin S6 '1 on a violation and 2 on a usage error'
+  _pin S6 'Reviewer rejects on exit 1'
+  _pin S7 'ignored, never flagged'
+  _pin S8 '.ADRs touched: none.'
+  _pin S8 'no architecture[^.]{0,80}not required[^.]{0,60}nothing is fabricated'
+  _pin S9 'pending → spec-ready → in-progress → in-review → done'
+  _pin S9 '.autonomous: true. may bypass the human approval gate'
+}
+F05_R5_specformat_sentences() {
+  _bad="$(sf_accuracy_problems "$ROOT/$SF_H")"
+  [ -z "$_bad" ] || fail "F05 R5: docs/SPEC-FORMAT.md lacks pinned sentence(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f55s"; mkdir -p "$T/f55s"
+  _m() { sed "$2" "$ROOT/$SF_H" > "$T/f55s/m.md"
+         cmp -s "$ROOT/$SF_H" "$T/f55s/m.md" && fail "F05 R5: setup: the mutant for $1 did not apply"
+         _o="$(sf_accuracy_problems "$T/f55s/m.md")"; printf '%s\n' "$_o" | grep -qF "$1 missing" || fail "F05 R5: the pin $1 survives its mutant"; }
+  _m S1 's/owns the four files/owns four files/'
+  _m S2 's/ — append a new one//'
+  _m S3 's/use `shall` for/use `should` for/'
+  _m S4 's/which may cite none/which is exempt/'
+  _m S5 's/commits after each GREEN/commits at the end/'
+  _m S6 's/the Reviewer rejects on exit 1/the Reviewer may reject/'
+  _m S7 's/ignored, never flagged/rarely flagged/'
+  _m S8 's/ and nothing is fabricated//'
+  _m S9 's/`autonomous: true` may bypass the human approval gate/`autonomous: true` bypasses the human approval gate/'
+  pass "F05_R5_specformat_sentences"
+}
+sf_over_claims() {
+  _t="$(unfenced "$1" | folded)"
+  for _o in 'one test per requirement' 'exactly one test' 'maps 1:1' 'the lint rejects' 'every spec carries' \
+            'every task cites' 'decision 2' 'E36-F0' 'E37-F0'; do
+    printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
+  done
+  return 0
+}
+F05_R5_specformat_no_over_claims() {
+  _bad="$(sf_over_claims "$ROOT/$SF_H")"
+  [ -z "$_bad" ] || fail "F05 R5: docs/SPEC-FORMAT.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f55v"; mkdir -p "$T/f55v"
+  for _m in 'Each requirement has EXACTLY ONE TEST.' 'It keeps one test per requirement.' 'Each clause maps 1:1 to a test.' 'The lint rejects the spec.' \
+            'Every spec carries the section.' 'Every task cites a requirement.' 'See decision 2.' '(E36-F04)' '(E37-F01)'; do
+    { cat "$ROOT/$SF_H"; printf '\n%s\n' "$_m"; } > "$T/f55v/m.md"
+    [ -n "$(sf_over_claims "$T/f55v/m.md")" ] || fail "F05 R5: the over-claim check misses '$_m'"
+  done
+  { cat "$ROOT/$SF_H"; printf '\n```text\none test per requirement exactly one test maps 1:1 the lint rejects every spec carries every task cites decision 2 E36-F0 E37-F0\n```\n'; } > "$T/f55v/m.md"
+  [ -z "$(sf_over_claims "$T/f55v/m.md")" ] || fail "F05 R5: the over-claim check flags text inside a fence"
+  pass "F05_R5_specformat_no_over_claims"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2720,6 +2810,8 @@ row F05_R4_specformat_shape
 row F05_R11_registry_and_index
 row F05_R11_sibling_citations
 row F05_R6_harness_pointer_page
+row F05_R5_specformat_diagram
+row F05_R5_specformat_sentences; row F05_R5_specformat_no_over_claims
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
