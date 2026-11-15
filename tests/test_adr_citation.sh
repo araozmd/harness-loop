@@ -316,11 +316,11 @@ pass "R13 wrapped_qualifier_survives"
 #        knows `specs/adr/`, a Reviewer following it literally re-flags every product-
 #        namespace citation the sweep certifies clean (E99-F50 round 2, blocker 2).
 # R11_contract_coherence
-#        ALL FIVE contract files are pinned INDEPENDENTLY (round 3): docs/SPEC-FORMAT.md
+#        ALL FIVE contract files are pinned INDEPENDENTLY (round 3): docs/agents/SPEC-FORMAT.md
 #        and docs/agents/WORKFLOW.md carried the identical stale claim and were fixed with the
 #        rest, but nothing failed when either was reverted to the stale text.
 ARC="agents/architect.md"; TPL="specs/_templates/feature.spec.md"
-SPF="docs/SPEC-FORMAT.md"; WFL="docs/agents/WORKFLOW.md"
+SPF="docs/agents/SPEC-FORMAT.md"; WFL="docs/agents/WORKFLOW.md"
 for f in "$REV" "$ARC" "$TPL" "$SPF" "$WFL" init.sh; do
   [ -f "$f" ] || fail "R11: $f missing"
   # `<product>` in the illustrative form, `<ns>` in the normative one — either names a

@@ -120,12 +120,12 @@ grep -qi 'does not fire\|legacy\|no.*architecture' "$REV" || fail "R12: reviewer
 grep -qi 'sdd: false\|brief-only' "$REV"         || fail "R12: reviewer does not carve out sdd:false brief-only items"
 pass "R12 reviewer_soft"
 
-# ── R13: docs/SPEC-FORMAT.md documents the section + cite-your-ADRs rule ──────────
+# ── R13: docs/agents/SPEC-FORMAT.md documents the section + cite-your-ADRs rule ──────────
 # R13_spec_format_doc
-grep -qF 'Architecture alignment' docs/SPEC-FORMAT.md || fail "R13: SPEC-FORMAT.md does not document the section"
-grep -qF 'ADR' docs/SPEC-FORMAT.md               || fail "R13: SPEC-FORMAT.md does not mention ADRs"
-grep -qi 'cite\|touch' docs/SPEC-FORMAT.md       || fail "R13: SPEC-FORMAT.md does not state cite/touch"
-grep -qi 'ADRs touched: none\|none\|absent' docs/SPEC-FORMAT.md || fail "R13: SPEC-FORMAT.md does not document none/absent"
+grep -qF 'Architecture alignment' docs/agents/SPEC-FORMAT.md || fail "R13: SPEC-FORMAT.md does not document the section"
+grep -qF 'ADR' docs/agents/SPEC-FORMAT.md               || fail "R13: SPEC-FORMAT.md does not mention ADRs"
+grep -qi 'cite\|touch' docs/agents/SPEC-FORMAT.md       || fail "R13: SPEC-FORMAT.md does not state cite/touch"
+grep -qi 'ADRs touched: none\|none\|absent' docs/agents/SPEC-FORMAT.md || fail "R13: SPEC-FORMAT.md does not document none/absent"
 pass "R13 spec_format_doc"
 
 # ── R14: docs/agents/WORKFLOW.md adds a distinct ADR-citation section vs /sdd-plan + /sdd-drill

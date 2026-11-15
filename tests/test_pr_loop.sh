@@ -1995,13 +1995,13 @@ test_source_layout_glue_present() {                   # R49
 }
 
 test_docs_document_pr_loop() {                        # R50
-  for _d in "$SRC/README.md" "$SRC/docs/agents/INSTALL.md" "$SRC/docs/agents/WORKFLOW.md" "$SRC/docs/HARNESS.md"; do
+  for _d in "$SRC/README.md" "$SRC/docs/agents/INSTALL.md" "$SRC/docs/agents/WORKFLOW.md" "$SRC/docs/agents/HARNESS.md"; do
     grep -qF '/sdd-pr-loop' "$_d" || fail "R50: $_d does not list /sdd-pr-loop"
     grep -qF 'Codex GitHub App' "$_d" || fail "R50: $_d does not state the Codex GitHub App precondition"
   done
   grep -qF 'pr_loop.enabled' "$SRC/docs/agents/INSTALL.md" || fail "R50: INSTALL.md does not document the gate"
   # the OPT-IN default is a documented contract, not an implementation detail
-  for _d in "$SRC/README.md" "$SRC/docs/agents/INSTALL.md" "$SRC/docs/agents/WORKFLOW.md" "$SRC/docs/HARNESS.md"; do
+  for _d in "$SRC/README.md" "$SRC/docs/agents/INSTALL.md" "$SRC/docs/agents/WORKFLOW.md" "$SRC/docs/agents/HARNESS.md"; do
     grep -qiF 'opt-in' "$_d" || fail "R50: $_d does not state that pr_loop.enabled is opt-in"
   done
   grep -qF 'enabled: false' "$SRC/docs/agents/INSTALL.md" \

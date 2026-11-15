@@ -644,7 +644,7 @@ test_readiness_check_installed_contract() {
     fail "E37-F01: installed readiness-check.py differs from source"
   grep -qF 'chmod +x "$H/tools/readiness-check.py"' "$SRC/harness-install.sh" ||
     fail "E37-F01: installer lacks explicit readiness-check executable wiring"
-  for f in init.sh agents/architect.md agents/reviewer.md agents/doc-critic.md docs/SPEC-FORMAT.md; do
+  for f in init.sh agents/architect.md agents/reviewer.md agents/doc-critic.md docs/agents/SPEC-FORMAT.md; do
     grep -qF 'tools/readiness-check.py' "$T/.harness/$f" ||
       fail "E37-F01: installed $f does not name tools/readiness-check.py"
   done
@@ -2120,7 +2120,7 @@ _expected_v="$(sed -n 's/^## \[\([0-9][0-9.]*\)\].*/\1/p' "$SRC/CHANGELOG.md" | 
 [ "$(cat "$SRC/VERSION")" = "$_expected_v" ] \
   || fail "R10: VERSION $(cat "$SRC/VERSION") does not match the newest CHANGELOG entry $_expected_v"
 grep -qF '## [0.49.0]' "$SRC/CHANGELOG.md" || fail "R10: CHANGELOG lacks 0.49.0"
-for _doc in "$SRC/docs/agents/README.md" "$SRC/docs/HARNESS.md" "$SRC/docs/agents/INSTALL.md"; do
+for _doc in "$SRC/docs/agents/README.md" "$SRC/docs/agents/HARNESS.md" "$SRC/docs/agents/INSTALL.md"; do
   grep -qF '$sdd-' "$_doc" || fail "R10: $_doc does not document Codex \$sdd-* skills"
   grep -qF '.agents/skills' "$_doc" || fail "R10: $_doc omits the Codex skill layout"
   grep -qiF 'legacy' "$_doc" || fail "R10: $_doc does not document legacy migration"

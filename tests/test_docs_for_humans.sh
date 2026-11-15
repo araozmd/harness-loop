@@ -678,10 +678,10 @@ R10_repo_citations_resolve() {
   tail -n 1 "$T/cout" | grep -qE '^doc-cite-check: 0 findings, [0-9]+ files scanned$' || fail "R10: the summary is not '0 findings'"
   # control: with a cited doc missing from a mirror the same tool exits 1 and names the citing file
   rm -rf "$T/m10"; mkdir -p "$T/m10"; cp -R "$ROOT/agents" "$ROOT/docs" "$T/m10/"
-  rm "$T/m10/docs/SPEC-FORMAT.md"
+  rm "$T/m10/docs/agents/SPEC-FORMAT.md"
   run_cite --root "$T/m10" agents/architect.md
-  [ "$rc" -eq 1 ] || fail "R10: a mirror without docs/SPEC-FORMAT.md exited $rc, expected 1"
-  grep -q '^CITE agents/architect.md:[0-9]* docs/SPEC-FORMAT.md ' "$T/cout" || fail "R10: the missing doc is not reported against agents/architect.md"
+  [ "$rc" -eq 1 ] || fail "R10: a mirror without docs/agents/SPEC-FORMAT.md exited $rc, expected 1"
+  grep -q '^CITE agents/architect.md:[0-9]* docs/agents/SPEC-FORMAT.md ' "$T/cout" || fail "R10: the missing doc is not reported against agents/architect.md"
   pass "R10_repo_citations_resolve"
 }
 
@@ -1692,8 +1692,8 @@ wf_sibling_problems() {
   [ "$(grep -cF '[`docs/agents/WORKFLOW.md`](agents/WORKFLOW.md)' "$1/docs/RATIONALE.md")" -eq 4 ] || echo "docs/RATIONALE.md: the four ledger rows do not carry the counterpart link"
   grep -F 'cadence note' "$1/docs/RATIONALE.md" | grep -qF 'the `docs/agents/WORKFLOW.md` cadence note' || echo "docs/RATIONALE.md: the cadence-note token is not the counterpart path"
   grep -qF 'see `docs/agents/WORKFLOW.md` for the' "$1/docs/agents/UMBRELLA.md" || echo "docs/agents/UMBRELLA.md: the landing-record pointer does not name docs/agents/WORKFLOW.md"
-  [ "$(grep -cF 'docs/WORKFLOW.md' "$1/docs/SPEC-FORMAT.md")" -eq 1 ] || echo "docs/SPEC-FORMAT.md does not hold exactly one docs/WORKFLOW.md line"
-  grep -qF 'into the ADR and plan templates, `agents/architect.md` and `docs/agents/WORKFLOW.md`. Four forms:' "$1/docs/SPEC-FORMAT.md" || echo "docs/SPEC-FORMAT.md: the grammar sentence does not name docs/agents/WORKFLOW.md"
+  [ "$(grep -cF 'docs/WORKFLOW.md' "$1/docs/agents/SPEC-FORMAT.md")" -eq 1 ] || echo "docs/agents/SPEC-FORMAT.md does not hold exactly one docs/WORKFLOW.md line"
+  grep -qF 'into the ADR and plan templates, `agents/architect.md` and `docs/agents/WORKFLOW.md`. Four forms:' "$1/docs/agents/SPEC-FORMAT.md" || echo "docs/agents/SPEC-FORMAT.md: the grammar sentence does not name docs/agents/WORKFLOW.md"
   grep -qF 'See `docs/agents/WORKFLOW.md` → "Which Builder runs".' "$1/docs/agents/INSTALL.md" || echo "docs/agents/INSTALL.md: the arming-verdict pointer does not name docs/agents/WORKFLOW.md"
   grep -qF '(WORKFLOW.md#diagnosing-blocked-selection)' "$1/docs/agents/README.md" || echo "docs/agents/README.md: the blocked-selection link does not target WORKFLOW.md#diagnosing-blocked-selection"
   grep -qF '(../WORKFLOW.md#' "$1/docs/agents/README.md" && echo "docs/agents/README.md: a stale ../WORKFLOW.md# anchor remains"
@@ -1717,8 +1717,8 @@ F03_R8_sibling_citations() {
   wf_sibling_problems "$T/f38" | grep -qF 'docs/RATIONALE.md' || fail "F03 R8: the check misses a reverted docs/RATIONALE.md ledger row"
   _w; sed 's#the `docs/agents/WORKFLOW\.md` cadence note#the `docs/WORKFLOW.md` cadence note#' "$T/f38/docs/RATIONALE.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/RATIONALE.md"
   wf_sibling_problems "$T/f38" | grep -qF 'cadence-note' || fail "F03 R8: the check misses a reverted cadence-note token"
-  _w; sed 's#`agents/architect.md` and `docs/agents/WORKFLOW.md`#`agents/architect.md` and `docs/WORKFLOW.md`#' "$T/f38/docs/SPEC-FORMAT.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/SPEC-FORMAT.md"
-  wf_sibling_problems "$T/f38" | grep -qF 'docs/SPEC-FORMAT.md' || fail "F03 R8: the check misses a reverted docs/SPEC-FORMAT.md grammar sentence"
+  _w; sed 's#`agents/architect.md` and `docs/agents/WORKFLOW.md`#`agents/architect.md` and `docs/WORKFLOW.md`#' "$T/f38/docs/agents/SPEC-FORMAT.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/agents/SPEC-FORMAT.md"
+  wf_sibling_problems "$T/f38" | grep -qF 'docs/agents/SPEC-FORMAT.md' || fail "F03 R8: the check misses a reverted docs/agents/SPEC-FORMAT.md grammar sentence"
   _w; sed 's#(WORKFLOW\.md)#(agents/WORKFLOW.md)#' "$T/f38/docs/CONCEPTS.md" > "$T/f38/n" && mv "$T/f38/n" "$T/f38/docs/CONCEPTS.md"
   wf_sibling_problems "$T/f38" | grep -qF 'docs/CONCEPTS.md' || fail "F03 R8: the check misses a re-pointed docs/CONCEPTS.md link"
   pass "F03_R8_sibling_citations"
@@ -2480,6 +2480,46 @@ F05_R3_history_archive() {
   _o="$(history_problems "$T/f56")"; printf '%s\n' "$_o" | grep -qF 'does not exist' || fail "F05 R3: the check misses an archive left at docs/BASELINE-0.78.1.md"
   pass "F05_R3_history_archive"
 }
+
+# F05_R9 — each of the eleven suites of the coupling table cites its counterpart; tests/test_install.sh keeps
+# the human path on exactly the installed-contract loop (SPEC-FORMAT) and that loop plus the installed pointer
+# page's rationale-link check (HARNESS); the six SPEC-FORMAT suites hold no docs/SPEC-FORMAT.md and the three
+# HARNESS suites hold no docs/HARNESS.md. <root> lets a mirror be scanned.
+SF_SUITES="install adr_citation architect_adr plan_cite readiness_check stage_nfrs tasks_pairs"
+HA_SUITES="install pi_agents pi_front pr_loop"
+sf_suite_problems() {
+  for _s in $SF_SUITES; do
+    grep -qF 'docs/agents/SPEC-FORMAT.md' "$1/tests/test_$_s.sh" || echo "tests/test_$_s.sh does not cite docs/agents/SPEC-FORMAT.md"
+  done
+  for _s in $HA_SUITES; do
+    grep -qF 'docs/agents/HARNESS.md' "$1/tests/test_$_s.sh" || echo "tests/test_$_s.sh does not cite docs/agents/HARNESS.md"
+  done
+  for _s in adr_citation architect_adr plan_cite readiness_check stage_nfrs tasks_pairs; do
+    grep -qF 'docs/SPEC-FORMAT.md' "$1/tests/test_$_s.sh" && echo "tests/test_$_s.sh still cites docs/SPEC-FORMAT.md"
+  done
+  for _s in pi_agents pi_front pr_loop; do
+    grep -qF 'docs/HARNESS.md' "$1/tests/test_$_s.sh" && echo "tests/test_$_s.sh still cites docs/HARNESS.md"
+  done
+  [ "$(grep -cF 'docs/SPEC-FORMAT.md' "$1/tests/test_install.sh")" -eq 1 ] || echo "tests/test_install.sh does not hold docs/SPEC-FORMAT.md on exactly one line"
+  [ "$(grep -cF 'docs/HARNESS.md' "$1/tests/test_install.sh")" -eq 2 ] || echo "tests/test_install.sh does not hold docs/HARNESS.md on exactly two lines"
+  return 0
+}
+F05_R9_suites_cite_counterparts() {
+  _bad="$(sf_suite_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F05 R9: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f59"; mkdir -p "$T/f59/tests"; cp "$ROOT"/tests/test_*.sh "$T/f59/tests/"; }
+  _w; sed 's#docs/agents/SPEC-FORMAT\.md#docs/SPEC-FORMAT.md#g' "$T/f59/tests/test_adr_citation.sh" > "$T/f59/n" && mv "$T/f59/n" "$T/f59/tests/test_adr_citation.sh"
+  cmp -s "$ROOT/tests/test_adr_citation.sh" "$T/f59/tests/test_adr_citation.sh" && fail "F05 R9: setup: the SPF= mutant did not apply"
+  _o="$(sf_suite_problems "$T/f59")"; printf '%s\n' "$_o" | grep -qF 'test_adr_citation.sh' || fail "F05 R9: the check misses a suite reverted to docs/SPEC-FORMAT.md"
+  _w; sed 's#\(\[ -f "\$T/\.harness/\)docs/HARNESS\.md"#\1docs/agents/HARNESS.md"#; s#"\$T/\.harness/docs/HARNESS\.md"#"$T/.harness/docs/agents/HARNESS.md"#' "$T/f59/tests/test_install.sh" > "$T/f59/n" && mv "$T/f59/n" "$T/f59/tests/test_install.sh"
+  cmp -s "$ROOT/tests/test_install.sh" "$T/f59/tests/test_install.sh" && fail "F05 R9: setup: the line-807 mutant did not apply"
+  _o="$(sf_suite_problems "$T/f59")"; printf '%s\n' "$_o" | grep -qF 'exactly two lines' || fail "F05 R9: the check misses a re-pointed pointer-page check in test_install.sh"
+  _w; printf '# see docs/HARNESS.md\n' >> "$T/f59/tests/test_pr_loop.sh"
+  _o="$(sf_suite_problems "$T/f59")"; printf '%s\n' "$_o" | grep -qF 'test_pr_loop.sh still cites' || fail "F05 R9: the check misses a stray docs/HARNESS.md in test_pr_loop.sh"
+  _w; printf '# see docs/SPEC-FORMAT.md\n' >> "$T/f59/tests/test_install.sh"
+  _o="$(sf_suite_problems "$T/f59")"; printf '%s\n' "$_o" | grep -qF 'exactly one line' || fail "F05 R9: the check misses a second docs/SPEC-FORMAT.md line in test_install.sh"
+  pass "F05_R9_suites_cite_counterparts"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2535,6 +2575,7 @@ row F04_R12_version_and_changelog
 row F05_R1_counterpart_announcement; row F05_R1_counterpart_headings_in_order
 row F05_R2_harness_counterpart_announcement; row F05_R2_harness_counterpart_headings_in_order; row F05_R2_harness_counterpart_retargets
 row F05_R3_history_archive
+row F05_R9_suites_cite_counterparts
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
