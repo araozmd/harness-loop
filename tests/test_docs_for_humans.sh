@@ -2319,6 +2319,55 @@ F04_R12_version_and_changelog() {
   [ -n "$(changelog_problem "$T/f412b.md" E39-F04 docs/agents/UMBRELLA.md docs/UMBRELLA.md docs/agents/CONFIG-LAYERING.md docs/CONFIG-LAYERING.md)" ] || fail "F04 R12: the changelog check misses a PATCH-step E39-F04 section"
   pass "F04_R12_version_and_changelog"
 }
+
+# ---------------------------------------------------------------- E39-F05 — SPEC-FORMAT split, HARNESS fold, ABLATION trim, BASELINE archive
+# Rows named F05_R<n>_<slug>; <n> is the E39-F05 spec's R-id. Rows that read a doc take a root or a
+# file so a mutant copy under $T can be scanned; none reads VERSION as a literal or diffs main.
+SF_H="docs/SPEC-FORMAT.md"
+SF_A="docs/agents/SPEC-FORMAT.md"
+HA_H="docs/HARNESS.md"
+HA_A="docs/agents/HARNESS.md"
+BL_A="docs/history/BASELINE-0.78.1.md"
+SF_ANNOUNCE='> For agents — exact contracts; the human guide is [docs/SPEC-FORMAT.md](../SPEC-FORMAT.md).'
+HA_ANNOUNCE='> For agents — exact contracts; the human guide is [docs/HARNESS.md](../HARNESS.md).'
+
+# F05_R1 — the SPEC-FORMAT counterpart: announcement after the base H1, the base headings in base order.
+F05_R1_counterpart_announcement() {
+  _bad="$(um_announce_problem "$ROOT/$SF_A" '# The Spec Format' "$SF_ANNOUNCE")"
+  [ -z "$_bad" ] || fail "F05 R1: docs/agents/SPEC-FORMAT.md: $_bad"
+  rm -rf "$T/f51"; mkdir -p "$T/f51"
+  sed 's/the human guide is/the human guide:/' "$ROOT/$SF_A" > "$T/f51/m.md"
+  cmp -s "$ROOT/$SF_A" "$T/f51/m.md" && fail "F05 R1: setup: the mutant did not apply"
+  [ -n "$(um_announce_problem "$T/f51/m.md" '# The Spec Format' "$SF_ANNOUNCE")" ] || fail "F05 R1: the check misses a reworded announcement"
+  pass "F05_R1_counterpart_announcement"
+}
+SF_HEADS='# The Spec Format
+## The hierarchy: Product → Epic → Feature
+### IDs and traceability
+## The four files
+## EARS — the requirement syntax
+### Writing good EARS
+## Tasks — red/green pairs per requirement
+## Plan rows cite an R-id or an ADR
+## Architecture alignment — cite the ADRs you touch
+## Implementation readiness — every named path resolves
+## Frontmatter (machine-readable state)'
+sf_heads_problem() { [ "$(unfenced "$1" | grep '^#')" = "$SF_HEADS" ] || echo "the headings are not the 11 base headings in base order"; return 0; }
+F05_R1_counterpart_headings_in_order() {
+  _bad="$(sf_heads_problem "$ROOT/$SF_A")"
+  [ -z "$_bad" ] || fail "F05 R1: docs/agents/SPEC-FORMAT.md: $_bad"
+  [ "$(printf '%s\n' "$SF_HEADS" | wc -l | tr -d ' ')" -eq 11 ] || fail "F05 R1: setup: the expected list is not 11 headings"
+  rm -rf "$T/f52"; mkdir -p "$T/f52"
+  awk '/^## The four files$/ { print "## EARS — the requirement syntax"; next } /^## EARS — the requirement syntax$/ { print "## The four files"; next } { print }' "$ROOT/$SF_A" > "$T/f52/a.md"
+  cmp -s "$ROOT/$SF_A" "$T/f52/a.md" && fail "F05 R1: setup: the swap mutant did not apply"
+  [ -n "$(sf_heads_problem "$T/f52/a.md")" ] || fail "F05 R1: the check misses two swapped headings"
+  # unfence one markdown example: its `## Deferred` line then reads as a heading (fenced ones are not counted today)
+  grep -qE '^```markdown$' "$ROOT/$SF_A" || fail "F05 R1: setup: the counterpart has no markdown fence"
+  awk '/^```markdown$/ { d++ } d == 2 && /^```(markdown)?$/ { if ($0 == "```") d = 3; next } { print }' "$ROOT/$SF_A" > "$T/f52/b.md"
+  cmp -s "$ROOT/$SF_A" "$T/f52/b.md" && fail "F05 R1: setup: the unfence mutant did not apply"
+  [ -n "$(sf_heads_problem "$T/f52/b.md")" ] || fail "F05 R1: the check misses the ## lines of an unfenced markdown example"
+  pass "F05_R1_counterpart_headings_in_order"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2370,6 +2419,8 @@ row F04_R7_cl_sentences; row F04_R7_cl_no_over_claims
 row F04_R9_code_citations
 row F04_R10_sibling_citations
 row F04_R12_version_and_changelog
+# ---- E39-F05
+row F05_R1_counterpart_announcement; row F05_R1_counterpart_headings_in_order
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
