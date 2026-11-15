@@ -2368,6 +2368,70 @@ F05_R1_counterpart_headings_in_order() {
   [ -n "$(sf_heads_problem "$T/f52/b.md")" ] || fail "F05 R1: the check misses the ## lines of an unfenced markdown example"
   pass "F05_R1_counterpart_headings_in_order"
 }
+
+# F05_R2 — the HARNESS counterpart: announcement, the 5 base headings, eight retargeted link targets.
+F05_R2_harness_counterpart_announcement() {
+  _bad="$(um_announce_problem "$ROOT/$HA_A" '# What a harness is (and why this one is built this way)' "$HA_ANNOUNCE")"
+  [ -z "$_bad" ] || fail "F05 R2: docs/agents/HARNESS.md: $_bad"
+  rm -rf "$T/f53"; mkdir -p "$T/f53"
+  sed 's/the human guide is/the human guide:/' "$ROOT/$HA_A" > "$T/f53/m.md"
+  cmp -s "$ROOT/$HA_A" "$T/f53/m.md" && fail "F05 R2: setup: the mutant did not apply"
+  [ -n "$(um_announce_problem "$T/f53/m.md" '# What a harness is (and why this one is built this way)' "$HA_ANNOUNCE")" ] || fail "F05 R2: the check misses a reworded announcement"
+  pass "F05_R2_harness_counterpart_announcement"
+}
+HA_HEADS='# What a harness is (and why this one is built this way)
+## The four components
+## The five principles this harness enforces
+## The commands this harness ships
+## Where the ideas come from'
+ha_heads_problem() { [ "$(unfenced "$1" | grep '^#')" = "$HA_HEADS" ] || echo "the headings are not the 5 base headings in base order"; return 0; }
+F05_R2_harness_counterpart_headings_in_order() {
+  _bad="$(ha_heads_problem "$ROOT/$HA_A")"
+  [ -z "$_bad" ] || fail "F05 R2: docs/agents/HARNESS.md: $_bad"
+  rm -rf "$T/f54"; mkdir -p "$T/f54"
+  awk '/^## The four components$/ { print "## The five principles this harness enforces"; next } /^## The five principles this harness enforces$/ { print "## The four components"; next } { print }' "$ROOT/$HA_A" > "$T/f54/a.md"
+  cmp -s "$ROOT/$HA_A" "$T/f54/a.md" && fail "F05 R2: setup: the swap mutant did not apply"
+  [ -n "$(ha_heads_problem "$T/f54/a.md")" ] || fail "F05 R2: the check misses two swapped headings"
+  sed 's/^## Where the ideas come from$/## Sources/' "$ROOT/$HA_A" > "$T/f54/b.md"
+  cmp -s "$ROOT/$HA_A" "$T/f54/b.md" && fail "F05 R2: setup: the rename mutant did not apply"
+  [ -n "$(ha_heads_problem "$T/f54/b.md")" ] || fail "F05 R2: the check misses a renamed heading"
+  pass "F05_R2_harness_counterpart_headings_in_order"
+}
+# ha_retarget_problems <file> — the eight retargets hold, nothing is restored, every target resolves from
+# docs/agents/, and the phrases the re-pointed suites read are still in the file.
+ha_retarget_problems() {
+  _ban='agents/ ../specs/ RATIONALE.md WORKFLOW.md INSTALL.md'
+  _need='../RATIONALE.md ../WORKFLOW.md ../INSTALL.md INSTALL.md#retiring-gemini ../../specs/product.md'
+  _t="$(link_targets "$1")"
+  for _b in $_ban; do
+    case "$_b" in
+      agents/|../specs/) printf '%s\n' "$_t" | awk -v b="$_b" 'index($0, b) == 1 { f = 1 } END { exit !f }' && echo "a target still starts $_b" ;;
+      *) printf '%s\n' "$_t" | grep -qxF -- "$_b" && echo "a target still equals $_b" ;;
+    esac
+  done
+  for _n in $_need; do
+    printf '%s\n' "$_t" | grep -qxF -- "$_n" || echo "target $_n is absent"
+  done
+  for _x in $(printf '%s\n' "$_t" | grep -vE '^(#|https?:|mailto:)' | sed 's/#.*//' | sort -u); do
+    [ -e "$(dirname "$1")/$_x" ] || echo "target $_x does not resolve from docs/agents/"
+  done
+  for _p in '/sdd-pr-loop' 'Codex GitHub App' 'opt-in' '.pi/agents' 'pi-dispatch.sh' '/trust' '$sdd-' '.agents/skills' 'legacy' 'explicit' 'ownership'; do
+    grep -qF -- "$_p" "$1" || echo "the phrase '$_p' is absent"
+  done
+  return 0
+}
+F05_R2_harness_counterpart_retargets() {
+  _bad="$(ha_retarget_problems "$ROOT/$HA_A")"
+  [ -z "$_bad" ] || fail "F05 R2: docs/agents/HARNESS.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f55"; mkdir -p "$T/f55"
+  _m() { sed "$2" "$ROOT/$HA_A" > "$T/f55/m.md"
+         cmp -s "$ROOT/$HA_A" "$T/f55/m.md" && fail "F05 R2: setup: the $1 mutant did not apply"
+         _o="$(ha_retarget_problems "$T/f55/m.md")"; printf '%s\n' "$_o" | grep -qF -- "$3" || fail "F05 R2: the check misses the $1 mutant"; }
+  _m 'RATIONALE' 's#(\.\./RATIONALE\.md)#(RATIONALE.md)#' 'RATIONALE.md'
+  _m 'agents/INSTALL' 's#(INSTALL\.md\#retiring-gemini)#(agents/INSTALL.md\#retiring-gemini)#' 'starts agents/'
+  _m 'Codex GitHub App' 's/Codex GitHub App/Codex review app/g' 'Codex GitHub App'
+  pass "F05_R2_harness_counterpart_retargets"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2421,6 +2485,7 @@ row F04_R10_sibling_citations
 row F04_R12_version_and_changelog
 # ---- E39-F05
 row F05_R1_counterpart_announcement; row F05_R1_counterpart_headings_in_order
+row F05_R2_harness_counterpart_announcement; row F05_R2_harness_counterpart_headings_in_order; row F05_R2_harness_counterpart_retargets
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
