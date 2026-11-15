@@ -2,6 +2,27 @@
 
 harness-loop is a way to let coding agents work on a repository without giving up control of it. This page explains the method in plain language. The exact contracts for agents and tests are in [agents/README.md](agents/README.md).
 
+## What a harness is
+
+A harness is what you build around a model so it can work on a repository in a repeatable way: the context it reads, the tools it may call, the memory it keeps between sessions and the verification that proves its work. The model is the engine; the harness is the chassis.
+
+```mermaid
+flowchart LR
+    context["Context<br/>what the model is told"] --> model(("model"))
+    tools["Tools<br/>what it can do"] --> model
+    memory["Memory<br/>files it resumes from"] --> model
+    model --> verification["Verification<br/>init.sh, tests, Reviewer"]
+    verification -->|"evidence"| repository["repository"]
+```
+
+Five rules shape this harness:
+
+- **It lives in the repository.** `AGENTS.md`, `agents/`, `specs/`, `progress/` and `init.sh` are files that reference each other. Optional parts such as the board mirrors and the PR review loop reach outside the repository.
+- **Minimal tooling.** Tools start at Bash and the filesystem; a tool is added only when a task and its verification show the need.
+- **Memory is files.** Resumable state lives in `state/`, `specs/` and `progress/`; a role resumes from files, not from a chat.
+- **Roles are separate.** Each role has a bounded responsibility, so planning, implementation and independent review leave separate evidence.
+- **Done is proven, not declared.** "Done" is not taken on trust: `init.sh`, the tests and the Reviewer's checks prove it, and the Reviewer may change the harness so a failure cannot recur.
+
 ## The loop
 
 Every unit of work is a task with a status. Roles move it from one status to the next, and each role starts in a clean context and reads only files.
@@ -46,7 +67,7 @@ flowchart TD
     feature --> tests[".tests: how we know it is done"]
 ```
 
-Requirements use the EARS pattern, so each clause maps to one test. Every plan row, task and test cites the requirement it serves, which gives a requirement-to-test trail the Reviewer can check without reading prose. When the project has an architecture, a spec also cites the architecture decisions (ADRs) it touches. [SPEC-FORMAT.md](SPEC-FORMAT.md) has the full format.
+Requirements use the EARS pattern, so each clause maps to one test. Every plan row, task and test cites the requirement it serves, which gives a requirement-to-test trail the Reviewer can check without reading prose. When the project has an architecture, a spec also cites the architecture decisions (ADRs) it touches. [SPEC-FORMAT.md](SPEC-FORMAT.md) explains the format.
 
 ## Gates
 

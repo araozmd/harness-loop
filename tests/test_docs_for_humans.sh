@@ -2750,6 +2750,150 @@ F05_R5_specformat_no_over_claims() {
   [ -z "$(sf_over_claims "$T/f55v/m.md")" ] || fail "F05 R5: the over-claim check flags text inside a fence"
   pass "F05_R5_specformat_no_over_claims"
 }
+
+# F05_R7 — CONCEPTS gains ## What a harness is: placement, components diagram, sentence pins C1-C6, absent over-claims.
+CO_H="docs/CONCEPTS.md"
+CO_TOKENS='Context
+Tools
+Memory
+Verification
+model
+init.sh'
+co_section_problems() {
+  [ "$(unfenced "$1" | grep '^## ' | sed -n '1p')" = "## What a harness is" ] || echo "## What a harness is is not the first ## heading"
+  _hn="$(unfenced "$1" | grep -n '^## What a harness is$' | sed -n '1s/:.*//p')"; _ln="$(unfenced "$1" | grep -n '^## The loop$' | sed -n '1s/:.*//p')"
+  { [ -n "$_hn" ] && [ -n "$_ln" ] && [ "$_hn" -lt "$_ln" ]; } || echo "## What a harness is does not precede ## The loop"
+  diagram_problems "$1" "## What a harness is" "$CO_TOKENS" 'engine
+chassis
+Bash'
+  _t="$(unfenced "$1" | folded)"
+  printf '%s' "$_t" | grep -qF 'explains the format' || echo "the reworded sentence 'explains the format' is absent"
+  printf '%s' "$_t" | grep -qF 'has the full format' && echo "'has the full format' is still present"
+  return 0
+}
+F05_R7_concepts_harness_section() {
+  _bad="$(co_section_problems "$ROOT/$CO_H")"
+  [ -z "$_bad" ] || fail "F05 R7: docs/CONCEPTS.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f57"; mkdir -p "$T/f57"
+  _m() { sed "$2" "$ROOT/$CO_H" > "$T/f57/m.md"
+         cmp -s "$ROOT/$CO_H" "$T/f57/m.md" && fail "F05 R7: setup: the $1 mutant did not apply"
+         _o="$(co_section_problems "$T/f57/m.md")"; printf '%s\n' "$_o" | grep -qF -- "$3" || fail "F05 R7: the check misses the $1 mutant"; }
+  _m 'Memory node' '/^    memory\[/d' "'Memory'"
+  _m 'graph' 's/^flowchart LR$/graph LR/' 'is not a flowchart'
+  _m 'full format' 's/explains the format\./has the full format./' 'explains the format'
+  # the section moved below ## The loop: cut it out and re-insert it before ## Gates
+  awk '/^## What a harness is$/ { skip = 1 } /^## The loop$/ { skip = 0 } skip { held = held $0 "\n"; next } /^## Gates$/ { printf "%s", held } { print }' "$ROOT/$CO_H" > "$T/f57/n.md"
+  cmp -s "$ROOT/$CO_H" "$T/f57/n.md" && fail "F05 R7: setup: the move mutant did not apply"
+  _o="$(co_section_problems "$T/f57/n.md")"; printf '%s\n' "$_o" | grep -qF 'first ## heading' || fail "F05 R7: the check misses the section moved below ## The loop"
+  pass "F05_R7_concepts_harness_section"
+}
+co_accuracy_problems() {
+  _t="$(unfenced "$1" | folded)"
+  _pin() { printf '%s' "$_t" | grep -qE -- "$2" || echo "$1 missing"; }
+  _pin C1 'context it reads[^.]{0,30}tools it may call[^.]{0,40}memory it keeps[^.]{0,60}verification'
+  _pin C2 'files that reference each other'
+  _pin C2 'such as the board mirrors and the PR review loop'
+  _pin C3 'Bash and the filesystem'
+  _pin C3 'only when a task and its verification'
+  _pin C4 '.state/., .specs/. and .progress/.'
+  _pin C4 'resumes from files'
+  _pin C5 'bounded responsibility'
+  _pin C5 'separate evidence'
+  _pin C6 'not taken on trust'
+  _pin C6 'may change the harness so a failure cannot recur'
+}
+F05_R7_concepts_sentences() {
+  _bad="$(co_accuracy_problems "$ROOT/$CO_H")"
+  [ -z "$_bad" ] || fail "F05 R7: docs/CONCEPTS.md lacks pinned sentence(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f57s"; mkdir -p "$T/f57s"
+  _m() { sed "$2" "$ROOT/$CO_H" > "$T/f57s/m.md"
+         cmp -s "$ROOT/$CO_H" "$T/f57s/m.md" && fail "F05 R7: setup: the mutant for $1 did not apply"
+         _o="$(co_accuracy_problems "$T/f57s/m.md")"; printf '%s\n' "$_o" | grep -qF "$1 missing" || fail "F05 R7: the pin $1 survives its mutant"; }
+  _m C1 's/the memory it keeps between sessions and the verification that proves its work\. The model is the engine/the verification that proves its work. The model is the engine/'
+  _m C2 's/ such as the board mirrors and the PR review loop//'
+  _m C3 's/only when a task and its verification show the need/when needed/'
+  _m C4 's/a role resumes from files, not from a chat/a role resumes from the chat/'
+  _m C5 's/independent review leave separate evidence/independent review leave evidence/'
+  _m C6 's/the Reviewer may change the harness so a failure cannot recur/the Reviewer fixes the harness/'
+  pass "F05_R7_concepts_sentences"
+}
+co_over_claims() {
+  _t="$(unfenced "$1" | folded)"
+  for _o in 'any coding CLI' 'any model' 'guarantee' 'never fails' 'fully autonomous' 'no human' 'no external service' \
+            'no magic' 'the only parts' 'has the full format' 'E16-F02'; do
+    printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
+  done
+  return 0
+}
+F05_R7_concepts_no_over_claims() {
+  _bad="$(co_over_claims "$ROOT/$CO_H")"
+  [ -z "$_bad" ] || fail "F05 R7: docs/CONCEPTS.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
+  rm -rf "$T/f57v"; mkdir -p "$T/f57v"
+  for _m in 'It works with ANY MODEL.' 'It drives any coding CLI.' 'It is a guarantee.' 'It never fails.' 'It is fully autonomous.' 'There is no human step.' \
+            'There is no external service.' 'It is no magic.' 'These are the only parts that leave the repo.' 'It has the full format.' '(E16-F02)'; do
+    { cat "$ROOT/$CO_H"; printf '\n%s\n' "$_m"; } > "$T/f57v/m.md"
+    [ -n "$(co_over_claims "$T/f57v/m.md")" ] || fail "F05 R7: the over-claim check misses '$_m'"
+  done
+  { cat "$ROOT/$CO_H"; printf '\n```text\nany coding CLI any model guarantee never fails fully autonomous no human no external service no magic the only parts has the full format E16-F02\n```\n'; } > "$T/f57v/m.md"
+  [ -z "$(co_over_claims "$T/f57v/m.md")" ] || fail "F05 R7: the over-claim check flags text inside a fence"
+  pass "F05_R7_concepts_no_over_claims"
+}
+
+# F05_R8 — the trimmed ABLATION: size, headings, doctrine line, method sentence, protocol diagram, constraints, and
+# none of the dated premise or the stale word counts. Byte-identity of the kept sections is the Reviewer's diff.
+AB_H="docs/ABLATION.md"
+AB_HEADS='# Ablation protocol — do the role prompts still earn their tokens?
+## Protocol
+## Skeleton prompts
+### orchestrator
+### builder
+### reviewer
+## Measurement sheet
+## Constraints'
+AB_TOKENS='baseline
+skeleton
+diff
+restore
+delete'
+ab_over_claims() {
+  _t="$(unfenced "$1" | folded)"
+  for _o in 'Premise' '~23k' 'replaces ~' 'v0.6x' '0% compliance' 'hobbling'; do
+    printf '%s' "$_t" | grep -qF -- "$_o" && echo "$_o"
+  done
+  return 0
+}
+ab_problems() {
+  [ "$(nlines "$1")" -le 100 ] || echo "exceeds 100 lines"
+  [ "$(unfenced "$1" | grep '^#')" = "$AB_HEADS" ] || echo "the headings are not the base H1 and the 4 ## and 3 ### headings in order"
+  grep -qxF 'The doctrine is in [RATIONALE.md](RATIONALE.md#design-principles--the-ablation-doctrine-2026-09); this page is the protocol.' "$1" || echo "the doctrine line is absent"
+  unfenced "$1" | folded | grep -qF '**Method — ablation, not rewrite.** Delete, run, measure, and only bring back the lines whose absence caused a *repeated, observed* failure.' || echo "the method sentence is absent"
+  diagram_problems "$1" "## Protocol" "$AB_TOKENS" 'telemetry.jsonl
+git stash
+one role at a time'
+  ab_over_claims "$1"
+  _c="$(slice "$1" "## Constraints")"
+  for _b in 'Evals outlive prompts' 'One variable at a time' 'twice is a line to restore'; do
+    printf '%s\n' "$_c" | grep -qF -- "$_b" || echo "the constraints bullet '$_b' is absent"
+  done
+  return 0
+}
+F05_R8_ablation_trimmed() {
+  _bad="$(ab_problems "$ROOT/$AB_H")"
+  [ -z "$_bad" ] || fail "F05 R8: docs/ABLATION.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f58"; mkdir -p "$T/f58"
+  _m() { sed "$2" "$ROOT/$AB_H" > "$T/f58/m.md"
+         cmp -s "$ROOT/$AB_H" "$T/f58/m.md" && fail "F05 R8: setup: the $1 mutant did not apply"
+         _o="$(ab_problems "$T/f58/m.md")"; printf '%s\n' "$_o" | grep -qF -- "$3" || fail "F05 R8: the check misses the $1 mutant"; }
+  _m 'suffixed heading' 's/^### orchestrator$/### orchestrator (replaces ~6.9k words)/' 'headings'
+  _m 'restore node' '/restore\[/d' "'restore'"
+  _m 'doctrine anchor' 's/RATIONALE\.md#design-principles--the-ablation-doctrine-2026-09/RATIONALE.md#principles/' 'doctrine line'
+  _m 'constraints bullet' '/^- One variable at a time/d' "'One variable at a time'"
+  { cat "$ROOT/$AB_H"; printf '\n**Premise.** The prompts total ~23k words.\n'; } > "$T/f58/n.md"
+  _o="$(ab_problems "$T/f58/n.md")"; printf '%s\n' "$_o" | grep -qF 'Premise' || fail "F05 R8: the check misses an appended premise"
+  { cat "$ROOT/$AB_H"; yes x | head -n 14; } > "$T/f58/o.md"
+  lint_budget "$T/f58/o.md" 100 && fail "F05 R8: lint_budget accepts a doc over 100 lines"
+  pass "F05_R8_ablation_trimmed"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2812,6 +2956,8 @@ row F05_R11_sibling_citations
 row F05_R6_harness_pointer_page
 row F05_R5_specformat_diagram
 row F05_R5_specformat_sentences; row F05_R5_specformat_no_over_claims
+row F05_R7_concepts_harness_section; row F05_R7_concepts_sentences; row F05_R7_concepts_no_over_claims
+row F05_R8_ablation_trimmed
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
