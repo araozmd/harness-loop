@@ -2520,6 +2520,51 @@ F05_R9_suites_cite_counterparts() {
   _o="$(sf_suite_problems "$T/f59")"; printf '%s\n' "$_o" | grep -qF 'exactly one line' || fail "F05 R9: the check misses a second docs/SPEC-FORMAT.md line in test_install.sh"
   pass "F05_R9_suites_cite_counterparts"
 }
+
+# F05_R4 — the human SPEC-FORMAT's shape (the slice-2 shape_problems helper with this slice's lists), and the
+# budget of 120 through the slice-1 lint_budget.
+HUMAN_SF_HEADS='## Product, epic, feature
+## The four files
+## Writing a requirement
+## Tasks come in pairs
+## What the lints check
+## Frontmatter
+## Further reading'
+HUMAN_SF_ANCHORS='agents/SPEC-FORMAT.md#the-hierarchy-product--epic--feature
+agents/SPEC-FORMAT.md#the-four-files
+agents/SPEC-FORMAT.md#ears--the-requirement-syntax
+agents/SPEC-FORMAT.md#tasks--redgreen-pairs-per-requirement
+agents/SPEC-FORMAT.md#plan-rows-cite-an-r-id-or-an-adr
+agents/SPEC-FORMAT.md#architecture-alignment--cite-the-adrs-you-touch
+agents/SPEC-FORMAT.md#implementation-readiness--every-named-path-resolves
+agents/SPEC-FORMAT.md#frontmatter-machine-readable-state'
+F05_R4_specformat_shape() {
+  [ -f "$ROOT/$SF_H" ] || fail "F05 R4: docs/SPEC-FORMAT.md does not exist"
+  _bad="$(shape_problems "$ROOT/$SF_H" "$HUMAN_SF_HEADS" "$HUMAN_SF_ANCHORS" SPEC-FORMAT.md)"
+  [ -z "$_bad" ] || fail "F05 R4: docs/SPEC-FORMAT.md: $(printf '%s' "$_bad" | tr '\n' ';')"
+  [ "$(printf '%s\n' "$HUMAN_SF_ANCHORS" | wc -l | tr -d ' ')" -eq 8 ] || fail "F05 R4: setup: the anchor list is not 8 entries"
+  # mutants on private copies: each must be reported
+  rm -rf "$T/f54s"; mkdir -p "$T/f54s/docs"; DOCS_DIR="$T/f54s/docs"
+  sed 's/^## Tasks come in pairs$/## Tasks/' "$ROOT/$SF_H" > "$T/f54s/docs/a.md"
+  cmp -s "$ROOT/$SF_H" "$T/f54s/docs/a.md" && fail "F05 R4: setup: the rename mutant did not apply"
+  [ -n "$(shape_problems "$T/f54s/docs/a.md" "$HUMAN_SF_HEADS" "$HUMAN_SF_ANCHORS" SPEC-FORMAT.md)" ] || fail "F05 R4: the shape check misses a renamed ## heading"
+  grep -vF '#frontmatter-machine-readable-state' "$ROOT/$SF_H" > "$T/f54s/docs/b.md"
+  cmp -s "$ROOT/$SF_H" "$T/f54s/docs/b.md" && fail "F05 R4: setup: the anchor mutant did not apply"
+  [ -n "$(shape_problems "$T/f54s/docs/b.md" "$HUMAN_SF_HEADS" "$HUMAN_SF_ANCHORS" SPEC-FORMAT.md)" ] || fail "F05 R4: the shape check misses a dropped further-reading anchor"
+  { cat "$ROOT/$SF_H"; printf '\n[x](../AGENTS.md)\n'; } > "$T/f54s/docs/c.md"
+  cp "$ROOT/AGENTS.md" "$T/f54s/AGENTS.md"
+  _o="$(shape_problems "$T/f54s/docs/c.md" "$HUMAN_SF_HEADS" "$HUMAN_SF_ANCHORS" SPEC-FORMAT.md)"
+  printf '%s\n' "$_o" | grep -qF 'leaves docs/' || fail "F05 R4: the shape check misses a link that leaves docs/"
+  { printf '# One feature\n'; for _i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17; do echo; done; sed -n '2,$p' "$ROOT/$SF_H" | grep -vF '](agents/SPEC-FORMAT.md)'; printf '\n[agents](agents/SPEC-FORMAT.md)\n'; } > "$T/f54s/docs/d.md"
+  _o="$(shape_problems "$T/f54s/docs/d.md" "$HUMAN_SF_HEADS" "$HUMAN_SF_ANCHORS" SPEC-FORMAT.md)"
+  printf '%s\n' "$_o" | grep -qF 'first 15 lines' || fail "F05 R4: the shape check misses a counterpart link past line 15"
+  DOCS_DIR="$ROOT/docs"
+  # budget 120 (the registry entry's number) through the slice-1 helper
+  [ "$(nlines "$ROOT/$SF_H")" -le 120 ] || fail "F05 R4: docs/SPEC-FORMAT.md exceeds 120 lines"
+  { cat "$ROOT/$SF_H"; yes x | head -n 121; } > "$T/f54s/e.md"
+  lint_budget "$T/f54s/e.md" 120 && fail "F05 R4: lint_budget accepts a doc over 120 lines"
+  pass "F05_R4_specformat_shape"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2576,6 +2621,7 @@ row F05_R1_counterpart_announcement; row F05_R1_counterpart_headings_in_order
 row F05_R2_harness_counterpart_announcement; row F05_R2_harness_counterpart_headings_in_order; row F05_R2_harness_counterpart_retargets
 row F05_R3_history_archive
 row F05_R9_suites_cite_counterparts
+row F05_R4_specformat_shape
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
