@@ -14,7 +14,7 @@ token: the word after --root or --base is that flag's value, never help.  Stdlib
 function of the paths named on argv (taken verbatim: no shlex, glob or ~ expansion) and the
 tree under the root.
 
-The reference grammar is docs/SPEC-FORMAT.md "Implementation readiness — every named path
+The reference grammar is docs/agents/SPEC-FORMAT.md "Implementation readiness — every named path
 resolves"; this tool lints it, it never redefines it.  In short:
 
   * units: every data row of a table under the plan's `## Files to change` heading; every

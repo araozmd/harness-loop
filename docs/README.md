@@ -10,10 +10,10 @@ Start with [CONCEPTS.md](CONCEPTS.md), then install and run.
 | [INSTALL.md](INSTALL.md) | Install the harness into a project, choose front-ends, upgrade. |
 | [WORKFLOW.md](WORKFLOW.md) | How tasks move through the roles, the gates and the PR review loop. |
 | [UMBRELLA.md](UMBRELLA.md) | Run one feature across several repositories. |
-| [SPEC-FORMAT.md](SPEC-FORMAT.md) | The Product, Epic and Feature hierarchy and the four spec files. |
+| [SPEC-FORMAT.md](SPEC-FORMAT.md) | The Product, Epic and Feature hierarchy, the four spec files and what the lints check. |
 | [CONFIG-LAYERING.md](CONFIG-LAYERING.md) | Which config is shared and committed, and which is personal. |
 | [RATIONALE.md](RATIONALE.md) | Why the harness exists and which mechanisms still earn their cost. |
 | [ABLATION.md](ABLATION.md) | The measurement protocol for deleting prompt text safely. |
-| [HARNESS.md](HARNESS.md) | What a harness is, in one page. |
+| [HARNESS.md](HARNESS.md) | What a harness is, in a few lines; the method is in CONCEPTS.md. |
 | [BRAND.md](BRAND.md) | Name, tagline, voice, palette and logo rules. |
-| [BASELINE-0.78.1.md](BASELINE-0.78.1.md) | The 0.78.1 implementation baseline, kept for the record. |
+| [history/BASELINE-0.78.1.md](history/BASELINE-0.78.1.md) | The 0.78.1 implementation baseline, archived verbatim. |

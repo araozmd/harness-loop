@@ -311,7 +311,7 @@ add_row() {
   _ln="$(grep -nF -- "$2" "$1" | head -n 1 | cut -d: -f1)"
   [ -n "$_ln" ] || fail "add_row: precondition: row '$2' not inserted"
 }
-# Cross-feature citations (review round 1, A5; docs/SPEC-FORMAT.md grammar item 3): an R
+# Cross-feature citations (review round 1, A5; docs/agents/SPEC-FORMAT.md grammar item 3): an R
 # token IMMEDIATELY preceded by `E<digits>-F<digits>:` cites ANOTHER feature's requirement.
 # It cites the row, but it is never checked against --spec's R-ids. A bare R token keeps its
 # reading. GS declares R1..R4 only, so R5/R9 are ids this spec does not have.
@@ -767,7 +767,7 @@ run_tool --sweep "$S"; expect_ok R7_sweep_stage_absent_ok
 printf '%s\n' '# Product with no frontmatter' 'stage: bogus' > "$S/product.md"
 run_tool --sweep "$S"; expect_ok R7_sweep_stage_absent_ok
 pass "R7_sweep_stage_absent_ok"
-# Frontmatter is the `---` block that starts on LINE 1 (review round 1, A2; docs/SPEC-FORMAT.md
+# Frontmatter is the `---` block that starts on LINE 1 (review round 1, A2; docs/agents/SPEC-FORMAT.md
 # grammar item 1): a `---` block after a preamble, or a second block after line 1's, is not
 # frontmatter, so its `stage: pilot` is absent (production) and its `stage: Pilot` is no
 # stage-unrecognized. The documented sed reader is run on the same shapes by
@@ -1147,7 +1147,7 @@ span "$I/agents/architect.md" '## Stage and NFRs (ADR-0009)' '## Principles' "$T
 has R10_prose_present_tense "$T/a.sec" '`tools/plan-cite-check.py` enforces it (E36-F04).'
 has R10_prose_present_tense "$T/a.sec" 'Run `python3 "$HARNESS_DIR/tools/plan-cite-check.py" <feature>.plan.md --spec <feature>.spec.md` before hand-off; it must exit 0 — the Reviewer rejects on exit 1 (check 8).'
 grep -qF 'not yet enforced' "$T/a.sec" && fail "R10_prose_present_tense: architect.md's Stage section still says 'not yet enforced'"
-span "$I/docs/SPEC-FORMAT.md" '## Plan rows cite an R-id or an ADR' '## Architecture alignment' "$T/s.sec"
+span "$I/docs/agents/SPEC-FORMAT.md" '## Plan rows cite an R-id or an ADR' '## Architecture alignment' "$T/s.sec"
 has R10_prose_present_tense "$T/s.sec" '`tools/plan-cite-check.py <plan> --spec <spec>` (E36-F04) turns this grammar into an exit code (0 ok, 1 violation, 2 usage/input error); `--sweep <specs-dir>` is the trigger sweep `init.sh` runs warn-only'
 has R10_prose_present_tense "$T/s.sec" "the Reviewer's check 8 rejects on exit 1. This section is the schema it lints."
 grep -qF 'not yet enforced' "$T/s.sec" && fail "R10_prose_present_tense: SPEC-FORMAT's grammar section still says 'not yet enforced'"
@@ -1201,12 +1201,12 @@ _mode="$(git -C "$ROOT" ls-files -s tools/plan-cite-check.py | cut -c1-6)"
 [ "$_mode" = "100755" ] || fail "R11_source_mode_100755: git mode of tools/plan-cite-check.py is '$_mode'"
 pass "R11_source_mode_100755"
 
-# ── grammar in step: the tool's patterns ARE the bytes docs/SPEC-FORMAT.md states ────────
+# ── grammar in step: the tool's patterns ARE the bytes docs/agents/SPEC-FORMAT.md states ────────
 # The grammar section (its heading .. `## Architecture alignment`, by line number) is the
 # source of truth. Each string is extracted from the sentence that states it and compared
 # with the tool's compiled pattern, so an edit to EITHER side reds this row — the
 # validator-vs-schema divergence the harness has paid for (lessons 2026-09-05, 2026-09-16).
-python3 - "$TOOL" "$ROOT/docs/SPEC-FORMAT.md" <<'PY' || fail "R1_grammar_in_step_with_spec_format: see the message above"
+python3 - "$TOOL" "$ROOT/docs/agents/SPEC-FORMAT.md" <<'PY' || fail "R1_grammar_in_step_with_spec_format: see the message above"
 import importlib.util, re, sys
 spec = importlib.util.spec_from_file_location("plan_cite_check", sys.argv[1])
 mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)

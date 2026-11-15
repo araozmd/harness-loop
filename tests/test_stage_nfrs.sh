@@ -126,12 +126,12 @@ R6_plan_template_deferred
 # by LINE NUMBERS (its own heading .. the known next heading), not by a `^## ` slicer: its
 # fenced `## Deferred` example would truncate a fence-blind slicer.
 R11_spec_format_grammar_section() {
-  _s_f="$I/docs/SPEC-FORMAT.md"
-  [ -f "$_s_f" ] || fail "R11: installed docs/SPEC-FORMAT.md missing"
+  _s_f="$I/docs/agents/SPEC-FORMAT.md"
+  [ -f "$_s_f" ] || fail "R11: installed docs/agents/SPEC-FORMAT.md missing"
   _tk="$(lineno "$_s_f" '## Tasks — red/green pairs per requirement')"
   _s="$(lineno "$_s_f" '## Plan rows cite an R-id or an ADR')"
   _e="$(lineno "$_s_f" '## Architecture alignment')"
-  [ "$_s" -gt 0 ] || fail "R11: docs/SPEC-FORMAT.md has no '## Plan rows cite an R-id or an ADR' section"
+  [ "$_s" -gt 0 ] || fail "R11: docs/agents/SPEC-FORMAT.md has no '## Plan rows cite an R-id or an ADR' section"
   [ "$_tk" -gt 0 ] && [ "$_s" -gt "$_tk" ] && [ "$_e" -gt "$_s" ] \
     || fail "R11: the grammar section is not after '## Tasks — red/green pairs per requirement' and before '## Architecture alignment' (tasks=$_tk section=$_s next=$_e)"
   sed -n "${_s},${_e}p" "$_s_f" > "$T/r11.sec"
@@ -311,7 +311,7 @@ R10_workflow_stage_section
 # a reader that finds a `---` block anywhere (the pre-fix `sed -n '/^---$/,/^---$/p'`) reds.
 R1_stage_read_command_line1() {
   _n=0; _cmd0=''
-  for _sec in "docs/SPEC-FORMAT.md|## Plan rows cite an R-id or an ADR|## Architecture alignment" \
+  for _sec in "docs/agents/SPEC-FORMAT.md|## Plan rows cite an R-id or an ADR|## Architecture alignment" \
               "agents/architect.md|## Stage and NFRs (ADR-0009)|## Principles" \
               "agents/planner.md|## Stage (ADR-0009)|## Repo topology output" \
               "agents/driller.md|## Stage (ADR-0009)|## Feature-size budget"; do
@@ -329,7 +329,7 @@ R1_stage_read_command_line1() {
   done
   [ "$_n" -eq 4 ] || fail "R1: expected 4 read-command sections, read $_n"
   # SPEC-FORMAT grammar item 1 states the rule from its subject through its verb to its object.
-  span "$I/docs/SPEC-FORMAT.md" '## Plan rows cite an R-id or an ADR' '## Architecture alignment' "$T/r1rd.sec"
+  span "$I/docs/agents/SPEC-FORMAT.md" '## Plan rows cite an R-id or an ADR' '## Architecture alignment' "$T/r1rd.sec"
   fold "$T/r1rd.sec" | grep -qF "In \`specs/product.md\`'s frontmatter (the \`---\` block that starts on line 1 and runs to the next \`---\` line), a line matching" \
     || fail "R1: SPEC-FORMAT grammar item 1 does not define frontmatter as the --- block that starts on line 1"
   fold "$T/r1rd.sec" | grep -qF 'A `---` block that starts on any later line is not frontmatter, so a `stage:` line inside it is absent.' \

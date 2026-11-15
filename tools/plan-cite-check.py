@@ -16,7 +16,7 @@ that flag's value, never help (`--spec --help` reads a spec named `--help`, exit
 only; a pure function of the paths named on argv, taken verbatim (no shlex, glob or ~
 expansion).
 
-The grammar is E36-F03's, copied byte-exactly from docs/SPEC-FORMAT.md "Plan rows cite an
+The grammar is E36-F03's, copied byte-exactly from docs/agents/SPEC-FORMAT.md "Plan rows cite an
 R-id or an ADR" — this tool lints it, it never redefines it.  Where the grammar is silent the
 readings below are the tool's own contract (E36-F04.plan.md, Data model):
 
@@ -81,7 +81,7 @@ CELL_SPLIT_RE = re.compile(r"(?<!\\)\|")
 # The grammar's tokens.  `R[0-9]+` read from a non-alphanumeric left boundary (the tool's
 # reading where the grammar is silent): `PR304` / `CR12` are not citations.
 RID_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9])R[0-9]+")
-# A cross-feature citation (docs/SPEC-FORMAT.md grammar item 3): an R token immediately after
+# A cross-feature citation (docs/agents/SPEC-FORMAT.md grammar item 3): an R token immediately after
 # `E<digits>-F<digits>:`, the feature id itself on a non-alphanumeric left boundary.  Group 1
 # is the R token; its start is how cites() tells it from a bare R token.
 XFEAT_RE = re.compile(r"(?<![A-Za-z0-9])E[0-9]+-F[0-9]+:(R[0-9]+)")
@@ -93,7 +93,7 @@ RID_RE = re.compile(r"^[ \t]*-[ \t]+\*\*(R[0-9]+)(?:\*\*|[ \t]+(?:—|–|-))")
 # before the id.  A `|` is appended to every id first so a qualifier can never eat the
 # PREVIOUS citation (`ADR-0002 ADR-0001` is two citations, not one qualified by `ADR-0002`).
 ADR_CITE_RE = re.compile(r"(?:([A-Za-z0-9_-]+)([ /]))?ADR-([0-9]{4})")
-# `## Deferred` (grammar item 4 / item 2, bytes from docs/SPEC-FORMAT.md).
+# `## Deferred` (grammar item 4 / item 2, bytes from docs/agents/SPEC-FORMAT.md).
 BOLT_ON_HEADER = ["Bolt-on", "Deferred by", "Trigger"]
 NONE_LINE_RE = re.compile(r"^Deferred: none — \S")
 STATUS_DEFERRED_RE = re.compile(r"^- \*\*Status:\*\* deferred")

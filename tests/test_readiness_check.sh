@@ -1006,7 +1006,7 @@ has R9_architect_section "$T/ar.txt" 'Run `python3 "$HARNESS_DIR/tools/readiness
 has R9_architect_section "$T/ar.txt" 'Declare every file the feature creates with `create` as the first word of its `## Files to change` Change cell; tasks and tests references to a created path, or to a path under a created directory, resolve through that declaration.'
 has R9_architect_section "$T/ar.txt" 'Exit 2 means the check did not run: fix the invocation and run it again.'
 # The section states the tool's bound, never 'every path': the reader trusts the exit code.
-has R9_architect_section "$T/ar.txt" 'An unrecognised token is ignored, never flagged (precision over recall — see `docs/SPEC-FORMAT.md`): a first-segment typo such as `tols/x.py` is ignored, not caught, so a clean exit is not proof that every path is right.'
+has R9_architect_section "$T/ar.txt" 'An unrecognised token is ignored, never flagged (precision over recall — see `docs/agents/SPEC-FORMAT.md`): a first-segment typo such as `tols/x.py` is ignored, not caught, so a clean exit is not proof that every path is right.'
 folded "$T/ar.txt" | grep -qF 'checks that every path' \
   && fail "R9_architect_section: the section claims the tool checks every path; it checks the ones it recognises"
 has R9_architect_section "$T/ar.txt" 'Write a path that is not in this repository (a fixture-internal path, a consumer'"'"'s file) with a placeholder prefix (`<repo>/tools/x.py`) or inside fenced code.'
@@ -1129,7 +1129,7 @@ pass "R10_table_grammar_parity"
 
 # ── R11: SPEC-FORMAT's schema section, WORKFLOW's paragraph, README's sentence ─────────
 [ -n "${I:-}" ] || setup_target
-_sf="$I/docs/SPEC-FORMAT.md"
+_sf="$I/docs/agents/SPEC-FORMAT.md"
 _sh='## Implementation readiness — every named path resolves'
 grep -qxF "$_sh" "$_sf" || fail "R11_spec_format_section: no '$_sh' heading in the installed SPEC-FORMAT.md"
 _aa="$(lineno "$_sf" '## Architecture alignment')"; _ss="$(lineno "$_sf" "$_sh")"; _fm="$(lineno "$_sf" '## Frontmatter')"

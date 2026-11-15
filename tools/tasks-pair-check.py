@@ -6,7 +6,7 @@ E36-F01 / ADR-0008 decision 2.  Usage:
     tasks-pair-check.py <feature.tasks.md> --spec <feature.spec.md>
     tasks-pair-check.py --grandfathered <feature.tasks.md> [--base <ref>]
 
-The lint is a pure function of two files; stdlib only.  Grammar (identical to docs/SPEC-FORMAT.md
+The lint is a pure function of two files; stdlib only.  Grammar (identical to docs/agents/SPEC-FORMAT.md
 "Tasks — red/green pairs per requirement"):
 
   * Fenced code is skipped in BOTH files.  The fence rule is the CommonMark one that

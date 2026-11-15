@@ -1,17 +1,19 @@
 # Ablation protocol — do the role prompts still earn their tokens?
 
-**Premise (2026-09-04).** The role prompts total ~23k words and the command bodies ~11k
-more, much of it written against older models. External evidence from two full sessions
-on v0.6x: every mechanism that *earned its keep* was **code** (tasks-lock, pr-gate,
-wait-for-codex, mutation discipline); every mechanism that *failed* was **prose asking an
-agent to behave** (telemetry stamping ~0% compliance, escalation silently inert,
-classification hand-rolled with bugs). Hypothesis: a large fraction of the prose is
-patching behaviors current models have natively, and its net effect is hobbling.
+The doctrine is in [RATIONALE.md](RATIONALE.md#design-principles--the-ablation-doctrine-2026-09); this page is the protocol.
 
 **Method — ablation, not rewrite.** Delete, run, measure, and only bring back the lines
 whose absence caused a *repeated, observed* failure. Never guess what the model needs.
 
 ## Protocol
+
+```mermaid
+flowchart LR
+    baseline["baseline run<br/>stock prompts"] --> skeleton["skeleton run<br/>same feature class"]
+    skeleton --> diff["diff the two runs"]
+    diff -->|"a failure only the skeleton run shows"| restore["restore the one line<br/>that would have prevented it"]
+    diff -->|"two runs, no skeleton-only failure"| delete["delete the prose on main"]
+```
 
 1. **Pick the unit of work.** One representative `sdd: true` feature (spec → build →
    review → PR → merge) and one `sdd: false` fix. Do not pick a pathological case.
@@ -34,7 +36,7 @@ whose absence caused a *repeated, observed* failure. Never guess what the model 
 
 Each skeleton is task + guardrails + exit criteria — nothing about *how*.
 
-### orchestrator (replaces ~6.9k words)
+### orchestrator
 
 ```markdown
 # Orchestrator
@@ -48,7 +50,7 @@ never touch another owner's in-progress work.
 Done when: no actionable task remains, or the human gate is reached.
 ```
 
-### builder (replaces ~1.5k words)
+### builder
 
 ```markdown
 # Builder
@@ -61,7 +63,7 @@ scratch files under scratchpad/<feature>-builder/.
 Done when: every task is ticked, tests pass, and you have reported for review.
 ```
 
-### reviewer (replaces ~2.9k words)
+### reviewer
 
 ```markdown
 # Reviewer

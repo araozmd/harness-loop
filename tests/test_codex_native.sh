@@ -244,6 +244,8 @@ with tempfile.TemporaryDirectory(prefix='harness-native-') as temp:
     # E99-F174 likewise regenerates `sdd-fix.md`: its maintenance-epic step now points at the
     # explicit duplicate-id renumber exception (pinned by tests/test_fix_id_allocation.sh D).
     _regenerated={'sdd-pr-loop.md','sdd-plan.md','sdd-drill.md','builder-heavy.md','sdd-next.md','sdd-fix.md'}
+    # E39-F05 regenerates .claude/agents/architect.md: the shim cites .harness/docs/agents/SPEC-FORMAT.md.
+    _regenerated|={'architect.md'}
     for variant in ('all-five-on','all-five-models-on'):
         old=fresh('golden-'+variant)
         subprocess.run(['sh',str(src/'tests/fixtures/frontend-v0.78.1/materialize.sh'),variant,str(old)],check=True)

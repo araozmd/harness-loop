@@ -340,7 +340,7 @@ grep -qF 'Sequential, independent, small steps' "$T/arch.txt" && fail "R2_archit
 pass "R2_architect_item3_pairs"
 
 # ── R3: SPEC-FORMAT section + table row, WORKFLOW step 5 ──────────────────────────────────
-slice "$ROOT/docs/SPEC-FORMAT.md" '## Tasks — red/green pairs per requirement' > "$T/sf.txt"
+slice "$ROOT/docs/agents/SPEC-FORMAT.md" '## Tasks — red/green pairs per requirement' > "$T/sf.txt"
 [ -s "$T/sf.txt" ] || fail "R3_spec_format_pairs_section: section '## Tasks — red/green pairs per requirement' not found"
 grep -qE '^ *(```|~~~)' "$T/sf.txt" || fail "R3_spec_format_pairs_section: slice has no fence delimiter — it did not read through the fenced example"
 for a in 'T<n>a.{0,160}RED' 'T<n>b.{0,160}GREEN' 'write.{0,160}tests.{0,160}reject' \
@@ -349,7 +349,7 @@ for a in 'T<n>a.{0,160}RED' 'T<n>b.{0,160}GREEN' 'write.{0,160}tests.{0,160}reje
   anch "$T/sf.txt" "$a" R3_spec_format_pairs_section "$a"
 done
 pass "R3_spec_format_pairs_section"
-slice "$ROOT/docs/SPEC-FORMAT.md" '## The four files' | grep -F '| `.tasks.md`' | grep -qi 'red/green pair' \
+slice "$ROOT/docs/agents/SPEC-FORMAT.md" '## The four files' | grep -F '| `.tasks.md`' | grep -qi 'red/green pair' \
   || fail "R3_spec_format_table_row: .tasks.md row lacks 'red/green pair'"
 pass "R3_spec_format_table_row"
 slice "$ROOT/docs/agents/WORKFLOW.md" '## One run, end to end' | grep -E '^5\.' | grep -i 'pair' | grep -qi 'commit' \

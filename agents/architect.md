@@ -36,7 +36,7 @@ For feature `<E##>-<F##>` under `specs/epics/<epic>/<feature>/`, produce exactly
    - YAML frontmatter (id, title, epic, status, sdd, depends_on). See template.
    - Context: the problem, the user, the business rules.
    - **Acceptance criteria in EARS** — every clause gets a stable id `R1, R2, …`.
-     Use the 5 EARS patterns in `docs/SPEC-FORMAT.md`. One requirement = one
+     Use the 5 EARS patterns in `docs/agents/SPEC-FORMAT.md`. One requirement = one
      testable behavior.
 2. **`<feature>.plan.md`** — Technical / Architecture.
    - Stack, data models (tables/fields/types), API endpoints, dependencies.
@@ -51,7 +51,7 @@ For feature `<E##>-<F##>` under `specs/epics/<epic>/<feature>/`, produce exactly
      (`**T<n>** (R1, R2) — refactor …`) and cite the `R-id`s whose tests guard them.
      There is **no** trailing "write tests" task. This is the Builder's only worklist.
    - Run `python3 "$HARNESS_DIR/tools/tasks-pair-check.py" <feature>.tasks.md --spec
-     <feature>.spec.md` on the file before hand-off; it must exit 0. Grammar: `docs/SPEC-FORMAT.md` → "Tasks —
+     <feature>.spec.md` on the file before hand-off; it must exit 0. Grammar: `docs/agents/SPEC-FORMAT.md` → "Tasks —
      red/green pairs per requirement".
 4. **`<feature>.tests.md`** — The contract.
    - A traceability table: every `R-id` → the concrete test that verifies it.
@@ -152,7 +152,7 @@ inbox brief's `## Constraints` also records the `Stage:` the Driller read.
   not an ADR delta, so it is the **one ADR kind you may author**; the Driller's rule for every
   other ADR stands.
 
-The grammar these forms follow is `docs/SPEC-FORMAT.md` → *Plan rows cite an R-id or an
+The grammar these forms follow is `docs/agents/SPEC-FORMAT.md` → *Plan rows cite an R-id or an
 ADR*; `tools/plan-cite-check.py` enforces it (E36-F04). Run `python3
 "$HARNESS_DIR/tools/plan-cite-check.py" <feature>.plan.md --spec <feature>.spec.md` before
 hand-off; it must exit 0 — the Reviewer rejects on exit 1 (check 8).
@@ -219,14 +219,14 @@ cells, the `.tasks.md` list items and the `.tests.md` rows and items: each must 
 repository, and each symbol they name (`name()` in a single-path modify row, `path:name`
 anywhere) must occur in its file — the Builder reads only these four files, in a clean
 context, and cannot tell a renamed tool from a typo. An unrecognised token is ignored, never
-flagged (precision over recall — see `docs/SPEC-FORMAT.md`): a first-segment typo such as
+flagged (precision over recall — see `docs/agents/SPEC-FORMAT.md`): a first-segment typo such as
 `tols/x.py` is ignored, not caught, so a clean exit is not proof that every path is right.
 Declare every file the feature creates with `create` as the first word of its
 `## Files to change` Change cell; tasks and tests references to a created path, or to a
 path under a created directory, resolve through that declaration. Write a path that is not
 in this repository (a fixture-internal path, a consumer's file) with a placeholder prefix
 (`<repo>/tools/x.py`) or inside fenced code. Exit 2 means the check did not run: fix the
-invocation and run it again. The grammar is `docs/SPEC-FORMAT.md` → *Implementation
+invocation and run it again. The grammar is `docs/agents/SPEC-FORMAT.md` → *Implementation
 readiness — every named path resolves*.
 
 ## Doc-critic checkpoint before `spec-ready` (R12)
