@@ -24,7 +24,7 @@ owner: <handle>
 ## Architecture alignment
 > Cite the architecture decisions (ADRs) this feature touches. Required whenever
 > `specs/architecture.md` + at least one `**/adr/*` ADR exist; omit only when the repo has
-> no architecture (legacy / `/sdd-new` altitude-3). See docs/SPEC-FORMAT.md.
+> no architecture (legacy / `/sdd-new` altitude-3). See docs/agents/SPEC-FORMAT.md.
 >
 > **Qualify the namespace when the project keeps more than one ADR space** (the platform
 > space `specs/adr/` plus a product space `specs/<product>/adr/` — the number spaces are
@@ -43,7 +43,7 @@ owner: <handle>
 <!-- ADRs touched: none — <one-line why this feature constrains no recorded decision>. -->
 
 ## Acceptance criteria (EARS)
-> Each is one testable behavior with a stable id. See docs/SPEC-FORMAT.md.
+> Each is one testable behavior with a stable id. See docs/agents/SPEC-FORMAT.md.
 
 - **R1** — When <trigger>, the system shall <response>.
 - **R2** — While <state>, the system shall <response>.

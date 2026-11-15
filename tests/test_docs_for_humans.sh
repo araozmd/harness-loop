@@ -2894,6 +2894,51 @@ F05_R8_ablation_trimmed() {
   lint_budget "$T/f58/o.md" 100 && fail "F05 R8: lint_budget accepts a doc over 100 lines"
   pass "F05_R8_ablation_trimmed"
 }
+
+# F05_R10 — agent, template, tool, AGENTS.md and installer-shim citations name the counterpart.
+# sf_code_problems <root> lets a mirror be scanned.
+sf_code_problems() {
+  for _f in agents/architect.md specs/_templates/feature.spec.md tools/plan-cite-check.py tools/tasks-pair-check.py tools/readiness-check.py tools/drift-report.py; do
+    grep -qF 'docs/SPEC-FORMAT.md' "$1/$_f" && echo "$_f still cites docs/SPEC-FORMAT.md"
+    grep -qF 'docs/agents/SPEC-FORMAT.md' "$1/$_f" || echo "$_f does not cite docs/agents/SPEC-FORMAT.md"
+  done
+  _a="$(folded < "$1/agents/architect.md")"
+  printf '%s' "$_a" | grep -qF '`docs/agents/SPEC-FORMAT.md` → "Tasks —' || echo "agents/architect.md lost its Tasks title pointer"
+  printf '%s' "$_a" | grep -qF '`docs/agents/SPEC-FORMAT.md` → *Plan rows cite an R-id or an ADR*' || echo "agents/architect.md lost its Plan rows title pointer"
+  printf '%s' "$_a" | grep -qF '`docs/agents/SPEC-FORMAT.md` → *Implementation readiness' || echo "agents/architect.md lost its Implementation readiness title pointer"
+  grep -qxF 'Use [the spec standard](docs/agents/SPEC-FORMAT.md). Session output and earned lessons' "$1/AGENTS.md" || echo "AGENTS.md: the spec-standard sentence does not link docs/agents/SPEC-FORMAT.md"
+  grep -qxF '| `docs/SPEC-FORMAT.md` | EARS, four-file specs, and traceability |' "$1/AGENTS.md" || echo "AGENTS.md lost its docs/SPEC-FORMAT.md row"
+  grep -qxF '| `docs/agents/SPEC-FORMAT.md` | The exact spec contract: the EARS patterns, the task-pair grammar, the plan-row citation grammar, architecture alignment and the namespace rule, the readiness grammar, frontmatter |' "$1/AGENTS.md" || echo "AGENTS.md lacks the docs/agents/SPEC-FORMAT.md row"
+  _i="$1/harness-install.sh"
+  [ "$(grep -cF 'SPEC-FORMAT.md' "$_i")" -eq 1 ] || echo "harness-install.sh does not hold SPEC-FORMAT.md on exactly one line"
+  grep -qxF '`.harness/docs/agents/SPEC-FORMAT.md`), and make every requirement testable. Before' "$_i" || echo "harness-install.sh: the Architect shim line does not name .harness/docs/agents/SPEC-FORMAT.md"
+  _c="$1/.claude/agents/architect.md"
+  grep -qF 'docs/agents/SPEC-FORMAT.md`), and make every requirement testable. Before' "$_c" || echo ".claude/agents/architect.md does not carry the counterpart path (harness-install.sh disagrees with the generated shim)"
+  grep -qF 'docs/SPEC-FORMAT.md' "$_c" && echo ".claude/agents/architect.md still cites docs/SPEC-FORMAT.md"
+  grep -qF "'architect.md'" "$1/tests/test_codex_native.sh" || echo "tests/test_codex_native.sh does not list 'architect.md' in _regenerated"
+  return 0
+}
+F05_R10_code_citations() {
+  _bad="$(sf_code_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F05 R10: $(printf '%s' "$_bad" | tr '\n' ';')"
+  _w() { rm -rf "$T/f510"; mkdir -p "$T/f510/agents" "$T/f510/specs/_templates" "$T/f510/tools" "$T/f510/.claude/agents" "$T/f510/tests"
+         cp "$ROOT/harness-install.sh" "$ROOT/AGENTS.md" "$T/f510/"; cp "$ROOT/agents/architect.md" "$T/f510/agents/"
+         cp "$ROOT/specs/_templates/feature.spec.md" "$T/f510/specs/_templates/"
+         cp "$ROOT/tools/plan-cite-check.py" "$ROOT/tools/tasks-pair-check.py" "$ROOT/tools/readiness-check.py" "$ROOT/tools/drift-report.py" "$T/f510/tools/"
+         cp "$ROOT/.claude/agents/architect.md" "$T/f510/.claude/agents/"; cp "$ROOT/tests/test_codex_native.sh" "$T/f510/tests/"; }
+  _x() { sed "$1" "$T/f510/$2" > "$T/f510/n" && mv "$T/f510/n" "$T/f510/$2"; }
+  _w; _x 's#`docs/agents/SPEC-FORMAT\.md` → \*Plan rows#`docs/SPEC-FORMAT.md` → *Plan rows#' agents/architect.md
+  _o="$(sf_code_problems "$T/f510")"; printf '%s\n' "$_o" | grep -qF 'agents/architect.md' || fail "F05 R10: the check misses a reverted agents/architect.md citation"
+  _w; _x 's#→ \*Plan rows cite an R-id or an#→ *Plan rows or an#' agents/architect.md
+  _o="$(sf_code_problems "$T/f510")"; printf '%s\n' "$_o" | grep -qF 'Plan rows title pointer' || fail "F05 R10: the check misses a dropped Plan rows title"
+  _w; _x 's#`\.harness/docs/agents/SPEC-FORMAT\.md`#`.harness/docs/SPEC-FORMAT.md`#' harness-install.sh
+  _o="$(sf_code_problems "$T/f510")"; printf '%s\n' "$_o" | grep -qF 'harness-install.sh' || fail "F05 R10: the check misses a reverted installer shim line"
+  _w; grep -vF '| `docs/agents/SPEC-FORMAT.md` |' "$T/f510/AGENTS.md" > "$T/f510/n" && mv "$T/f510/n" "$T/f510/AGENTS.md"
+  _o="$(sf_code_problems "$T/f510")"; printf '%s\n' "$_o" | grep -qF 'AGENTS.md lacks' || fail "F05 R10: the check misses a deleted AGENTS.md row"
+  _w; _x "/'architect.md'/d" tests/test_codex_native.sh
+  _o="$(sf_code_problems "$T/f510")"; printf '%s\n' "$_o" | grep -qF "'architect.md'" || fail "F05 R10: the check misses 'architect.md' removed from _regenerated"
+  pass "F05_R10_code_citations"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -2958,6 +3003,7 @@ row F05_R5_specformat_diagram
 row F05_R5_specformat_sentences; row F05_R5_specformat_no_over_claims
 row F05_R7_concepts_harness_section; row F05_R7_concepts_sentences; row F05_R7_concepts_no_over_claims
 row F05_R8_ablation_trimmed
+row F05_R10_code_citations
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"

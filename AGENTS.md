@@ -93,7 +93,7 @@ inspects factual completeness and confidentiality and composes public JSON afres
 
 `specs/product.md` is the product constitution; feature specs live under
 `specs/epics/<epic>/<feature>/` as `.spec`, `.plan`, `.tasks`, and `.tests` files.
-Use [the spec standard](docs/SPEC-FORMAT.md). Session output and earned lessons
+Use [the spec standard](docs/agents/SPEC-FORMAT.md). Session output and earned lessons
 live in `progress/`; append the durable changelog to `progress/history.md`.
 
 | Reference | Purpose |
@@ -102,6 +102,7 @@ live in `progress/`; append the durable changelog to `progress/history.md`.
 | `docs/WORKFLOW.md` | State transitions and human gates |
 | `docs/agents/WORKFLOW.md` | The exact workflow contract: the routing table, the gates, parking and landing evidence, the PR loop, Builder escalation |
 | `docs/SPEC-FORMAT.md` | EARS, four-file specs, and traceability |
+| `docs/agents/SPEC-FORMAT.md` | The exact spec contract: the EARS patterns, the task-pair grammar, the plan-row citation grammar, architecture alignment and the namespace rule, the readiness grammar, frontmatter |
 | `docs/CONCEPTS.md` | The method in plain language: the loop, specs, gates, code over prose, the review principle |
 | `docs/agents/README.md` | The machine layer: exact contracts moved verbatim from the human docs, plus the docs conventions |
 

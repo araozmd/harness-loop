@@ -26,7 +26,7 @@ is left to a human):
   code-unnamed              (opt-in `--inventory <dir>`) a regular file directly under <dir>
                             that no living document names
 
-Reuse: the reference grammar is docs/SPEC-FORMAT.md "Implementation readiness"; the resolver
+Reuse: the reference grammar is docs/agents/SPEC-FORMAT.md "Implementation readiness"; the resolver
 is IMPORTED from tools/readiness-check.py (loaded by file path from this tool's own
 directory, never copied), so this file defines none of its functions.  A tool directory
 without that sibling makes the run exit 2.  Unlike the readiness lint, every unfenced line of
