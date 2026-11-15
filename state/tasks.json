@@ -2440,7 +2440,13 @@
           "depends_on": [
             "E39-F01"
           ],
-          "spec_path": "specs/epics/E39-docs-for-humans/F05-specformat-concepts/"
+          "spec_path": "specs/epics/E39-docs-for-humans/F05-specformat-concepts/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (340)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E39-F05 done --evidence <merge-ref>`",
+            "pr": "340"
+          }
         }
       ]
     }
