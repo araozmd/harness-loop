@@ -50,7 +50,7 @@ For every requirement the tasks file holds a pair: `T<n>a` writes the failing te
 Three tools turn the shape of a spec into an exit code; the Architect runs them before hand-off and the Reviewer rejects on a violation:
 
 - `tools/tasks-pair-check.py` — the first task that cites a requirement is its `a` task, every requirement is cited, and a task that cites no requirement may not read "write the tests".
-- `tools/plan-cite-check.py` — every row of the plan's four tables (data model, interface, files to change, deferred) cites a requirement or an ADR, and the `## Deferred` subsection is either a table of deferred ADRs or the single line `Deferred: none — <why>`.
+- `tools/plan-cite-check.py` — every data row of the plan's four tables (data model, interface, files to change, deferred) cites a requirement or an ADR, and the `## Deferred` subsection is either a table of deferred ADRs or the single line `Deferred: none — <why>`.
 - `tools/readiness-check.py` — every backticked repository path and symbol in the plan's files table, the tasks and the tests exists or is declared created; a token the lint does not recognise is ignored, never flagged.
 
 Each lint exits 0 when the shape holds, 1 on a violation and 2 on a usage error; the Reviewer rejects on exit 1. A task cites the requirements its test guards, except a setup or verify task, which may cite none.
