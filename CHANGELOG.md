@@ -12,7 +12,7 @@ All notable changes to the harness body are recorded here. Versions follow
   frontmatter.
 - `docs/agents/SPEC-FORMAT.md` and `docs/agents/HARNESS.md` — the 0.113 docs moved verbatim (every
   section, headings byte-identical, HARNESS link targets retargeted). Eleven suites, the Architect
-  prompt, the spec template, the four lint tools' docstrings, `AGENTS.md`, the Claude Architect shim
+  prompt, the spec template, the three lints' and `tools/drift-report.py`'s docstrings and comments, `AGENTS.md`, the Claude Architect shim
   emitter and the sibling-doc pointers re-point by path only.
 - `docs/CONCEPTS.md` gains `## What a harness is` (the four components, diagram; the five rules);
   `docs/HARNESS.md` is now a 13-line pointer page.

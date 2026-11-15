@@ -17,7 +17,7 @@ flowchart LR
 
 Five rules shape this harness:
 
-- **It lives in the repository.** `AGENTS.md`, `agents/`, `specs/`, `progress/` and `init.sh` are files that reference each other. Optional parts such as the board mirrors and the PR review loop reach outside the repository.
+- **It lives in the repository.** `AGENTS.md`, `agents/`, `specs/`, `progress/` and `init.sh` are files that reference each other. Some parts reach outside it: `init.sh`'s update check reads the harness remote (on by default; `update.check: false` turns it off), the Orchestrator opens pull requests, and opt-in parts such as the board mirrors and the PR review loop call their services.
 - **Minimal tooling.** Tools start at Bash and the filesystem; a tool is added only when a task and its verification show the need.
 - **Memory is files.** Resumable state lives in `state/`, `specs/` and `progress/`; a role resumes from files, not from a chat.
 - **Roles are separate.** Each role has a bounded responsibility, so planning, implementation and independent review leave separate evidence.
@@ -67,7 +67,7 @@ flowchart TD
     feature --> tests[".tests: how we know it is done"]
 ```
 
-Requirements use the EARS pattern, so each clause maps to one test. Every plan row, task and test cites the requirement it serves, which gives a requirement-to-test trail the Reviewer can check without reading prose. When the project has an architecture, a spec also cites the architecture decisions (ADRs) it touches. [SPEC-FORMAT.md](SPEC-FORMAT.md) explains the format.
+Requirements use the EARS pattern, so each clause maps to one test. Plan rows, tasks and tests cite the requirement they serve (a plan row may cite an ADR instead, and a setup or verify task may cite none), which gives a requirement-to-test trail the Reviewer can check without reading prose. When the project has an architecture, a spec also cites the architecture decisions (ADRs) it touches. [SPEC-FORMAT.md](SPEC-FORMAT.md) explains the format.
 
 ## Gates
 

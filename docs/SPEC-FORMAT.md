@@ -16,7 +16,7 @@ flowchart TD
     feature --> tests[".tests.md — how we know it is done"]
 ```
 
-Ids nest: `E01` is an epic, `F01` a feature inside it, `R1` a requirement inside the feature's `.spec.md`. Plan rows, tasks and tests cite the requirement they serve (a plan row may cite an ADR instead, and a setup task may cite none), so a reader can follow one requirement from design to test without reading prose. Never renumber a shipped requirement — append a new one.
+Ids nest: `E01` is an epic, `F01` a feature inside it, `R1` a requirement inside the feature's `.spec.md`. Plan rows, tasks and tests cite the requirement they serve (a plan row may cite an ADR instead, and a setup or verify task may cite none), so a reader can follow one requirement from design to test without reading prose. Never renumber a shipped requirement — append a new one.
 
 ## The four files
 
@@ -43,17 +43,17 @@ Name the component you verify as the system; the user belongs in the trigger. Qu
 
 ## Tasks come in pairs
 
-For every requirement the tasks file holds a pair: `T<n>a` writes the failing test named in the tests file and observes RED; `T<n>b` writes the minimal code and observes GREEN. The Builder commits after each GREEN. Pairs are ordered walking-skeleton first: the thinnest behavior observable at the product boundary. A refactor task is explicit and cites the requirements whose tests guard it.
+For every requirement the tasks file holds a pair (an end-to-end requirement that exercises the same code path as another may instead be co-cited on that pair's `a` task): `T<n>a` writes the failing test named in the tests file and observes RED; `T<n>b` writes the minimal code and observes GREEN. The Builder commits after each GREEN. Pairs are ordered walking-skeleton first: the thinnest behavior observable at the product boundary. A refactor task is explicit and cites the requirements whose tests guard it.
 
 ## What the lints check
 
-Three tools turn the shape of a spec into an exit code; the Architect runs them before hand-off and the Reviewer rejects on a violation:
+Three tools turn the shape of a spec into an exit code; the Architect runs them before hand-off and the Reviewer rejects on a violation (a file written before the lint existed is flagged instead):
 
 - `tools/tasks-pair-check.py` — the first task that cites a requirement is its `a` task, every requirement is cited, and a task that cites no requirement may not read "write the tests".
 - `tools/plan-cite-check.py` — every data row of the plan's four tables (data model, interface, files to change, deferred) cites a requirement or an ADR, and the `## Deferred` subsection is either a table of deferred ADRs or the single line `Deferred: none — <why>`.
-- `tools/readiness-check.py` — every backticked repository path and symbol in the plan's files table, the tasks and the tests exists or is declared created; a token the lint does not recognise is ignored, never flagged.
+- `tools/readiness-check.py` — a backticked path in the first cell of the plan's files table, in a task, or in a tests row or list item must exist or be declared created, and a `path:name` symbol (or `name()` in a files row naming one existing file) must occur in that file; a task or test that says `create` is skipped, and a token the lint does not recognise is ignored, never flagged.
 
-Each lint exits 0 when the shape holds, 1 on a violation and 2 on a usage error; the Reviewer rejects on exit 1. A task cites the requirements its test guards, except a setup or verify task, which may cite none.
+Each lint exits 0 when the shape holds, 1 on a violation and 2 on a usage error; the Reviewer rejects on exit 1 (a file written before the lint existed is flagged instead). A task cites the requirements its test guards, except a setup or verify task, which may cite none.
 
 When the project has an architecture (`specs/architecture.md` and ADRs), the spec also carries an `## Architecture alignment` section that cites each ADR the feature touches; `ADRs touched: none` is a legitimate line when it touches none. When the project has no architecture, the section is not required and nothing is fabricated.
 

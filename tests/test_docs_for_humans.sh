@@ -2699,7 +2699,8 @@ sf_accuracy_problems() {
   _pin S3 'one observable, testable behavior'
   _pin S3 'use .shall.'
   _pin S4 'four tables[^.]{0,160}cites a requirement or an ADR'
-  _pin S4 'setup or verify task[^.]{0,30}may cite none'
+  _pin S4 'setup or verify task, which may cite none'
+  _pin S4 'a plan row may cite an ADR instead, and a setup or verify task may cite none'
   _pin S5 'writes the failing test[^.]{0,80}RED'
   _pin S5 'minimal code[^.]{0,40}GREEN'
   _pin S5 'commits after each GREEN'
@@ -2722,6 +2723,7 @@ F05_R5_specformat_sentences() {
   _m S2 's/ — append a new one//'
   _m S3 's/use `shall` for/use `should` for/'
   _m S4 's/which may cite none/which is exempt/'
+  _m S4 's/and a setup or verify task may cite none/and a setup task may cite none/'
   _m S5 's/commits after each GREEN/commits at the end/'
   _m S6 's/the Reviewer rejects on exit 1/the Reviewer may reject/'
   _m S7 's/ignored, never flagged/rarely flagged/'
@@ -2732,7 +2734,7 @@ F05_R5_specformat_sentences() {
 sf_over_claims() {
   _t="$(unfenced "$1" | folded)"
   for _o in 'one test per requirement' 'exactly one test' 'maps 1:1' 'the lint rejects' 'every spec carries' \
-            'every task cites' 'decision 2' 'E36-F0' 'E37-F0'; do
+            'every task cites' 'every backticked repository path and symbol' 'decision 2' 'E36-F0' 'E37-F0'; do
     printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
   done
   return 0
@@ -2742,7 +2744,7 @@ F05_R5_specformat_no_over_claims() {
   [ -z "$_bad" ] || fail "F05 R5: docs/SPEC-FORMAT.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
   rm -rf "$T/f55v"; mkdir -p "$T/f55v"
   for _m in 'Each requirement has EXACTLY ONE TEST.' 'It keeps one test per requirement.' 'Each clause maps 1:1 to a test.' 'The lint rejects the spec.' \
-            'Every spec carries the section.' 'Every task cites a requirement.' 'See decision 2.' '(E36-F04)' '(E37-F01)'; do
+            'Every spec carries the section.' 'Every task cites a requirement.' 'Every backticked repository path and symbol exists.' 'See decision 2.' '(E36-F04)' '(E37-F01)'; do
     { cat "$ROOT/$SF_H"; printf '\n%s\n' "$_m"; } > "$T/f55v/m.md"
     [ -n "$(sf_over_claims "$T/f55v/m.md")" ] || fail "F05 R5: the over-claim check misses '$_m'"
   done
@@ -2820,7 +2822,7 @@ F05_R7_concepts_sentences() {
 co_over_claims() {
   _t="$(unfenced "$1" | folded)"
   for _o in 'any coding CLI' 'any model' 'guarantee' 'never fails' 'fully autonomous' 'no human' 'no external service' \
-            'no magic' 'the only parts' 'has the full format' 'E16-F02'; do
+            'no magic' 'the only parts' 'optional parts such as' 'every plan row, task and test cites' 'has the full format' 'E16-F02'; do
     printf '%s' "$_t" | grep -qiF -- "$_o" && echo "$_o"
   done
   return 0
@@ -2830,7 +2832,7 @@ F05_R7_concepts_no_over_claims() {
   [ -z "$_bad" ] || fail "F05 R7: docs/CONCEPTS.md contains the over-claim(s): $(printf '%s' "$_bad" | tr '\n' ' ')"
   rm -rf "$T/f57v"; mkdir -p "$T/f57v"
   for _m in 'It works with ANY MODEL.' 'It drives any coding CLI.' 'It is a guarantee.' 'It never fails.' 'It is fully autonomous.' 'There is no human step.' \
-            'There is no external service.' 'It is no magic.' 'These are the only parts that leave the repo.' 'It has the full format.' '(E16-F02)'; do
+            'There is no external service.' 'It is no magic.' 'These are the only parts that leave the repo.' 'Optional parts such as the board mirrors reach outside.' 'Every plan row, task and test cites a requirement.' 'It has the full format.' '(E16-F02)'; do
     { cat "$ROOT/$CO_H"; printf '\n%s\n' "$_m"; } > "$T/f57v/m.md"
     [ -n "$(co_over_claims "$T/f57v/m.md")" ] || fail "F05 R7: the over-claim check misses '$_m'"
   done
