@@ -4,6 +4,24 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.114.0] — 2026-11-14
+
+### Changed — docs for humans, slice 5: SPEC-FORMAT split, HARNESS folded into CONCEPTS, ABLATION trimmed, BASELINE archived (E39-F05)
+- `docs/SPEC-FORMAT.md` rewritten for humans (under 120 lines): the hierarchy and the four files
+  (diagram), how to write a requirement, red/green task pairs, what the three lints check,
+  frontmatter.
+- `docs/agents/SPEC-FORMAT.md` and `docs/agents/HARNESS.md` — the 0.113 docs moved verbatim (every
+  section, headings byte-identical, HARNESS link targets retargeted). Eleven suites, the Architect
+  prompt, the spec template, the four lint tools' docstrings, `AGENTS.md`, the Claude Architect shim
+  emitter and the sibling-doc pointers re-point by path only.
+- `docs/CONCEPTS.md` gains `## What a harness is` (the four components, diagram; the five rules);
+  `docs/HARNESS.md` is now a 13-line pointer page.
+- `docs/ABLATION.md` trimmed (under 100 lines): the dated premise and the word counts are gone, the
+  doctrine pointer and a protocol diagram are in; protocol, skeletons, sheet and constraints
+  unchanged.
+- `docs/history/BASELINE-0.78.1.md` — the 0.78.1 baseline archived verbatim; `docs/history/` is
+  linked from the docs index and the machine index and is not a lint-registered human doc.
+
 ## [0.113.0] — 2026-11-14
 
 ### Changed — docs for humans, slice 4: UMBRELLA + CONFIG-LAYERING split (E39-F04)

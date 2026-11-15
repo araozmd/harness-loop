@@ -2939,6 +2939,25 @@ F05_R10_code_citations() {
   _o="$(sf_code_problems "$T/f510")"; printf '%s\n' "$_o" | grep -qF "'architect.md'" || fail "F05 R10: the check misses 'architect.md' removed from _regenerated"
   pass "F05_R10_code_citations"
 }
+
+# F05_R12 — release: a CHANGELOG heading equals the runtime VERSION, and the section naming E39-F05 and the seven
+# doc paths sits one MINOR (patch 0) above the section below it (the shared changelog_problem helper).
+F05_R12_PATHS="docs/SPEC-FORMAT.md docs/agents/SPEC-FORMAT.md docs/agents/HARNESS.md docs/HARNESS.md docs/CONCEPTS.md docs/ABLATION.md docs/history/BASELINE-0.78.1.md"
+F05_R12_version_and_changelog() {
+  _cur="$(cat "$ROOT/VERSION")"
+  grep -qF "## [$_cur]" "$ROOT/CHANGELOG.md" || fail "F05 R12: CHANGELOG has no '## [$_cur]' section for the runtime VERSION"
+  _p="$(changelog_problem "$ROOT/CHANGELOG.md" E39-F05 $F05_R12_PATHS)"
+  [ -z "$_p" ] || fail "F05 R12: $_p"
+  sed 's#docs/history/BASELINE-0\.78\.1\.md#docs/history/GONE.md#g' "$ROOT/CHANGELOG.md" > "$T/f512a.md"
+  cmp -s "$ROOT/CHANGELOG.md" "$T/f512a.md" && fail "F05 R12: setup: the path mutant did not apply"
+  [ -n "$(changelog_problem "$T/f512a.md" E39-F05 $F05_R12_PATHS)" ] || fail "F05 R12: the changelog check misses a section without docs/history/BASELINE-0.78.1.md"
+  _fv="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { v = $2; gsub(/[][]/, "", v); sec = v } /E39-F05/ { print sec; exit }' "$ROOT/CHANGELOG.md")"
+  [ -n "$_fv" ] || fail "F05 R12: no CHANGELOG section names E39-F05"
+  sed "s/^## \[$_fv\]/## [${_fv%.*}.1]/" "$ROOT/CHANGELOG.md" > "$T/f512b.md"
+  grep -qF "## [${_fv%.*}.1]" "$T/f512b.md" || fail "F05 R12: setup: the PATCH mutant did not apply"
+  [ -n "$(changelog_problem "$T/f512b.md" E39-F05 $F05_R12_PATHS)" ] || fail "F05 R12: the changelog check misses a PATCH-step E39-F05 section"
+  pass "F05_R12_version_and_changelog"
+}
 # DISPATCH
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
@@ -3004,6 +3023,7 @@ row F05_R5_specformat_sentences; row F05_R5_specformat_no_over_claims
 row F05_R7_concepts_harness_section; row F05_R7_concepts_sentences; row F05_R7_concepts_no_over_claims
 row F05_R8_ablation_trimmed
 row F05_R10_code_citations
+row F05_R12_version_and_changelog
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"
