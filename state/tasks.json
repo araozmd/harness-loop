@@ -2434,7 +2434,7 @@
         {
           "id": "E39-F05",
           "title": "SPEC-FORMAT split + HARNESS folded into CONCEPTS + ABLATION trim + BASELINE to docs/history/; re-point suites and citations",
-          "status": "pending",
+          "status": "in-progress",
           "sdd": true,
           "autonomous": true,
           "depends_on": [

@@ -41,7 +41,7 @@ marked machine layer.
 | F02 | INSTALL split (single-repo vs umbrella and upgrade-flow diagrams) | done | true | F01 |
 | F03 | WORKFLOW split (state-machine and PR-loop diagrams) | done | true | F01, F02 |
 | F04 | UMBRELLA + CONFIG-LAYERING split (layout, slice-loop and config-layers diagrams) | done | true | F01 |
-| F05 | SPEC-FORMAT split + HARNESS folded into CONCEPTS + ABLATION trim + BASELINE to docs/history/ | pending | true | F01 |
+| F05 | SPEC-FORMAT split + HARNESS folded into CONCEPTS + ABLATION trim + BASELINE to docs/history/ | in-progress | true | F01 |
 
 Sliced by the Architect (see the F01 plan): F01 sets the conventions and the README;
 F02–F05 each split one group of docs and are independent of each other.
