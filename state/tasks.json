@@ -2358,7 +2358,7 @@
     {
       "id": "E39",
       "title": "Documentation for humans: short guides with diagrams and a logo; exact agent contracts moved verbatim to docs/agents/",
-      "status": "pending",
+      "status": "done",
       "features": [
         {
           "id": "E39-F01",
@@ -2434,19 +2434,20 @@
         {
           "id": "E39-F05",
           "title": "SPEC-FORMAT split + HARNESS folded into CONCEPTS + ABLATION trim + BASELINE to docs/history/; re-point suites and citations",
-          "status": "in-review",
+          "status": "done",
+          "landed": {
+            "base": "origin/main",
+            "commit": "c07898aaf7fdfa1e66d3568dbe4efa34aba5905e",
+            "ref": "c07898aaf7fdfa1e66d3568dbe4efa34aba5905e",
+            "repo": "harness-sdd",
+            "verified": "ancestor"
+          },
           "sdd": true,
           "autonomous": true,
           "depends_on": [
             "E39-F01"
           ],
-          "spec_path": "specs/epics/E39-docs-for-humans/F05-specformat-concepts/",
-          "parked": {
-            "gate": "merge",
-            "reason": "approved; PR open, awaiting merge (340)",
-            "unblocked_by": "the PR merging \u2014 then `set-status E39-F05 done --evidence <merge-ref>`",
-            "pr": "340"
-          }
+          "spec_path": "specs/epics/E39-docs-for-humans/F05-specformat-concepts/"
         }
       ]
     }
