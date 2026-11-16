@@ -1240,4 +1240,77 @@ printf '%s\n' "$_c11" | grep -qF '[`tools/readiness-check.py`](../tools/readines
   || fail "R12_version_changelog_ledger: the C11 row does not point at tools/readiness-check.py"
 pass "R12_version_changelog_ledger"
 
+# F184: a `delete` row declares a path the feature removes. It resolves whether or not the
+# file exists, tasks/tests references resolve through it, its symbols are not checked, and the
+# same path without the declaration is still an unresolved-path.
+fresh f184
+printf '%s\n' '| `tools/old.py` | **Delete** the retired tool, which defines `gone()` | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `tools/old.py`.' >> "$GT"
+printf '%s\n' '| R1 | `tools/old.py` is gone |' >> "$GX"
+lint "$GD"; expect_ok F184_delete_row_absent_file
+grep -qF ", 3 created, " "$T/out" || fail "F184_delete_row_absent_file: a delete row was counted as created ($(both))"
+printf 'x = 1\n' > "$R/tools/old.py"
+lint "$GD"; expect_ok F184_delete_row_existing_file
+pass "F184_delete_row_resolves_before_and_after"
+grep -v '^| `tools/old.py` |' "$GP" > "$GP.new"; mv "$GP.new" "$GP"
+rm -f "$R/tools/old.py"
+lint "$GD"; expect_fail F184_undeclared_still_unresolved
+[ "$(count 'unresolved-path .*E01-F01\.tasks\.md:[0-9]+ tools/old\.py$')" -eq 1 ] \
+  || fail "F184_undeclared_still_unresolved: the undeclared task reference is not an unresolved-path ($(both))"
+[ "$(count 'unresolved-path .*E01-F01\.tests\.md:[0-9]+ tools/old\.py$')" -eq 1 ] \
+  || fail "F184_undeclared_still_unresolved: the undeclared tests reference is not an unresolved-path ($(both))"
+pass "F184_undeclared_still_unresolved"
+
+# F184 review round 1: a delete-declared file that still exists has its symbols checked
+# (task `path:name`, and `name()` on a modify row); `.harness/` remaps the declaration; a
+# delete row's first segment is a known root, so a sibling typo under it is still flagged.
+fresh f184b
+printf '%s\n' '| `tools/real.py` | delete the retired tool | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Check `tools/real.py:nothere`.' >> "$GT"
+lint "$GD"; expect_fail F184_delete_declared_symbol_checked
+[ "$(count 'unresolved-symbol .*E01-F01\.tasks\.md:[0-9]+ tools/real\.py:nothere$')" -eq 1 ] \
+  || fail "F184_delete_declared_symbol_checked: a bad symbol on a delete-declared existing file is not flagged ($(both))"
+pass "F184_delete_declared_symbol_checked"
+
+fresh f184c
+printf '%s\n' '| `tools/real.py` | delete the retired tool | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `.harness/tools/real.py` and `tools/real.py`.' >> "$GT"
+lint "$GD"; expect_ok F184_delete_remap_before
+rm -f "$R/tools/real.py"
+lint "$GD"
+[ "$(count 'real\.py')" -eq 0 ] || fail "F184_delete_remap_after: the .harness/ form of a deleted path is flagged after removal ($(both))"
+pass "F184_delete_declared_harness_remap"
+
+fresh f184d
+printf '%s\n' '| `legacy/x.py` | delete the legacy tool | R1 |' '| `legacy/typo.py` | modify the legacy typo | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `legacy/x.py`; see also `legacy/typo.py`.' >> "$GT"
+lint "$GD"; expect_fail F184_delete_first_segment_known
+[ "$(count 'unresolved-path .*tasks\.md:[0-9]+ legacy/typo\.py$')" -eq 1 ] \
+  || fail "F184_delete_first_segment_known: the typo under a delete row's directory is not flagged ($(both))"
+[ "$(count 'unresolved-path .*plan\.md:[0-9]+ legacy/typo\.py$')" -eq 1 ] \
+  || fail "F184_delete_first_segment_known: the typo in a modify row beside a delete row is not flagged ($(both))"
+[ "$(count 'legacy/x\.py')" -eq 0 ] || fail "F184_delete_first_segment_known: the deleted path itself is flagged ($(both))"
+pass "F184_delete_first_segment_known"
+
+# the declaration is matched in either layout, directories included
+fresh f184e
+printf '%s\n' '| `.harness/tools/real.py` | delete the installed tool | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `tools/real.py`.' >> "$GT"
+rm -f "$R/tools/real.py"
+lint "$GD"
+[ "$(count 'real\.py')" -eq 0 ] || fail "F184_delete_installed_layout_row: a source-layout reference to a path declared in the installed layout is flagged ($(both))"
+pass "F184_delete_installed_layout_row"
+
+fresh f184f
+printf '%s\n' '| `tools/olddir/` | delete the retired directory | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `.harness/tools/olddir/a.py`.' >> "$GT"
+lint "$GD"; expect_ok F184_delete_dir_through_remap
+pass "F184_delete_dir_through_remap"
+
 echo "all readiness-check checks passed"
