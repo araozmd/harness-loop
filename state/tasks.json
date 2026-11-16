@@ -1549,11 +1549,17 @@
         {
           "id": "E99-F185",
           "title": "E39 doc follow-ups: preflight does not check the Codex App (WORKFLOW contract + /sdd-pr-loop); INSTALL ownership row names OpenCode command files",
-          "status": "pending",
+          "status": "in-review",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F185-preflight-wording-opencode-ownership/"
+          "spec_path": "specs/epics/E99-maintenance/F185-preflight-wording-opencode-ownership/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (343)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F185 done --evidence <merge-ref>`",
+            "pr": "343"
+          }
         },
         {
           "id": "E99-F186",

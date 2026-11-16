@@ -4,6 +4,16 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.114.1] — 2026-11-16
+
+### Fixed — docs: the preflight does not check the Codex App; the ownership row names the OpenCode command files (E99-F185)
+- The `/sdd-pr-loop` command (all front-ends), `docs/agents/WORKFLOW.md` and `docs/agents/INSTALL.md`
+  no longer say the preflight "checks each one"/"verifies all of them". `tools/wait-for-codex.sh
+  preflight` checks `gh`, `gh` auth, `jq`, the repo slug and an open PR; a missing Codex App shows up
+  later as the watcher's exit `5`.
+- `docs/INSTALL.md` ownership row: the OpenCode command files are rewritten on each run (verified in
+  `harness-install.sh` step 5b), so edits there are lost, with no warning.
+
 ## [0.114.0] — 2026-11-14
 
 ### Changed — docs for humans, slice 5: SPEC-FORMAT split, HARNESS folded into CONCEPTS, ABLATION trimmed, BASELINE archived (E39-F05)

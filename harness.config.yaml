@@ -289,7 +289,8 @@ models:
 # `enabled` is OPT-IN: it is off unless it reads exactly `true`. An absent block, an
 # absent key, an empty value or any other value all mean OFF, and nothing is stamped.
 # Turn it on ONLY on a repo that has the Codex GitHub App installed plus an authed
-# `gh` (and `jq` on PATH) — without them /sdd-pr-loop can only fail its own preflight.
+# `gh` (and `jq` on PATH) — without `gh` or `jq` /sdd-pr-loop fails its preflight, and
+# without the App it ends at the watcher's exit 5 (or the exit 2 timeout).
 # While it is on, /sdd-pr-loop and the pr-fixer sub-agent are stamped into every
 # selected front-end; flipping it back to false reclaims all of that glue.
 # The installer ASKS for `enabled` (E20-F02) — a follow-up prompt right after the

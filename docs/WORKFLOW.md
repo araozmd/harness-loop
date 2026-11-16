@@ -94,7 +94,7 @@ stronger; ranking models is up to you.
 
 Once a feature's local gate is green and its PR is open, `/sdd-pr-loop <pr>` drives the Codex
 review cycle to a terminal state. It needs the Codex GitHub App on the repository, an
-authenticated `gh` and `jq`. A preflight checks `gh`, its login, `jq` and that the PR is open,
+authenticated `gh` and `jq`. A preflight checks `gh`, its login, `jq`, the repo slug and that the PR is open,
 and posts nothing; a missing Codex App shows up as no Codex activity on the first watch.
 
 ```mermaid

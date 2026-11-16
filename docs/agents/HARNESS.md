@@ -78,8 +78,8 @@ is the intake for **later work** in an existing project. See
 only while `pr_loop.enabled` reads exactly `true`, and a fresh install seeds `false`.
 An absent block, an absent key, an empty or malformed value all mean off. The reason is
 that the loop works only on a repository with the **Codex GitHub App** installed plus an
-**authed `gh`** and **`jq`** on `PATH` — defaulting it on would grow a command that can
-only fail its own preflight. Those are loop-runtime dependencies alone — `init.sh` never
+**authed `gh`** and **`jq`** on `PATH` — defaulting it on would grow a command that, on a repo
+without the App, ends at the watcher's exit `5` or the exit `2` timeout. Those are loop-runtime dependencies alone — `init.sh` never
 checks for them, so a target without either still passes the environment gate. Turning
 the key on and re-running the installer emits PR-loop glue for selected front-ends
 and their native fixer roles, including `.codex/agents/pr-fixer.toml`.
