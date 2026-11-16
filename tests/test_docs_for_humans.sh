@@ -1337,7 +1337,7 @@ F02_R11_version_and_changelog() {
   _fv="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { v = $2; gsub(/[][]/, "", v); sec = v } /E39-F02/ { print sec; exit }' "$ROOT/CHANGELOG.md")"
   [ -n "$_fv" ] || fail "F02 R11: no CHANGELOG section names E39-F02"
   sed "s/^## \[$_fv\]/## [${_fv%.*}.1]/" "$ROOT/CHANGELOG.md" > "$T/f11b.md"
-  grep -qF "## [${_fv%.*}.1]" "$T/f11b.md" || fail "F02 R11: setup: the PATCH mutant did not apply"
+  cmp -s "$ROOT/CHANGELOG.md" "$T/f11b.md" && fail "F02 R11: setup: the PATCH mutant did not apply"
   [ -n "$(changelog_problem "$T/f11b.md" E39-F02 docs/agents/INSTALL.md docs/INSTALL.md)" ] || fail "F02 R11: the changelog check misses a PATCH-step E39-F02 section"
   pass "F02_R11_version_and_changelog"
 }
@@ -2966,7 +2966,7 @@ F05_R12_version_and_changelog() {
   _fv="$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\]/ { v = $2; gsub(/[][]/, "", v); sec = v } /E39-F05/ { print sec; exit }' "$ROOT/CHANGELOG.md")"
   [ -n "$_fv" ] || fail "F05 R12: no CHANGELOG section names E39-F05"
   sed "s/^## \[$_fv\]/## [${_fv%.*}.1]/" "$ROOT/CHANGELOG.md" > "$T/f512b.md"
-  grep -qF "## [${_fv%.*}.1]" "$T/f512b.md" || fail "F05 R12: setup: the PATCH mutant did not apply"
+  cmp -s "$ROOT/CHANGELOG.md" "$T/f512b.md" && fail "F05 R12: setup: the PATCH mutant did not apply"
   [ -n "$(changelog_problem "$T/f512b.md" E39-F05 $F05_R12_PATHS)" ] || fail "F05 R12: the changelog check misses a PATCH-step E39-F05 section"
   pass "F05_R12_version_and_changelog"
 }

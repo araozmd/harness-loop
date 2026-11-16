@@ -323,9 +323,12 @@ def created_set(rows, verbs=("create",)):
 def resolve(path, root, feature_dir, created):
     """Return the filesystem path the reference resolves to, "created" for a created one,
     or None when it does not resolve."""
+    # a declared path matches in either layout: source (`tools/x`) and installed (`.harness/tools/x`)
+    alt = path[len(HARNESS):] if path.startswith(HARNESS) else HARNESS + path
     for c in created:
-        if path == c or (c.endswith("/") and (path.startswith(c) or path + "/" == c)):
-            return "created"
+        for form in (path, alt):
+            if form == c or (c.endswith("/") and (form.startswith(c) or form + "/" == c)):
+                return "created"
     is_dir = path.endswith("/")
     q = path.rstrip("/")
 
@@ -438,8 +441,9 @@ def check_feature(plan, tasks, tests, root):
 
     def target(p):
         """The existing regular file a symbol is searched in, else None (unresolved, created,
-        a directory)."""
-        t = resolve(p, root, feature_dir, declared)
+        a directory).  Resolves through `created` only: a delete-declared file that still
+        exists is searched."""
+        t = resolve(p, root, feature_dir, created)
         return t if t not in (None, "created") and os.path.isfile(t) else None
 
     def symbol_form(rank, fname, n, display, p, name):
@@ -448,8 +452,8 @@ def check_feature(plan, tasks, tests, root):
             emit(rank, n, "unresolved-symbol %s:%d %s" % (fname, n, display))
 
     def check_row(n, text):
-        """A `## Files to change` data row: first-cell paths unless the row creates; symbols
-        unless it creates or adds."""
+        """A `## Files to change` data row: first-cell paths unless the row creates or deletes;
+        symbols unless it creates, adds or deletes."""
         cs = cells(text)
         verb = plan_verb(cs[1] if len(cs) > 1 else "")
         if verb in ("create", "delete"):

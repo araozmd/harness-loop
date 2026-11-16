@@ -14,7 +14,7 @@ All notable changes to the harness body are recorded here. Versions follow
   at spec-ready and failed `unresolved-path` after the deletion (the 0.114.0 docs slice hit this).
 - `docs/agents/SPEC-FORMAT.md`, `agents/architect.md`, `docs/SPEC-FORMAT.md`: document `delete`, and
   the `path:name` wording is now true (checked in tasks/tests units and in files rows that do not
-  create, add or delete, not "anywhere"). The `.claude/agents/architect.md` shim is regenerated.
+  create, add or delete, not "anywhere").
 
 ## [0.114.1] — 2026-11-16
 

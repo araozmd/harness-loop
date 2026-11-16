@@ -1262,4 +1262,36 @@ lint "$GD"; expect_fail F184_undeclared_still_unresolved
   || fail "F184_undeclared_still_unresolved: the undeclared tests reference is not an unresolved-path ($(both))"
 pass "F184_undeclared_still_unresolved"
 
+# F184 review round 1: a delete-declared file that still exists has its symbols checked
+# (task `path:name`, and `name()` on a modify row); `.harness/` remaps the declaration; a
+# delete row's first segment is a known root, so a sibling typo under it is still flagged.
+fresh f184b
+printf '%s\n' '| `tools/real.py` | delete the retired tool | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Check `tools/real.py:nothere`.' >> "$GT"
+lint "$GD"; expect_fail F184_delete_declared_symbol_checked
+[ "$(count 'unresolved-symbol .*E01-F01\.tasks\.md:[0-9]+ tools/real\.py:nothere$')" -eq 1 ] \
+  || fail "F184_delete_declared_symbol_checked: a bad symbol on a delete-declared existing file is not flagged ($(both))"
+pass "F184_delete_declared_symbol_checked"
+
+fresh f184c
+printf '%s\n' '| `tools/real.py` | delete the retired tool | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `.harness/tools/real.py` and `tools/real.py`.' >> "$GT"
+lint "$GD"; expect_ok F184_delete_remap_before
+rm -f "$R/tools/real.py"
+lint "$GD"
+[ "$(count 'real\.py')" -eq 0 ] || fail "F184_delete_remap_after: the .harness/ form of a deleted path is flagged after removal ($(both))"
+pass "F184_delete_declared_harness_remap"
+
+fresh f184d
+printf '%s\n' '| `legacy/x.py` | delete the legacy tool | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `legacy/x.py`; see also `legacy/typo.py`.' >> "$GT"
+lint "$GD"; expect_fail F184_delete_first_segment_known
+[ "$(count 'unresolved-path .*tasks\.md:[0-9]+ legacy/typo\.py$')" -eq 1 ] \
+  || fail "F184_delete_first_segment_known: the typo under a delete row's directory is not flagged ($(both))"
+[ "$(count 'legacy/x\.py')" -eq 0 ] || fail "F184_delete_first_segment_known: the deleted path itself is flagged ($(both))"
+pass "F184_delete_first_segment_known"
+
 echo "all readiness-check checks passed"
