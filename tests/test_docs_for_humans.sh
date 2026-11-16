@@ -2976,40 +2976,57 @@ F05_R12_version_and_changelog() {
 # Codex App only shows as the watcher's exit 5 (wait mode, HARNESS_FIRST_RESPONSE probe). harness-install.sh
 # copies every emitted .opencode/command/*.md over the target unconditionally (step 5b), so edits there are lost.
 F185_FILES="harness-install.sh .claude/commands/sdd-pr-loop.md docs/agents/WORKFLOW.md docs/agents/INSTALL.md"
+F185_ALL="$F185_FILES docs/agents/HARNESS.md docs/WORKFLOW.md docs/INSTALL.md"
+f185_text() { unfenced "$1" | sed 's/^> //' | folded; }   # a command's blockquote prefix must not split a pinned span
 f185_problems() {
-  for _f in $F185_FILES docs/WORKFLOW.md docs/INSTALL.md; do
-    _t="$(unfenced "$1/$_f" | folded)"
+  for _f in $F185_ALL; do
+    _t="$(f185_text "$1/$_f")"
     for _b in 'verifies all of them' 'checks each one'; do
       printf '%s' "$_t" | grep -qiF -- "$_b" && echo "$_f still says '$_b'"
     done
+    printf '%s' "$_t" | grep -qiE 'can only fail its( own)? preflight' && echo "$_f still says the loop can only fail its preflight"
   done
   for _f in $F185_FILES; do
-    _t="$(unfenced "$1/$_f" | folded)"
-    printf '%s' "$_t" | grep -qF -- "the watcher's exit \`5\`" || echo "$_f: no 'the watcher's exit 5' sentence"
-    printf '%s' "$_t" | grep -qF -- 'HARNESS_FIRST_RESPONSE' || echo "$_f: exit 5 not tied to HARNESS_FIRST_RESPONSE"
+    _t="$(f185_text "$1/$_f")"
+    printf '%s' "$_t" | grep -qF -- "the watcher's exit \`5\` (no Codex activity within \`HARNESS_FIRST_RESPONSE\`" || echo "$_f: no exit 5 sentence (with its HARNESS_FIRST_RESPONSE span)"
+    printf '%s' "$_t" | grep -qF -- "that probe is off and it shows up as the exit \`2\` timeout instead" || echo "$_f: the probe-off exit 2 case is not stated"
+    printf '%s' "$_t" | grep -qE -- '`jq`( on `PATH`)?, the repo slug and that the PR is open' || echo "$_f: the preflight list is not 'the repo slug and that the PR is open'"
+    printf '%s' "$_t" | grep -qiE 'Codex (GitHub )?App[^.]*(preflight[^.]*checks|checks[^.]*preflight)' && echo "$_f lists the Codex App among the preflight checks"
   done
-  _t="$(grep -F 'Refreshed.' "$1/docs/INSTALL.md" | folded)"
-  printf '%s' "$_t" | grep -qF -- 'OpenCode command files' || echo "docs/INSTALL.md: ownership row does not name the OpenCode command files"
+  _t="$(f185_text "$1/docs/agents/HARNESS.md")"
+  printf '%s' "$_t" | grep -qF -- "the watcher's exit \`5\`" || echo "docs/agents/HARNESS.md: no exit 5 sentence"
+  _t="$(f185_text "$1/docs/WORKFLOW.md")"
+  printf '%s' "$_t" | grep -qF -- 'checks `gh`, its login, `jq`, the repo slug and that the PR is open' || echo "docs/WORKFLOW.md: the human preflight list lost the repo slug"
+  _t="$(grep -F 'Refreshed' "$1/docs/INSTALL.md" | folded)"
+  printf '%s' "$_t" | grep -qF -- 'the OpenCode command files (`.opencode/command/*.md`' || echo "docs/INSTALL.md: ownership row does not name the OpenCode command files"
+  printf '%s' "$_t" | grep -qF -- 'rewritten on each run with no warning, so edits there are lost' || echo "docs/INSTALL.md: ownership row lost 'rewritten on each run with no warning'"
   return 0
 }
 F185_R1_preflight_wording_and_ownership_row() {
   _bad="$(f185_problems "$ROOT")"
   [ -z "$_bad" ] || fail "F185: $(printf '%s' "$_bad" | tr '\n' ';')"
   rm -rf "$T/f185"; mkdir -p "$T/f185"
-  _mut() { # <name> <file> <sed-expr>: a mutated copy of the tree's relevant files must be flagged
+  _mut() { # <name> <file> <perl-expr>: a mutated copy of the tree's relevant files must be flagged
     rm -rf "$T/f185/r"; mkdir -p "$T/f185/r/docs/agents" "$T/f185/r/.claude/commands"
-    for _x in $F185_FILES docs/WORKFLOW.md docs/INSTALL.md; do cp "$ROOT/$_x" "$T/f185/r/$_x"; done
-    sed "$3" "$ROOT/$2" > "$T/f185/r/$2"
+    for _x in $F185_ALL; do cp "$ROOT/$_x" "$T/f185/r/$_x"; done
+    perl -0pe "$3" "$ROOT/$2" > "$T/f185/r/$2"
     cmp -s "$ROOT/$2" "$T/f185/r/$2" && fail "F185: setup: the mutant $1 did not apply"
     [ -n "$(f185_problems "$T/f185/r")" ] || fail "F185: the check misses the mutant $1"; }
-  _mut old-verifies-all .claude/commands/sdd-pr-loop.md 's/Step 0 (`preflight`) checks/Step 0 verifies all of them and checks/'
+  # perl -0 so a pinned span the doc wraps across a line (or a "> " prefix) is still mutated
+  _mut old-verifies-all .claude/commands/sdd-pr-loop.md 's/Step 0 \(`preflight`\) checks/Step 0 verifies all of them and checks/'
   _mut old-checks-each docs/agents/WORKFLOW.md 's/which checks `gh`/which checks each one: `gh`/'
   _mut old-checks-each-install docs/agents/INSTALL.md 's/`preflight` mode checks `gh`/`preflight` mode checks each one: `gh`/'
-  _mut drop-exit5-command .claude/commands/sdd-pr-loop.md "s/the watcher's exit \`5\`/a later failure/"
-  _mut drop-exit5-workflow docs/agents/WORKFLOW.md "s/the watcher's exit \`5\`/a later failure/"
-  _mut drop-exit5-install docs/agents/INSTALL.md "s/the watcher's exit \`5\`/a later failure/"
-  _mut drop-exit5-emitter harness-install.sh "s/the watcher's exit \`5\`/a later failure/"
-  _mut row-opencode docs/INSTALL.md 's/OpenCode command files/some files/'
+  _mut old-only-fail-harness docs/agents/HARNESS.md 's/ends at the watcher/can only fail its own preflight; the watcher/'
+  _mut old-only-fail-install docs/agents/INSTALL.md 's/ends at the watcher/can only fail its preflight; the watcher/'
+  for _f in $F185_FILES; do
+    _mut "drop-exit5-$_f" "$_f" 's/the watcher.s exit `5`\s+(?:>\s+)?\(no Codex activity within `HARNESS_FIRST_RESPONSE`/a later failure (`HARNESS_FIRST_RESPONSE`/'
+    _mut "drop-probe-off-$_f" "$_f" 's/that probe is off and\s+(?:>\s+)?it\s+(?:>\s+)?shows up as the exit `2` timeout instead/that probe is on/'
+    _mut "app-in-list-$_f" "$_f" 's/the repo slug and that/the Codex App, the repo slug and that/'
+  done
+  _mut drop-exit5-harness docs/agents/HARNESS.md 's/the watcher.s exit `5`/a later failure/'
+  _mut slug-human docs/WORKFLOW.md 's/`jq`, the repo slug and that/`jq` and that/'
+  _mut row-opencode docs/INSTALL.md 's/the OpenCode command files \(`\.opencode/some files (`.opencode/'
+  _mut row-warning docs/INSTALL.md 's/rewritten on each run with no warning, so edits there are lost/kept with a warning/'
   pass "F185_R1_preflight_wording_and_ownership_row"
 }
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi

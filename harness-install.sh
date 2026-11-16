@@ -374,7 +374,8 @@ EOF
 # `enabled` is OPT-IN: it is off unless it reads exactly `true`. An absent block, an
 # absent key, an empty value or any other value all mean OFF, and nothing is stamped.
 # Turn it on ONLY on a repo that has the Codex GitHub App installed plus an authed
-# `gh` (and `jq` on PATH) — without them /sdd-pr-loop can only fail its own preflight.
+# `gh` (and `jq` on PATH) — without `gh` or `jq` /sdd-pr-loop fails its preflight, and
+# without the App it ends at the watcher's exit 5 (or the exit 2 timeout).
 # While it is on, /sdd-pr-loop and the pr-fixer sub-agent are stamped into every
 # selected front-end; flipping it back to false reclaims all of that glue.
 # The installer ASKS for `enabled` (E20-F02) — a follow-up prompt right after the
@@ -690,7 +691,8 @@ EOF
 # therefore forced back to the shipped defaults on seed:
 #
 #   enabled              -> false   the loop needs the Codex GitHub App; defaulting it on
-#                                   would ship a command that can only fail its preflight.
+#                                   would ship a command that, on a repo without the App,
+#                                   ends at the watcher's exit 5 (or the exit 2 timeout).
 #   blocking_severities  -> P0,P1   this repo raises it to P0,P1,P2 because it builds GATES,
 #                                   where a "P2" is the gate vouching for something it never
 #                                   checked or halting all agent work — consequences no
@@ -7687,8 +7689,9 @@ PR with `gh pr view --json number --jq '.number'`; if that fails, STOP and ask w
 > installed, an **authed `gh`**, and **`jq`** on PATH. Step 0 (`preflight`) checks `gh`,
 > `gh` auth, `jq`, the repo slug and that the PR is open, fails fast with a named remedy,
 > and posts nothing. It cannot see the Codex App: a missing App shows up later as
-> the watcher's exit `5` (no Codex activity within `HARNESS_FIRST_RESPONSE` seconds,
-> while that probe is on).
+> the watcher's exit `5` (no Codex activity within `HARNESS_FIRST_RESPONSE` seconds).
+> With `HARNESS_FIRST_RESPONSE=0`, or a window not below the ceiling, that probe is off and
+> it shows up as the exit `2` timeout instead.
 
 ## Configuration
 

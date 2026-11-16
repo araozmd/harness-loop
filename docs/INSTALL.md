@@ -178,7 +178,7 @@ The rest is in [UMBRELLA.md](UMBRELLA.md).
 
 | Whose | Files | On upgrade |
 |---|---|---|
-| The harness's | `.harness/{AGENTS.md,agents,docs,store,tools,specs/_templates,init.sh}` and the generated front-end glue | Refreshed. Claude role and command files, and the OpenCode command files (`.opencode/command/*.md`) for every command that is installed, are rewritten on each run, so edits there are lost (OpenCode gives no warning). Edited Codex roles, Codex and pi units and `opencode.json` are kept with a warning. |
+| The harness's | `.harness/{AGENTS.md,agents,docs,store,tools,specs/_templates,init.sh}` and the generated front-end glue | Refreshed. Claude role and command files, the OpenCode command files (`.opencode/command/*.md`, one per installed command) and the OpenCode `pr-fixer` agent (while `pr_loop.enabled`) are rewritten on each run with no warning, so edits there are lost. Edited Codex roles, Codex and pi units and `opencode.json` are kept with a warning. |
 | Yours | `.harness/{harness.config.yaml,init.project.sh,specs/product.md,specs/glossary.md,specs/epics,state/tasks.json,progress}` | Kept. The config gains any new default keys. |
 | Local only | `.harness/{telemetry.jsonl,workers.json}` | Ignored by git. |
 

@@ -20,8 +20,9 @@ PR with `gh pr view --json number --jq '.number'`; if that fails, STOP and ask w
 > installed, an **authed `gh`**, and **`jq`** on PATH. Step 0 (`preflight`) checks `gh`,
 > `gh` auth, `jq`, the repo slug and that the PR is open, fails fast with a named remedy,
 > and posts nothing. It cannot see the Codex App: a missing App shows up later as
-> the watcher's exit `5` (no Codex activity within `HARNESS_FIRST_RESPONSE` seconds,
-> while that probe is on).
+> the watcher's exit `5` (no Codex activity within `HARNESS_FIRST_RESPONSE` seconds).
+> With `HARNESS_FIRST_RESPONSE=0`, or a window not below the ceiling, that probe is off and
+> it shows up as the exit `2` timeout instead.
 
 ## Configuration
 

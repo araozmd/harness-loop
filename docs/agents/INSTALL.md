@@ -333,7 +333,8 @@ directory), `10` (usage — the PR number doesn't resolve, or isn't `OPEN`). The
 `gh` nor `jq` still passes the environment gate.
 
 `preflight` cannot see the Codex App: a missing App shows up later as the watcher's exit `5`
-(no Codex activity within `HARNESS_FIRST_RESPONSE`, while that probe is on).
+(no Codex activity within `HARNESS_FIRST_RESPONSE`). With `HARNESS_FIRST_RESPONSE=0`, or a
+window not below the ceiling, that probe is off and it shows up as the exit `2` timeout instead.
 
 Fresh config seeds:
 
@@ -348,7 +349,7 @@ pr_loop:
 
 **The seed forces two of these back to the shipped defaults** even though it is otherwise a
 copy of the harness's own `harness.config.yaml`: `enabled` (the loop needs the Codex GitHub
-App, so defaulting it on would ship a command that can only fail its preflight) and
+App, so defaulting it on would ship a command that, on a repo without the App, ends at the watcher's exit `5` or the exit `2` timeout) and
 `blocking_severities`. The harness repo raises the latter to `P0,P1,P2` for itself because
 it builds **gates**, where a finding tagged P2 can still mean the gate vouching for
 something it never checked, or halting all agent work on a legitimate file. That reasoning
