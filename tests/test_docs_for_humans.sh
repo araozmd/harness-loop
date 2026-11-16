@@ -2993,12 +2993,19 @@ f185_problems() {
     printf '%s' "$_t" | grep -qE -- '`jq`( on `PATH`)?, the repo slug and that the PR is open' || echo "$_f: the preflight list is not 'the repo slug and that the PR is open'"
     printf '%s' "$_t" | grep -qiE 'Codex (GitHub )?App[^.]*(preflight[^.]*checks|checks[^.]*preflight)' && echo "$_f lists the Codex App among the preflight checks"
   done
+  # the head of each preflight list: nothing (e.g. the App) may be inserted before `gh`
+  for _h in 'harness-install.sh|\(`preflight`\) checks `gh`,' '.claude/commands/sdd-pr-loop.md|\(`preflight`\) checks `gh`,' \
+            'docs/agents/WORKFLOW.md|which checks `gh` on `PATH`,' 'docs/agents/INSTALL.md|`preflight` mode checks `gh` on `PATH`,'; do
+    _hf="${_h%%|*}"; _hp="${_h#*|}"
+    f185_text "$1/$_hf" | grep -qE -- "$_hp" || echo "$_hf: the preflight list does not start with gh"
+  done
   _t="$(f185_text "$1/docs/agents/HARNESS.md")"
   printf '%s' "$_t" | grep -qF -- "the watcher's exit \`5\`" || echo "docs/agents/HARNESS.md: no exit 5 sentence"
   _t="$(f185_text "$1/docs/WORKFLOW.md")"
   printf '%s' "$_t" | grep -qF -- 'checks `gh`, its login, `jq`, the repo slug and that the PR is open' || echo "docs/WORKFLOW.md: the human preflight list lost the repo slug"
   _t="$(grep -F 'Refreshed' "$1/docs/INSTALL.md" | folded)"
   printf '%s' "$_t" | grep -qF -- 'the OpenCode command files (`.opencode/command/*.md`' || echo "docs/INSTALL.md: ownership row does not name the OpenCode command files"
+  printf '%s' "$_t" | grep -qF -- 'and the OpenCode `pr-fixer` agent' || echo "docs/INSTALL.md: ownership row does not name the OpenCode pr-fixer agent"
   printf '%s' "$_t" | grep -qF -- 'rewritten on each run with no warning, so edits there are lost' || echo "docs/INSTALL.md: ownership row lost 'rewritten on each run with no warning'"
   return 0
 }
@@ -3022,10 +3029,12 @@ F185_R1_preflight_wording_and_ownership_row() {
     _mut "drop-exit5-$_f" "$_f" 's/the watcher.s exit `5`\s+(?:>\s+)?\(no Codex activity within `HARNESS_FIRST_RESPONSE`/a later failure (`HARNESS_FIRST_RESPONSE`/'
     _mut "drop-probe-off-$_f" "$_f" 's/that probe is off and\s+(?:>\s+)?it\s+(?:>\s+)?shows up as the exit `2` timeout instead/that probe is on/'
     _mut "app-in-list-$_f" "$_f" 's/the repo slug and that/the Codex App, the repo slug and that/'
+    _mut "app-at-head-$_f" "$_f" 's/checks `gh`/checks the Codex App, `gh`/'
   done
   _mut drop-exit5-harness docs/agents/HARNESS.md 's/the watcher.s exit `5`/a later failure/'
   _mut slug-human docs/WORKFLOW.md 's/`jq`, the repo slug and that/`jq` and that/'
   _mut row-opencode docs/INSTALL.md 's/the OpenCode command files \(`\.opencode/some files (`.opencode/'
+  _mut row-prfixer docs/INSTALL.md 's/ and the OpenCode `pr-fixer` agent \(while `pr_loop\.enabled`\)//'
   _mut row-warning docs/INSTALL.md 's/rewritten on each run with no warning, so edits there are lost/kept with a warning/'
   pass "F185_R1_preflight_wording_and_ownership_row"
 }
