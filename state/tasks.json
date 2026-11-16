@@ -1536,6 +1536,33 @@
           "autonomous": true,
           "depends_on": [],
           "spec_path": "specs/epics/E99-maintenance/F183-repoint-harness-loop-url/"
+        },
+        {
+          "id": "E99-F184",
+          "title": "readiness-check: add a `delete` verb for removed files; make the contract's `path:name` wording match the tool (add/create rows skip symbols)",
+          "status": "pending",
+          "sdd": false,
+          "autonomous": true,
+          "depends_on": [],
+          "spec_path": "specs/epics/E99-maintenance/F184-readiness-delete-verb/"
+        },
+        {
+          "id": "E99-F185",
+          "title": "E39 doc follow-ups: preflight does not check the Codex App (WORKFLOW contract + /sdd-pr-loop); INSTALL ownership row names OpenCode command files",
+          "status": "pending",
+          "sdd": false,
+          "autonomous": true,
+          "depends_on": [],
+          "spec_path": "specs/epics/E99-maintenance/F185-preflight-wording-opencode-ownership/"
+        },
+        {
+          "id": "E99-F186",
+          "title": "doc-critic writes only its note; Architect snapshots reviewed files and re-runs lints after the critic (issue #323)",
+          "status": "pending",
+          "sdd": false,
+          "autonomous": true,
+          "depends_on": [],
+          "spec_path": "specs/epics/E99-maintenance/F186-doc-critic-write-guard/"
         }
       ]
     },
