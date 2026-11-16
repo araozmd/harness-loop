@@ -2971,6 +2971,47 @@ F05_R12_version_and_changelog() {
   pass "F05_R12_version_and_changelog"
 }
 # DISPATCH
+# ---- E99-F185 — the preflight does not check the Codex App; the ownership row names the OpenCode command files
+# tools/wait-for-codex.sh wfc_preflight checks gh on PATH, gh auth, jq, the repo slug and an open PR; a missing
+# Codex App only shows as the watcher's exit 5 (wait mode, HARNESS_FIRST_RESPONSE probe). harness-install.sh
+# copies every emitted .opencode/command/*.md over the target unconditionally (step 5b), so edits there are lost.
+F185_FILES="harness-install.sh .claude/commands/sdd-pr-loop.md docs/agents/WORKFLOW.md docs/agents/INSTALL.md"
+f185_problems() {
+  for _f in $F185_FILES docs/WORKFLOW.md docs/INSTALL.md; do
+    _t="$(unfenced "$1/$_f" | folded)"
+    for _b in 'verifies all of them' 'checks each one'; do
+      printf '%s' "$_t" | grep -qiF -- "$_b" && echo "$_f still says '$_b'"
+    done
+  done
+  for _f in $F185_FILES; do
+    _t="$(unfenced "$1/$_f" | folded)"
+    printf '%s' "$_t" | grep -qF -- "the watcher's exit \`5\`" || echo "$_f: no 'the watcher's exit 5' sentence"
+    printf '%s' "$_t" | grep -qF -- 'HARNESS_FIRST_RESPONSE' || echo "$_f: exit 5 not tied to HARNESS_FIRST_RESPONSE"
+  done
+  _t="$(grep -F 'Refreshed.' "$1/docs/INSTALL.md" | folded)"
+  printf '%s' "$_t" | grep -qF -- 'OpenCode command files' || echo "docs/INSTALL.md: ownership row does not name the OpenCode command files"
+  return 0
+}
+F185_R1_preflight_wording_and_ownership_row() {
+  _bad="$(f185_problems "$ROOT")"
+  [ -z "$_bad" ] || fail "F185: $(printf '%s' "$_bad" | tr '\n' ';')"
+  rm -rf "$T/f185"; mkdir -p "$T/f185"
+  _mut() { # <name> <file> <sed-expr>: a mutated copy of the tree's relevant files must be flagged
+    rm -rf "$T/f185/r"; mkdir -p "$T/f185/r/docs/agents" "$T/f185/r/.claude/commands"
+    for _x in $F185_FILES docs/WORKFLOW.md docs/INSTALL.md; do cp "$ROOT/$_x" "$T/f185/r/$_x"; done
+    sed "$3" "$ROOT/$2" > "$T/f185/r/$2"
+    cmp -s "$ROOT/$2" "$T/f185/r/$2" && fail "F185: setup: the mutant $1 did not apply"
+    [ -n "$(f185_problems "$T/f185/r")" ] || fail "F185: the check misses the mutant $1"; }
+  _mut old-verifies-all .claude/commands/sdd-pr-loop.md 's/Step 0 (`preflight`) checks/Step 0 verifies all of them and checks/'
+  _mut old-checks-each docs/agents/WORKFLOW.md 's/which checks `gh`/which checks each one: `gh`/'
+  _mut old-checks-each-install docs/agents/INSTALL.md 's/`preflight` mode checks `gh`/`preflight` mode checks each one: `gh`/'
+  _mut drop-exit5-command .claude/commands/sdd-pr-loop.md "s/the watcher's exit \`5\`/a later failure/"
+  _mut drop-exit5-workflow docs/agents/WORKFLOW.md "s/the watcher's exit \`5\`/a later failure/"
+  _mut drop-exit5-install docs/agents/INSTALL.md "s/the watcher's exit \`5\`/a later failure/"
+  _mut drop-exit5-emitter harness-install.sh "s/the watcher's exit \`5\`/a later failure/"
+  _mut row-opencode docs/INSTALL.md 's/OpenCode command files/some files/'
+  pass "F185_R1_preflight_wording_and_ownership_row"
+}
 if [ -n "${ONLY:-}" ]; then for _r in $ONLY; do row "$_r"; done; exit 0; fi
 row R1_announcement; row R1_index_table; row R1_conventions_named; row R1_human_index
 row R4_moved_headings_in_order; row R4_pinned_sentences_present
@@ -3036,6 +3077,8 @@ row F05_R7_concepts_harness_section; row F05_R7_concepts_sentences; row F05_R7_c
 row F05_R8_ablation_trimmed
 row F05_R10_code_citations
 row F05_R12_version_and_changelog
+# ---- E99-F185
+row F185_R1_preflight_wording_and_ownership_row
 # Dispatch completeness: sees a defined-but-undispatched R*() row.
 for f in $(sed -n 's/^\(\(F[0-9]*_\)\{0,1\}R[0-9][0-9]*_[A-Za-z0-9_]*\)() *{.*/\1/p' "$ROOT/tests/test_docs_for_humans.sh"); do
   grep -qE "^$f( |\$)" "$T/passed" || fail "$f: defined but not dispatched from the row list"

@@ -857,7 +857,10 @@ hand: request the review, apply the blocking findings, wait for merge.
 
 **Preconditions.** The **Codex GitHub App** on the repository, an **authed `gh`**, and
 **`jq`** on `PATH`. Step 0 of the loop runs `tools/wait-for-codex.sh preflight <pr>`,
-which checks each one and **posts nothing**; a failure exits `8` (auth/tooling: `gh` or
+which checks `gh` on `PATH`, `gh` auth, `jq` on `PATH`, the repo slug and that the PR is
+open, and **posts nothing**. It cannot check the Codex GitHub App: a missing App shows up
+later as the watcher's exit `5` (no Codex activity within `HARNESS_FIRST_RESPONSE`, while
+that probe is on). A preflight failure exits `8` (auth/tooling: `gh` or
 `jq` missing, or `gh` unauthenticated), `9` (environment: the repo slug does not resolve,
 usually the wrong directory) or `10` (usage: the PR number does not resolve or is not
 open) with a one-line diagnostic naming the failed check and its remedy, and the loop

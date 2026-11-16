@@ -324,13 +324,16 @@ and handoff path instead of claiming an isolated fix was performed.
 
 **Preconditions — the loop only works with all three:** the **Codex GitHub App** installed
 on the target repository, an **authed `gh`**, and **`jq`** on `PATH`. The watcher's
-`preflight` mode checks each one before anything is posted and fails fast with a one-line
-diagnostic naming the failed check and its remedy — and a distinct exit code per remedy
-bucket, never one shared code: `8` (auth/tooling — `gh` missing/unauthenticated, `jq`
+`preflight` mode checks `gh` on `PATH`, `gh` auth, `jq`, the repo slug and that the PR is open
+before anything is posted, and fails fast with a one-line diagnostic naming the failed check
+and its remedy, using a distinct exit code per remedy bucket, never one shared code: `8` (auth/tooling — `gh` missing/unauthenticated, `jq`
 missing), `9` (environment — the repo slug is unresolvable, almost always the wrong
 directory), `10` (usage — the PR number doesn't resolve, or isn't `OPEN`). These are
 **loop-runtime** dependencies only: `init.sh` gains no new gate, so a target with neither
 `gh` nor `jq` still passes the environment gate.
+
+`preflight` cannot see the Codex App: a missing App shows up later as the watcher's exit `5`
+(no Codex activity within `HARNESS_FIRST_RESPONSE`, while that probe is on).
 
 Fresh config seeds:
 
