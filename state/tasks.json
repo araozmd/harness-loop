@@ -1540,7 +1540,7 @@
         {
           "id": "E99-F184",
           "title": "readiness-check: add a `delete` verb for removed files; make the contract's `path:name` wording match the tool (add/create rows skip symbols)",
-          "status": "pending",
+          "status": "in-progress",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
