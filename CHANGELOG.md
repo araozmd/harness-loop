@@ -6,13 +6,14 @@ All notable changes to the harness body are recorded here. Versions follow
 
 ## [0.115.0] — 2026-11-16
 
-### Fixed — the doc-critic may write only its note, and the caller proves it (E99-F186, #323)
+### Fixed — the doc-critic may write only its note (and a feedback-ledger entry on a trigger), and the caller checks the reviewed files (E99-F186, #323)
 - 🐛 In an installed target the advisory doc-critic overwrote a spec file it was reviewing and never
   wrote its note; `tools/validate-board.py` and `init.sh` exited 0 on the result.
   `agents/doc-critic.md` named no write destination and told the critic to apply fixes itself
   ("inline fixes", "the fix applied").
-- New `agents/doc-critic.md` section `## Write scope`: the only file the critic writes is
-  `progress/<run>/doc-critic-<checkpoint>.md`; findings carry a proposed fix that the generating
+- New `agents/doc-critic.md` section `## Write scope`: the critic writes
+  `progress/<run>/doc-critic-<checkpoint>.md` and, only on a harness-defect trigger, one entry
+  appended to `progress/feedback/notes.md`; findings carry a proposed fix that the generating
   agent applies.
 - New `tools/critic-guard.sh snapshot|verify|restore` (POSIX sh, `cksum`): the generating agent
   snapshots the reviewed files (a checksum and a byte copy each) before the spawn and verifies them as

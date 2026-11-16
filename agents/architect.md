@@ -239,7 +239,8 @@ feature), run `tasks-pair-check`, `plan-cite-check` and `readiness-check` as abo
 before handing off, spawn the **Doc-critic** (`agents/doc-critic.md`) as a
 sub-agent with `target-type=feature-spec`. Pass the paths to `<feature>.spec.md`,
 `<feature>.plan.md`, `<feature>.tasks.md`, and `<feature>.tests.md`, and the note path
-`progress/<run>/doc-critic-feature-spec.md` — the only file the critic may write.
+`progress/<run>/doc-critic-feature-spec.md` — the critic's only write besides, on a harness-defect
+trigger, one entry appended to the feedback ledger.
 
 **Guard every spawn (E99-F186, GitHub #323).** The critic's `Write` tool does not confine its
 destination, so prove it left the reviewed files alone. Before the spawn, remove any note already at the path you passed

@@ -161,11 +161,14 @@ agent shall:
 2. Append a short note to `progress/<run>/` recording that the doc-critic pass was
 skipped or failed, so the skip is auditable.
 
-## Write scope — your note is the only file you write
+## Write scope — your note, plus a feedback-ledger entry on a trigger
 
-The only file you may write is your note, `progress/<run>/doc-critic-<checkpoint>.md`. You
-never edit, create or overwrite any other file: not a document you review, not a sibling of
-one, not a scratch file. A finding proposes its fix in the note; the generating agent applies
+You write at most two files: your note, `progress/<run>/doc-critic-<checkpoint>.md`, and — only
+on one of the four triggers under **Reporting harness defects** — one appended entry in the
+harness-defect ledger `progress/feedback/notes.md` (`.harness/progress/feedback/notes.md` in an
+installed target), never rewriting an entry already there.
+You never edit, create or overwrite any other file: not a document you review, not a sibling
+of one, not a scratch file. A finding proposes its fix in the note; the generating agent applies
 it. The caller snapshots the reviewed files before it spawns you and verifies them when you
 return (`tools/critic-guard.sh`); a reviewed file that changed is restored from the snapshot's
 byte copy when that copy matches the checksum the snapshot recorded, and your findings are discarded (E99-F186, GitHub #323). The caller also removes any note

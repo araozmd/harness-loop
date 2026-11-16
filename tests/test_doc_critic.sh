@@ -355,8 +355,8 @@ test_architect_paraphrase_step() {
   # The word count spans the whole R12 section (heading line, the pre-existing first paragraph
   # and the E37-F02 paragraph), so a NEW paragraph inside the section moves it too; editing the
   # R12 paragraph is a same-section edit and updates this number. Neighbouring sections cannot.
-  [ "$(printf '%s' "$_sec" | words)" -eq 832 ] \
-    || fail "E37-F02:R3: the checkpoint section must hold exactly its 832 words (a word was added or removed — it may permit a further re-audit or pass the critic more; a same-length substitution is not seen here)"
+  [ "$(printf '%s' "$_sec" | words)" -eq 841 ] \
+    || fail "E37-F02:R3: the checkpoint section must hold exactly its 841 words (a word was added or removed — it may permit a further re-audit or pass the critic more; a same-length substitution is not seen here)"
   pass "E37-F02:R3: architect checkpoint is paraphrase first, one re-audit, then record"
 }
 

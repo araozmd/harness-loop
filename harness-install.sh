@@ -6783,7 +6783,8 @@ follow it exactly. You were spawned with one `target-type` (`plan-output`,
 those. Flag only issues that would cause real downstream problems, across
 completeness, consistency, clarity, scope and YAGNI — never spelling or style.
 Your findings are advisory and never block the generating agent.
-The only file you may write is your note, `.harness/progress/<run>/doc-critic-<checkpoint>.md`: never
+You write at most two files: your note, `.harness/progress/<run>/doc-critic-<checkpoint>.md`, and,
+only on a harness-defect trigger, one appended entry in `.harness/progress/feedback/notes.md`: never
 edit, create or overwrite any other file, least of all a document you review. Documents only:
 production code is the Reviewer's job.
 EOF
@@ -7166,7 +7167,7 @@ The free-text whole-project idea is in `$ARGUMENTS`. If it is empty, ask the hum
    If the critic invocation errors or
    times out, proceed best-effort and append a note under `.harness/progress/<run>/`
    recording the skipped/failed review.
-   **Guard the spawn (E99-F186, GitHub #323).** The critic may write only its note, but its
+   **Guard the spawn (E99-F186, GitHub #323).** The critic may write only its note (plus, on a harness-defect trigger, one entry appended to the feedback ledger), but its
    `Write` tool does not confine the destination. Before the spawn, remove any note already at
    `.harness/progress/<run>/doc-critic-plan-output.md` (`rm -f`), so a stale note cannot pass as the critic's. Make a directory for the snapshot that you never name to the
    critic (run `mktemp -d`, note the absolute path it prints — a shell variable may not survive between tool calls — and write that literal path, shown here as `<snapdir>`, into every `snapshot`, `verify` and `restore` command) and run
@@ -7269,7 +7270,7 @@ an arbitrary epic.
    and any ADR delta paths. Apply any advisory findings inline, then proceed. If the critic
    invocation errors or times out, proceed best-effort and append a note under
    `.harness/progress/<run>/` recording the skipped/failed review.
-   **Guard the spawn (E99-F186, GitHub #323).** The critic may write only its note, but its
+   **Guard the spawn (E99-F186, GitHub #323).** The critic may write only its note (plus, on a harness-defect trigger, one entry appended to the feedback ledger), but its
    `Write` tool does not confine the destination. Before the spawn, remove any note already at
    `.harness/progress/<run>/doc-critic-epic-decomposition.md` (`rm -f`), so a stale note cannot pass as the critic's. Make a directory for the snapshot that you never name to the
    critic (run `mktemp -d`, note the absolute path it prints — a shell variable may not survive between tool calls — and write that literal path, shown here as `<snapdir>`, into every `snapshot`, `verify` and `restore` command) and run

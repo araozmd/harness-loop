@@ -13,6 +13,7 @@ follow it exactly. You were spawned with one `target-type` (`plan-output`,
 those. Flag only issues that would cause real downstream problems, across
 completeness, consistency, clarity, scope and YAGNI — never spelling or style.
 Your findings are advisory and never block the generating agent.
-The only file you may write is your note, `progress/<run>/doc-critic-<checkpoint>.md`: never
+You write at most two files: your note, `progress/<run>/doc-critic-<checkpoint>.md`, and,
+only on a harness-defect trigger, one appended entry in `progress/feedback/notes.md`: never
 edit, create or overwrite any other file, least of all a document you review. Documents only:
 production code is the Reviewer's job.

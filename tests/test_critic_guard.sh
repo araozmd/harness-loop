@@ -201,8 +201,10 @@ LIMITRE='detects a rewrite of the reviewed files unless the critic also rewrote 
 check_critic() {
   _s="$(section "$1" '## Write scope')"
   [ -n "$_s" ] || { echo "no '## Write scope' section"; return 1; }
-  printf '%s' "$_s" | re 'only file you may write is your note, `progress/<run>/doc-critic-<checkpoint>\.md`' \
-    || { echo "single write destination missing"; return 1; }
+  printf '%s' "$_s" | re 'You write at most two files: your note, `progress/<run>/doc-critic-<checkpoint>\.md`, and' \
+    || { echo "write destinations missing"; return 1; }
+  printf '%s' "$_s" | tr '\n' ' ' | tr -s ' ' | re 'only on one of the four triggers under \*\*Reporting harness defects\*\* — one appended entry in the harness-defect ledger `progress/feedback/notes\.md`' \
+    || { echo "the feedback-ledger append (Reporting harness defects) is not permitted"; return 1; }
   printf '%s' "$_s" | re 'never edit, create or overwrite any other file' || { echo "ban on other files missing"; return 1; }
   printf '%s' "$_s" | re 'document you review' || { echo "reviewed documents not named as off limits"; return 1; }
   if grep -qiE 'inline fixes|fix applied|fixes inline|fixes applied|similarly scoped' "$1"; then
@@ -312,8 +314,10 @@ DRILLER="$ROOT/agents/driller.md"
 expect_ok "C1" check_critic "$CRITIC"
 mutant "$CRITIC" "$T/c-m1.md" 's/## Write scope/## Scope of writes/'
 expect_bad "C1 mutant: section renamed away" check_critic "$T/c-m1.md"
-mutant "$CRITIC" "$T/c-m2.md" 's/only file you may write is your note/only file you may write is any note/'
+mutant "$CRITIC" "$T/c-m2.md" 's/your note, `progress\/<run>\/doc-critic-<checkpoint>.md`, and/any note, and/'
 expect_bad "C1 mutant: destination loosened" check_critic "$T/c-m2.md"
+mutant "$CRITIC" "$T/c-m2b.md" 's/one appended entry in the$/any edit to the/'
+expect_bad "C1 mutant: the ledger permission loosened" check_critic "$T/c-m2b.md"
 mutant "$CRITIC" "$T/c-m3.md" 's/never edit, create or overwrite any other file/never edit any other file/'
 expect_bad "C1 mutant: create/overwrite dropped" check_critic "$T/c-m3.md"
 mutant "$CRITIC" "$T/c-m4.md" 's/each with the proposed fix/each with the fix applied/'
@@ -420,7 +424,8 @@ check_installer() { # <installer-copy>; each emitter (/sdd-plan, /sdd-drill) mus
   if grep -qF '$snapdir' "$1"; then echo 'the shell-variable form $snapdir is back'; return 1; fi
   grep -qF 'tools/critic-guard.sh' "$1" || { echo "installer never names tools/critic-guard.sh"; return 1; }
   grep -qF 'chmod +x "$H/tools/critic-guard.sh"' "$1" || { echo "installer lacks the critic-guard executable wiring"; return 1; }
-  grep -qE 'only file you may write is your note' "$1" || { echo "the doc-critic shim does not state its single write destination"; return 1; }
+  grep -qE 'You write at most two files: your note' "$1" || { echo "the doc-critic shim does not state its write destinations"; return 1; }
+  grep -qF 'only on a harness-defect trigger, one appended entry in `.harness/progress/feedback/notes.md`' "$1" || { echo "the doc-critic shim does not permit the feedback-ledger append"; return 1; }
   return 0
 }
 expect_ok "E1" check_installer "$INST"

@@ -80,7 +80,7 @@ an arbitrary epic.
    and any ADR delta paths. Apply any advisory findings inline, then proceed. If the critic
    invocation errors or times out, proceed best-effort and append a note under
    `progress/<run>/` recording the skipped/failed review.
-   **Guard the spawn (E99-F186, GitHub #323).** The critic may write only its note, but its
+   **Guard the spawn (E99-F186, GitHub #323).** The critic may write only its note (plus, on a harness-defect trigger, one entry appended to the feedback ledger), but its
    `Write` tool does not confine the destination. Before the spawn, remove any note already at
    `progress/<run>/doc-critic-epic-decomposition.md` (`rm -f`), so a stale note cannot pass as the critic's. Make a directory for the snapshot that you never name to the
    critic (run `mktemp -d`, note the absolute path it prints — a shell variable may not survive between tool calls — and write that literal path, shown here as `<snapdir>`, into every `snapshot`, `verify` and `restore` command) and run
