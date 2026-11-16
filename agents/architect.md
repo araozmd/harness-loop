@@ -217,13 +217,15 @@ checkpoint; it must exit 0 — the Reviewer rejects on exit 1 (check 9). The too
 the backticked repo-rooted paths it recognises in the plan's `## Files to change` first
 cells, the `.tasks.md` list items and the `.tests.md` rows and items: each must exist in the
 repository, and each symbol they name (`name()` in a single-path modify row, `path:name`
-anywhere) must occur in its file — the Builder reads only these four files, in a clean
+in a tasks or tests unit or in a files row that neither creates, adds nor deletes) must occur in its file — the Builder reads only these four files, in a clean
 context, and cannot tell a renamed tool from a typo. An unrecognised token is ignored, never
 flagged (precision over recall — see `docs/agents/SPEC-FORMAT.md`): a first-segment typo such as
 `tols/x.py` is ignored, not caught, so a clean exit is not proof that every path is right.
 Declare every file the feature creates with `create` as the first word of its
 `## Files to change` Change cell; tasks and tests references to a created path, or to a
-path under a created directory, resolve through that declaration. Write a path that is not
+path under a created directory, resolve through that declaration. Declare every file it
+removes with `delete` the same way: the path resolves whether or not the file still exists, so
+the check passes both before and after the Builder deletes it. Write a path that is not
 in this repository (a fixture-internal path, a consumer's file) with a placeholder prefix
 (`<repo>/tools/x.py`) or inside fenced code. Exit 2 means the check did not run: fix the
 invocation and run it again. The grammar is `docs/agents/SPEC-FORMAT.md` → *Implementation

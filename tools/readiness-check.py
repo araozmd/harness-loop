@@ -26,7 +26,9 @@ resolves"; this tool lints it, it never redefines it.  In short:
     when it holds a `/` or its last segment has a dotted extension.  In a plan row, paths are
     read from the FIRST cell only; symbol forms from every cell.
   * the created set: the first-cell paths of every row whose Change cell's first word is
-    `create`.  A reference resolves when it is created (or under a created directory), exists
+    `create`; a row whose first word is `delete` declares its first-cell paths the same way
+    (they resolve whether or not the file exists; no symbol in the row is checked) but is
+    not counted as created.  A reference resolves when it is created (or under a created directory), exists
     at the root, exists through the `.harness/` remap (either direction), or — bare — exists
     in the feature directory.
   * the root is --root, else the nearest ancestor of the plan's directory holding `.git` (a
@@ -303,12 +305,13 @@ def plan_verb(change_cell):
     return m.group(0).lower() if m else ""
 
 
-def created_set(rows):
-    """First-cell candidates of every `## Files to change` data row whose verb is create."""
+def created_set(rows, verbs=("create",)):
+    """First-cell candidates of every `## Files to change` data row whose verb is in verbs
+    (create by default; `delete` declares a path the feature removes)."""
     created = []
     for _n, text in rows:
         cs = cells(text)
-        if plan_verb(cs[1] if len(cs) > 1 else "") != "create":
+        if plan_verb(cs[1] if len(cs) > 1 else "") not in verbs:
             continue
         for sp in spans(cs[0]):
             _d, p, _name = classify(sp)
@@ -417,7 +420,9 @@ def check_feature(plan, tasks, tests, root):
     feature_dir = os.path.dirname(plan) or "."
     units = feature_units(plan, _read(plan), tasks, _read(tasks) if tasks else None,
                           tests, _read(tests) if tests else None)
-    created = created_set([u[3][0] for u in units if u[0] == "row"])
+    rows = [u[3][0] for u in units if u[0] == "row"]
+    created = created_set(rows)
+    declared = created + [d for d in created_set(rows, ("delete",)) if d not in created]
     findings = []
     resolved = [0]
 
@@ -426,7 +431,7 @@ def check_feature(plan, tasks, tests, root):
             findings.append((rank, n, text))
 
     def ref(path):
-        if resolve(path, root, feature_dir, created) is not None:
+        if resolve(path, root, feature_dir, declared) is not None:
             resolved[0] += 1
             return True
         return False
@@ -434,7 +439,7 @@ def check_feature(plan, tasks, tests, root):
     def target(p):
         """The existing regular file a symbol is searched in, else None (unresolved, created,
         a directory)."""
-        t = resolve(p, root, feature_dir, created)
+        t = resolve(p, root, feature_dir, declared)
         return t if t not in (None, "created") and os.path.isfile(t) else None
 
     def symbol_form(rank, fname, n, display, p, name):
@@ -447,12 +452,12 @@ def check_feature(plan, tasks, tests, root):
         unless it creates or adds."""
         cs = cells(text)
         verb = plan_verb(cs[1] if len(cs) > 1 else "")
-        if verb == "create":
-            return  # the row IS the declaration
+        if verb in ("create", "delete"):
+            return  # the row IS the declaration (delete: the path need not exist, nor stay)
         firsts = []
         for sp in spans(cs[0]):
             display, p, _name = classify(sp)
-            if p is not None and not ignored(p, root, created):
+            if p is not None and not ignored(p, root, declared):
                 firsts.append(p)
                 if not ref(p):
                     emit(0, n, "unresolved-path %s:%d %s" % (plan, n, display))
@@ -465,7 +470,7 @@ def check_feature(plan, tasks, tests, root):
                 if m and t is not None and not symbol_present(t, m.group(1)):
                     emit(0, n, "unresolved-symbol %s:%d %s:%s" % (plan, n, firsts[0], m.group(1)))
                 display, p, name = classify(sp)
-                if name is not None and p is not None and not ignored(p, root, created):
+                if name is not None and p is not None and not ignored(p, root, declared):
                     symbol_form(0, plan, n, display, p, name)
 
     def check_unit(rank, fname, lines):
@@ -475,7 +480,7 @@ def check_feature(plan, tasks, tests, root):
         for n, text in lines:
             for sp in spans(text):
                 display, p, name = classify(sp)
-                if p is None or ignored(p, root, created):
+                if p is None or ignored(p, root, declared):
                     continue
                 if "/" not in p:
                     ref(p)  # a bare basename found nowhere is prose, never a finding

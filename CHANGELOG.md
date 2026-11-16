@@ -4,6 +4,18 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.114.2] — 2026-11-16
+
+### Fixed — readiness-check: a `delete` verb, and the contract says what the tool checks (E99-F184)
+- `tools/readiness-check.py`: a `## Files to change` row whose Change cell starts with `delete`
+  declares its first-cell paths like `create` does, so they (and tasks/tests references to them)
+  resolve both before and after the Builder removes the file. Symbols in a `delete` row are not
+  checked and the row is not counted as created. Previously a plan naming a file to delete passed
+  at spec-ready and failed `unresolved-path` after the deletion (the 0.114.0 docs slice hit this).
+- `docs/agents/SPEC-FORMAT.md`, `agents/architect.md`, `docs/SPEC-FORMAT.md`: document `delete`, and
+  the `path:name` wording is now true (checked in tasks/tests units and in files rows that do not
+  create, add or delete, not "anywhere"). The `.claude/agents/architect.md` shim is regenerated.
+
 ## [0.114.1] — 2026-11-16
 
 ### Fixed — docs: the preflight does not check the Codex App; the ownership row names the OpenCode command files (E99-F185)

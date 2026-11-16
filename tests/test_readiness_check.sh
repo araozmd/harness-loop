@@ -1240,4 +1240,26 @@ printf '%s\n' "$_c11" | grep -qF '[`tools/readiness-check.py`](../tools/readines
   || fail "R12_version_changelog_ledger: the C11 row does not point at tools/readiness-check.py"
 pass "R12_version_changelog_ledger"
 
+# F184: a `delete` row declares a path the feature removes. It resolves whether or not the
+# file exists, tasks/tests references resolve through it, its symbols are not checked, and the
+# same path without the declaration is still an unresolved-path.
+fresh f184
+printf '%s\n' '| `tools/old.py` | **Delete** the retired tool, which defines `gone()` | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `tools/old.py`.' >> "$GT"
+printf '%s\n' '| R1 | `tools/old.py` is gone |' >> "$GX"
+lint "$GD"; expect_ok F184_delete_row_absent_file
+grep -qF ", 3 created, " "$T/out" || fail "F184_delete_row_absent_file: a delete row was counted as created ($(both))"
+printf 'x = 1\n' > "$R/tools/old.py"
+lint "$GD"; expect_ok F184_delete_row_existing_file
+pass "F184_delete_row_resolves_before_and_after"
+grep -v '^| `tools/old.py` |' "$GP" > "$GP.new"; mv "$GP.new" "$GP"
+rm -f "$R/tools/old.py"
+lint "$GD"; expect_fail F184_undeclared_still_unresolved
+[ "$(count 'unresolved-path .*E01-F01\.tasks\.md:[0-9]+ tools/old\.py$')" -eq 1 ] \
+  || fail "F184_undeclared_still_unresolved: the undeclared task reference is not an unresolved-path ($(both))"
+[ "$(count 'unresolved-path .*E01-F01\.tests\.md:[0-9]+ tools/old\.py$')" -eq 1 ] \
+  || fail "F184_undeclared_still_unresolved: the undeclared tests reference is not an unresolved-path ($(both))"
+pass "F184_undeclared_still_unresolved"
+
 echo "all readiness-check checks passed"
