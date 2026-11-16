@@ -235,10 +235,39 @@ readiness — every named path resolves*.
 ## Doc-critic checkpoint before `spec-ready` (R12)
 
 After drafting the four spec files (and any pinned contract artifact for a sliced
-feature) and before handing off, spawn the **Doc-critic** (`agents/doc-critic.md`) as a
+feature), run `tasks-pair-check`, `plan-cite-check` and `readiness-check` as above. Then,
+before handing off, spawn the **Doc-critic** (`agents/doc-critic.md`) as a
 sub-agent with `target-type=feature-spec`. Pass the paths to `<feature>.spec.md`,
-`<feature>.plan.md`, `<feature>.tasks.md`, and `<feature>.tests.md`. Apply any advisory
-findings inline, then proceed to the hand-off. If the critic invocation errors or times
+`<feature>.plan.md`, `<feature>.tasks.md`, and `<feature>.tests.md`, and the note path
+`progress/<run>/doc-critic-feature-spec.md` — the critic's only write besides, on a harness-defect
+trigger, one entry appended to the feedback ledger.
+
+**Guard every spawn (E99-F186, GitHub #323).** The critic's `Write` tool does not confine its
+destination, so prove it left the reviewed files alone. Before the spawn, remove any note already at the path you passed
+(`rm -f progress/<run>/doc-critic-feature-spec.md`), so a stale note cannot pass as the critic's. Make a directory for the
+snapshot that you never name to the critic (run `mktemp -d`, note the absolute path it prints — a shell variable may not survive between tool calls — and write that literal path, shown here as `<snapdir>`, into every `snapshot`, `verify` and `restore` command) and run
+`sh "$HARNESS_DIR/tools/critic-guard.sh" snapshot <snapdir>/feature-spec.snap <the four paths>`.
+It saves a checksum and a byte copy of each file and refuses a snapshot path that does not end in `.snap` or is one of the
+four files. Exit 2 from `snapshot` means no new snapshot was taken (an older one at that path may remain): fix the
+invocation and run it again before spawning.
+
+As soon as the critic returns, before you read its findings, run
+`sh "$HARNESS_DIR/tools/critic-guard.sh" verify <snapdir>/feature-spec.snap`. Exit 1 names each file that
+changed or vanished: run `sh "$HARNESS_DIR/tools/critic-guard.sh" restore <snapdir>/feature-spec.snap`
+(it copies each of those files back from its byte copy when the copy matches the checksum recorded in the snapshot, then
+verifies; it exits 0 only when every file matches that recorded checksum), record the incident
+in the progress note, treat the checkpoint as failed and apply none of that critic's findings. Exit 2 from `verify` means
+the files are unverified: handle it the same way — run `restore`, record it, treat the checkpoint as failed and apply no
+findings. If `restore` exits non-zero (exit 1: a file is UNRESTORABLE or still differs; exit 2: the snapshot is gone or malformed) the file is not trusted: rebuild it from your own last write, or with `git checkout -- <file>` when it is committed and unchanged since, then run `verify` again (compare it by hand if the snapshot is unusable); do not hand off until the file is confirmed, and if it cannot be confirmed stop and report to the Orchestrator. The same holds when there is no note at the path you passed: a critic that wrote nothing, or wrote
+elsewhere, is a failed checkpoint to record, never a passed one. Run `snapshot`, `verify` and `restore` from the same working
+directory (or with absolute paths): the snapshot records the paths as given.
+
+Whether or not the checkpoint failed, run `tasks-pair-check`, `plan-cite-check` and `readiness-check` again after the
+critic returns and before hand-off; each must exit 0. The same guard wraps the second spawn that the next paragraph
+allows, with its own snapshot in the same directory (`<snapdir>/feature-spec-2.snap`) and a note path ending `-2.md`.
+The guard detects a rewrite of the reviewed files unless the critic also rewrote the snapshot or its byte copies, which are not guarded; keeping them in a directory the critic is never told about makes that unlikely, not impossible. Remove the directory (`rm -rf <snapdir>`) after the last `verify` or `restore` of this checkpoint (the second spawn's, when there is one).
+
+Apply any advisory findings inline, then proceed to the hand-off. If the critic invocation errors or times
 out, proceed best-effort and append a note to `progress/<run>/` recording the skipped or
 failed review.
 

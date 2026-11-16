@@ -1570,11 +1570,17 @@
         {
           "id": "E99-F186",
           "title": "doc-critic writes only its note; Architect snapshots reviewed files and re-runs lints after the critic (issue #323)",
-          "status": "pending",
+          "status": "in-review",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F186-doc-critic-write-guard/"
+          "spec_path": "specs/epics/E99-maintenance/F186-doc-critic-write-guard/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (345)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F186 done --evidence <merge-ref>`",
+            "pr": "345"
+          }
         }
       ]
     },

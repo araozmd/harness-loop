@@ -325,7 +325,11 @@ human gate.
 The generating agent spawns the critic as a sub-agent with the `target-type` and the
 paths just written, applies any advisory findings **inline**, and proceeds. If the critic
 errors or times out, the agent proceeds **best-effort** and appends a short note to
-`progress/<run>/` so the skipped pass is auditable. The critic reviews **documents only**;
+`progress/<run>/` so the skipped pass is auditable. The critic writes only its note
+(`progress/<run>/doc-critic-<checkpoint>.md`) and, on a harness-defect trigger, one entry
+appended to the feedback ledger `progress/feedback/notes.md`; the generating agent runs
+`tools/critic-guard.sh snapshot` on the reviewed files before the spawn and `verify` as soon as
+the critic returns, and a changed file means a failed review (E99-F186). The critic reviews **documents only**;
 production-code review remains the Reviewer's job (E05).
 
 Beside the critic at the `feature-spec` checkpoint sits the implementation-readiness lint
