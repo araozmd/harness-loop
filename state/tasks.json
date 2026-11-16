@@ -1549,7 +1549,7 @@
         {
           "id": "E99-F185",
           "title": "E39 doc follow-ups: preflight does not check the Codex App (WORKFLOW contract + /sdd-pr-loop); INSTALL ownership row names OpenCode command files",
-          "status": "pending",
+          "status": "in-progress",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
