@@ -1540,47 +1540,50 @@
         {
           "id": "E99-F184",
           "title": "readiness-check: add a `delete` verb for removed files; make the contract's `path:name` wording match the tool (add/create rows skip symbols)",
-          "status": "in-review",
+          "status": "done",
+          "landed": {
+            "base": "origin/main",
+            "commit": "f609577560874c4e6f901ba61920740f080173f5",
+            "ref": "f609577560874c4e6f901ba61920740f080173f5",
+            "repo": "harness-sdd",
+            "verified": "ancestor"
+          },
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F184-readiness-delete-verb/",
-          "parked": {
-            "gate": "merge",
-            "reason": "approved; PR open, awaiting merge (344)",
-            "unblocked_by": "the PR merging \u2014 then `set-status E99-F184 done --evidence <merge-ref>`",
-            "pr": "344"
-          }
+          "spec_path": "specs/epics/E99-maintenance/F184-readiness-delete-verb/"
         },
         {
           "id": "E99-F185",
           "title": "E39 doc follow-ups: preflight does not check the Codex App (WORKFLOW contract + /sdd-pr-loop); INSTALL ownership row names OpenCode command files",
-          "status": "in-review",
+          "status": "done",
+          "landed": {
+            "base": "origin/main",
+            "commit": "2fe6fa0142948c54a7bed54aaa986b967074b8b3",
+            "ref": "2fe6fa0142948c54a7bed54aaa986b967074b8b3",
+            "repo": "harness-sdd",
+            "verified": "ancestor"
+          },
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F185-preflight-wording-opencode-ownership/",
-          "parked": {
-            "gate": "merge",
-            "reason": "approved; PR open, awaiting merge (343)",
-            "unblocked_by": "the PR merging \u2014 then `set-status E99-F185 done --evidence <merge-ref>`",
-            "pr": "343"
-          }
+          "spec_path": "specs/epics/E99-maintenance/F185-preflight-wording-opencode-ownership/"
         },
         {
           "id": "E99-F186",
           "title": "doc-critic writes only its note; Architect snapshots reviewed files and re-runs lints after the critic (issue #323)",
-          "status": "in-review",
+          "status": "done",
+          "landed": {
+            "base": "origin/main",
+            "commit": "3dfb4206c6d3cd893a3bd01cfb1e1f7aa7ed0979",
+            "ref": "3dfb4206c6d3cd893a3bd01cfb1e1f7aa7ed0979",
+            "repo": "harness-sdd",
+            "verified": "ancestor"
+          },
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F186-doc-critic-write-guard/",
-          "parked": {
-            "gate": "merge",
-            "reason": "approved; PR open, awaiting merge (345)",
-            "unblocked_by": "the PR merging \u2014 then `set-status E99-F186 done --evidence <merge-ref>`",
-            "pr": "345"
-          }
+          "spec_path": "specs/epics/E99-maintenance/F186-doc-critic-write-guard/"
         }
       ]
     },
