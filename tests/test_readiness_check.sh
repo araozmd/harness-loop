@@ -1285,13 +1285,32 @@ lint "$GD"
 pass "F184_delete_declared_harness_remap"
 
 fresh f184d
-printf '%s\n' '| `legacy/x.py` | delete the legacy tool | R1 |' > "$T/row.md"
+printf '%s\n' '| `legacy/x.py` | delete the legacy tool | R1 |' '| `legacy/typo.py` | modify the legacy typo | R1 |' > "$T/row.md"
 insert_before "$GP" '| `README.md` |' "$T/row.md"
 printf '%s\n' '- [ ] **T5** (R1) — Drop `legacy/x.py`; see also `legacy/typo.py`.' >> "$GT"
 lint "$GD"; expect_fail F184_delete_first_segment_known
 [ "$(count 'unresolved-path .*tasks\.md:[0-9]+ legacy/typo\.py$')" -eq 1 ] \
   || fail "F184_delete_first_segment_known: the typo under a delete row's directory is not flagged ($(both))"
+[ "$(count 'unresolved-path .*plan\.md:[0-9]+ legacy/typo\.py$')" -eq 1 ] \
+  || fail "F184_delete_first_segment_known: the typo in a modify row beside a delete row is not flagged ($(both))"
 [ "$(count 'legacy/x\.py')" -eq 0 ] || fail "F184_delete_first_segment_known: the deleted path itself is flagged ($(both))"
 pass "F184_delete_first_segment_known"
+
+# the declaration is matched in either layout, directories included
+fresh f184e
+printf '%s\n' '| `.harness/tools/real.py` | delete the installed tool | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `tools/real.py`.' >> "$GT"
+rm -f "$R/tools/real.py"
+lint "$GD"
+[ "$(count 'real\.py')" -eq 0 ] || fail "F184_delete_installed_layout_row: a source-layout reference to a path declared in the installed layout is flagged ($(both))"
+pass "F184_delete_installed_layout_row"
+
+fresh f184f
+printf '%s\n' '| `tools/olddir/` | delete the retired directory | R1 |' > "$T/row.md"
+insert_before "$GP" '| `README.md` |' "$T/row.md"
+printf '%s\n' '- [ ] **T5** (R1) — Drop `.harness/tools/olddir/a.py`.' >> "$GT"
+lint "$GD"; expect_ok F184_delete_dir_through_remap
+pass "F184_delete_dir_through_remap"
 
 echo "all readiness-check checks passed"

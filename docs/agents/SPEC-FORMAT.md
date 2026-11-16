@@ -217,7 +217,8 @@ a created directory, resolve through that declaration, and a tasks or tests unit
 as the first word of the row's Change cell: its first-cell paths resolve whether or not the
 file exists, so the check passes both before and after the Builder deletes it, and tasks and
 tests references to that path resolve through the declaration; a symbol in a `delete` row is
-not checked, and the row does not count as created. A reference resolves when it is declared created or deleted,
+not checked, and the row does not count as created. A reference resolves when it is declared created or deleted (in either layout: the
+source and the `.harness/` installed form of a declared path both match),
 exists at the repository root, exists through the `.harness/` remap (the source and the
 installed layout are both tried), or — a bare filename — exists in the feature directory.
 An unrecognised token is ignored, never flagged: placeholders and globs (any of `<` `>` `*`

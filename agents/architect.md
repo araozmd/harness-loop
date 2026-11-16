@@ -223,7 +223,8 @@ flagged (precision over recall — see `docs/agents/SPEC-FORMAT.md`): a first-se
 `tols/x.py` is ignored, not caught, so a clean exit is not proof that every path is right.
 Declare every file the feature creates with `create` as the first word of its
 `## Files to change` Change cell; tasks and tests references to a created path, or to a
-path under a created directory, resolve through that declaration. Declare every file it
+path under a created directory, resolve through that declaration. A declared path matches in either layout (`tools/x.py` and
+`.harness/tools/x.py`). Declare every file it
 removes with `delete` the same way: the path resolves whether or not the file still exists, so
 the check passes both before and after the Builder deletes it. Write a path that is not
 in this repository (a fixture-internal path, a consumer's file) with a placeholder prefix

@@ -12,6 +12,9 @@ All notable changes to the harness body are recorded here. Versions follow
   resolve both before and after the Builder removes the file. Symbols in a `delete` row are not
   checked and the row is not counted as created. Previously a plan naming a file to delete passed
   at spec-ready and failed `unresolved-path` after the deletion (the 0.114.0 docs slice hit this).
+- A declared path, created or deleted, now also matches its other layout: `.harness/tools/new.py`
+  resolves against a `create` row for `tools/new.py` (and the reverse). This also closes the same
+  gap for `create`.
 - `docs/agents/SPEC-FORMAT.md`, `agents/architect.md`, `docs/SPEC-FORMAT.md`: document `delete`, and
   the `path:name` wording is now true (checked in tasks/tests units and in files rows that do not
   create, add or delete, not "anywhere").
