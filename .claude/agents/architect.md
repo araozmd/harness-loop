@@ -13,5 +13,6 @@ write acceptance criteria in EARS with stable R-ids (see
 `docs/agents/SPEC-FORMAT.md`), and make every requirement testable. Before
 hand-off, run the mandatory R12 doc-critic checkpoint: spawn the `doc-critic`
 sub-agent with `target-type=feature-spec` (that is the only thing `Task` is here
-for). When done, report to the Orchestrator for the `spec-ready` gate. Do not write
+for), wrapped in `tools/critic-guard.sh` snapshot and verify as the role file
+says. When done, report to the Orchestrator for the `spec-ready` gate. Do not write
 production code.

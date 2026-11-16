@@ -80,6 +80,20 @@ an arbitrary epic.
    and any ADR delta paths. Apply any advisory findings inline, then proceed. If the critic
    invocation errors or times out, proceed best-effort and append a note under
    `progress/<run>/` recording the skipped/failed review.
+   **Guard the spawn (E99-F186, GitHub #323).** The critic may write only its note, but its
+   `Write` tool does not confine the destination. Before the spawn, remove any note already at
+   `progress/<run>/doc-critic-epic-decomposition.md` (`rm -f`), so a stale note cannot pass as the critic's. Make a directory for the snapshot that you never name to the
+   critic (run `mktemp -d`, note the absolute path it prints — a shell variable may not survive between tool calls — and write that literal path, shown here as `<snapdir>`, into every `snapshot`, `verify` and `restore` command) and run
+   `sh "tools/critic-guard.sh" snapshot <snapdir>/epic-decomposition.snap <the epic.md, inbox brief and ADR delta paths you pass>`;
+   exit 2 means no new snapshot was taken (an older one at that path may remain), so fix the invocation and run it again before
+   spawning. As soon as the critic returns, before applying any finding, run
+   `sh "tools/critic-guard.sh" verify <snapdir>/epic-decomposition.snap`.
+   If it exits 1, run `sh "tools/critic-guard.sh" restore <snapdir>/epic-decomposition.snap` (it copies each changed or missing
+   file back from its byte copy when the copy matches the checksum recorded in the snapshot, then verifies), record the
+   incident in the progress note, treat the review as failed and apply none of that critic's findings; a `verify` exit 2
+   means the files are unverified and is handled the same way. If `restore` exits non-zero (exit 1: a file is UNRESTORABLE or still differs; exit 2: the snapshot is gone or malformed) the file is not trusted: rebuild it from your own last write, or with `git checkout -- <file>` when it is committed and unchanged since, then run `verify` again (compare it by hand if the snapshot is unusable); do not continue until the file is confirmed, and if it cannot be confirmed stop and report to the Orchestrator. A critic that wrote no
+   note at `progress/<run>/doc-critic-epic-decomposition.md` is likewise a failed review to record, not a passed one. Run the
+   three commands from one working directory (or with absolute paths): the snapshot records paths as given. The guard detects a rewrite of the reviewed files unless the critic also rewrote the snapshot or its byte copies, which are not guarded; keeping them in a directory the critic is never told about makes that unlikely, not impossible. Remove the directory (`rm -rf <snapdir>`) after the last `verify` or `restore` of this checkpoint (the second spawn's, when there is one).
 10. **Re-validate** `state/tasks.json` against `store/tasks.schema.json`. If
     it fails, report the failure and do NOT claim a successful drill.
 11. Present the **single epic-level decision** (one decision, not per feature):

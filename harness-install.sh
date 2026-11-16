@@ -4264,6 +4264,7 @@ install_one() {
   chmod +x "$H/tools/host-frontend.sh" 2>/dev/null || true   # E99-F182 host front-end key for builder-role.sh --frontend
   chmod +x "$H/tools/doc-cite-check.py" 2>/dev/null || true   # E39-F01 doc-citation lint
   chmod +x "$H/tools/docs-move-check.sh" 2>/dev/null || true   # E39-F01 pre-PR verbatim-move check
+  chmod +x "$H/tools/critic-guard.sh" 2>/dev/null || true   # E99-F186 doc-critic reviewed-files guard
   # NOTE: harness.config.yaml is intentionally NOT copied here — it is seeded once
   # below (project-owned), so upgrades never erase bootstrap-set verification commands.
   ok "harness body installed (.harness/)"
@@ -6721,7 +6722,8 @@ write acceptance criteria in EARS with stable R-ids (see
 `.harness/docs/agents/SPEC-FORMAT.md`), and make every requirement testable. Before
 hand-off, run the mandatory R12 doc-critic checkpoint: spawn the `doc-critic`
 sub-agent with `target-type=feature-spec` (that is the only thing `Task` is here
-for). When done, report to the Orchestrator for the `spec-ready` gate. Do not write
+for), wrapped in `.harness/tools/critic-guard.sh` snapshot and verify as the role file
+says. When done, report to the Orchestrator for the `spec-ready` gate. Do not write
 production code.
 EOF
 ;;
@@ -6780,8 +6782,9 @@ follow it exactly. You were spawned with one `target-type` (`plan-output`,
 `epic-decomposition`, or `feature-spec`) and the paths just written; review only
 those. Flag only issues that would cause real downstream problems, across
 completeness, consistency, clarity, scope and YAGNI — never spelling or style.
-Your findings are advisory and never block the generating agent. Write a concise
-note to `.harness/progress/<run>/doc-critic-<checkpoint>.md`. Documents only:
+Your findings are advisory and never block the generating agent.
+The only file you may write is your note, `.harness/progress/<run>/doc-critic-<checkpoint>.md`: never
+edit, create or overwrite any other file, least of all a document you review. Documents only:
 production code is the Reviewer's job.
 EOF
 ;;
@@ -7163,6 +7166,21 @@ The free-text whole-project idea is in `$ARGUMENTS`. If it is empty, ask the hum
    If the critic invocation errors or
    times out, proceed best-effort and append a note under `.harness/progress/<run>/`
    recording the skipped/failed review.
+   **Guard the spawn (E99-F186, GitHub #323).** The critic may write only its note, but its
+   `Write` tool does not confine the destination. Before the spawn, remove any note already at
+   `.harness/progress/<run>/doc-critic-plan-output.md` (`rm -f`), so a stale note cannot pass as the critic's. Make a directory for the snapshot that you never name to the
+   critic (run `mktemp -d`, note the absolute path it prints — a shell variable may not survive between tool calls — and write that literal path, shown here as `<snapdir>`, into every `snapshot`, `verify` and `restore` command) and run
+   `sh ".harness/tools/critic-guard.sh" snapshot <snapdir>/plan-output.snap <the paths you pass>`;
+   exit 2 means no new snapshot was taken (an older one at that path may remain), so fix the invocation and run it again before
+   spawning. As soon as the critic returns, before applying any finding, run
+   `sh ".harness/tools/critic-guard.sh" verify <snapdir>/plan-output.snap`.
+   If it exits 1, run `sh ".harness/tools/critic-guard.sh" restore <snapdir>/plan-output.snap` (it copies each changed or missing
+   file back from its byte copy when the copy matches the checksum recorded in the snapshot, then verifies), record the
+   incident in the progress note, treat the review as failed and apply none of that critic's findings; a `verify` exit 2
+   means the files are unverified and is handled the same way. If `restore` exits non-zero (exit 1: a file is UNRESTORABLE or still differs; exit 2: the snapshot is gone or malformed) the file is not trusted: rebuild it from your own last write, or with `git checkout -- <file>` when it is committed and unchanged since, then run `verify` again (compare it by hand if the snapshot is unusable); do not continue until the file is confirmed, and if it cannot be confirmed stop and report to the Orchestrator. A critic that wrote no
+   note at `.harness/progress/<run>/doc-critic-plan-output.md` is likewise a failed review to record, not a passed one. Run the
+   three commands from one working directory (or with absolute paths): the snapshot records paths as given. The guard detects a rewrite of the reviewed files unless the critic also rewrote the snapshot or its byte copies, which are not guarded; keeping them in a directory the critic is never told about makes that unlikely, not impossible. Remove the directory (`rm -rf <snapdir>`) after the last `verify` or `restore` of this checkpoint (the second spawn's, when there is one). Leave `.harness/state/tasks.json` out of the list: other lanes write the board. The schema re-validation in step 10 catches only a malformed board; a well-formed rewrite of `.harness/state/tasks.json` by the critic
+   is an accepted, unguarded gap.
 10. **Re-validate** `.harness/state/tasks.json` against
    `.harness/store/tasks.schema.json`. If it fails, report the failure and do NOT claim
    a successful plan.
@@ -7251,6 +7269,20 @@ an arbitrary epic.
    and any ADR delta paths. Apply any advisory findings inline, then proceed. If the critic
    invocation errors or times out, proceed best-effort and append a note under
    `.harness/progress/<run>/` recording the skipped/failed review.
+   **Guard the spawn (E99-F186, GitHub #323).** The critic may write only its note, but its
+   `Write` tool does not confine the destination. Before the spawn, remove any note already at
+   `.harness/progress/<run>/doc-critic-epic-decomposition.md` (`rm -f`), so a stale note cannot pass as the critic's. Make a directory for the snapshot that you never name to the
+   critic (run `mktemp -d`, note the absolute path it prints — a shell variable may not survive between tool calls — and write that literal path, shown here as `<snapdir>`, into every `snapshot`, `verify` and `restore` command) and run
+   `sh ".harness/tools/critic-guard.sh" snapshot <snapdir>/epic-decomposition.snap <the epic.md, inbox brief and ADR delta paths you pass>`;
+   exit 2 means no new snapshot was taken (an older one at that path may remain), so fix the invocation and run it again before
+   spawning. As soon as the critic returns, before applying any finding, run
+   `sh ".harness/tools/critic-guard.sh" verify <snapdir>/epic-decomposition.snap`.
+   If it exits 1, run `sh ".harness/tools/critic-guard.sh" restore <snapdir>/epic-decomposition.snap` (it copies each changed or missing
+   file back from its byte copy when the copy matches the checksum recorded in the snapshot, then verifies), record the
+   incident in the progress note, treat the review as failed and apply none of that critic's findings; a `verify` exit 2
+   means the files are unverified and is handled the same way. If `restore` exits non-zero (exit 1: a file is UNRESTORABLE or still differs; exit 2: the snapshot is gone or malformed) the file is not trusted: rebuild it from your own last write, or with `git checkout -- <file>` when it is committed and unchanged since, then run `verify` again (compare it by hand if the snapshot is unusable); do not continue until the file is confirmed, and if it cannot be confirmed stop and report to the Orchestrator. A critic that wrote no
+   note at `.harness/progress/<run>/doc-critic-epic-decomposition.md` is likewise a failed review to record, not a passed one. Run the
+   three commands from one working directory (or with absolute paths): the snapshot records paths as given. The guard detects a rewrite of the reviewed files unless the critic also rewrote the snapshot or its byte copies, which are not guarded; keeping them in a directory the critic is never told about makes that unlikely, not impossible. Remove the directory (`rm -rf <snapdir>`) after the last `verify` or `restore` of this checkpoint (the second spawn's, when there is one).
 10. **Re-validate** `.harness/state/tasks.json` against `.harness/store/tasks.schema.json`. If
     it fails, report the failure and do NOT claim a successful drill.
 11. Present the **single epic-level decision** (one decision, not per feature):

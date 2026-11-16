@@ -4,6 +4,35 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.115.0] — 2026-11-16
+
+### Fixed — the doc-critic may write only its note, and the caller proves it (E99-F186, #323)
+- 🐛 In an installed target the advisory doc-critic overwrote a spec file it was reviewing and never
+  wrote its note; `tools/validate-board.py` and `init.sh` exited 0 on the result.
+  `agents/doc-critic.md` named no write destination and told the critic to apply fixes itself
+  ("inline fixes", "the fix applied").
+- New `agents/doc-critic.md` section `## Write scope`: the only file the critic writes is
+  `progress/<run>/doc-critic-<checkpoint>.md`; findings carry a proposed fix that the generating
+  agent applies.
+- New `tools/critic-guard.sh snapshot|verify|restore` (POSIX sh, `cksum`): the generating agent
+  snapshots the reviewed files (a checksum and a byte copy each) before the spawn and verifies them as
+  soon as the critic returns; exit 1 names each changed or missing file and `restore` copies them back
+  from the snapshot and verifies. `snapshot` refuses a snapshot path that does not end in `.snap`, is
+  a directory or is one of the listed files, so a forgotten argument cannot overwrite a reviewed file.
+  The Architect checkpoint removes a stale note before the spawn, restores a changed file, records the
+  incident, discards that critic's findings, treats a missing note as a failed checkpoint and runs
+  `tasks-pair-check`, `plan-cite-check` and `readiness-check` after the critic returns whether or not
+  the checkpoint failed. The Planner and Driller checkpoints and the `/sdd-plan` and `/sdd-drill`
+  emitters carry the same guard; a well-formed rewrite of `state/tasks.json` is an accepted,
+  unguarded gap. `restore` checksums a byte copy against the recorded checksum before copying and
+  reports a bad copy as `UNRESTORABLE`; every site says what to do when `restore` fails. The snapshot
+  is kept in a `mktemp -d` directory the critic is never told about (its literal path is written into each command, since a shell variable may not survive between tool calls, and the directory is removed after the last verify or restore); the guard's residual limit (a
+  critic that also rewrote the snapshot or its copies) is stated at every site.
+- `tests/test_critic_guard.sh` pins the helper and each prose rule with mutants. Docs gates:
+  `python3 tools/doc-cite-check.py` and `sh tools/docs-move-check.sh origin/main` stay clean.
+- Not changed: `tools/validate-board.py` semantics; the critic's `Write` grant itself (the guard
+  detects, it does not confine).
+
 ## [0.114.2] — 2026-11-16
 
 ### Fixed — readiness-check: a `delete` verb, and the contract says what the tool checks (E99-F184)

@@ -1570,7 +1570,7 @@
         {
           "id": "E99-F186",
           "title": "doc-critic writes only its note; Architect snapshots reviewed files and re-runs lints after the critic (issue #323)",
-          "status": "pending",
+          "status": "in-progress",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
