@@ -1588,7 +1588,7 @@
         {
           "id": "E99-F187",
           "title": "readiness-check: an installed-layout declaration (.harness/<dir>/\u2026) makes its top-level directory a known root, so sibling typos are flagged",
-          "status": "in-progress",
+          "status": "in-review",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
