@@ -12,7 +12,8 @@ All notable changes to the harness body are recorded here. Versions follow
   Previously, when `newdir/` did not exist yet, the declared path's siblings were silently
   ignored, so a typo such as `.harness/newdir/typo.py` passed. This only ever missed typos; it
   never rejected a correct plan.
-- `docs/agents/SPEC-FORMAT.md`: the known-root clause now says "in either layout".
+- `docs/agents/SPEC-FORMAT.md` and the tool's module docstring: the known-root clause now says
+  "in either layout" (the docstring also gains deleted paths, missed in 0.114.2).
 
 ## [0.115.0] — 2026-11-16
 

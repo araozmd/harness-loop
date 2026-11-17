@@ -47,8 +47,8 @@ Findings (one line each, plan then tasks then tests, by line): `unresolved-path
 finding(s)`.
 
 Known limits: precision over recall.  A path whose first segment is not a known root (an
-existing directory at the root or under `.harness/`, or the first segment of a created path)
-is ignored, so a first-segment typo (`tols/x.py`) is not caught; v1 symbol forms are `name()`
+existing directory at the root or under `.harness/`, or the first segment of a declared
+(created or deleted) path, in either layout) is ignored, so a first-segment typo (`tols/x.py`) is not caught; v1 symbol forms are `name()`
 and `path:name` only.
 """
 import os
