@@ -4,6 +4,16 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.115.1] — 2026-11-16
+
+### Fixed — readiness-check: an installed-layout declaration makes its directory a known root (E99-F187)
+- `tools/readiness-check.py`: a path declared in the installed layout (`create` or `delete`
+  `.harness/newdir/x.py`) now makes `newdir` a known root, the same as the source-layout form.
+  Previously, when `newdir/` did not exist yet, the declared path's siblings were silently
+  ignored, so a typo such as `.harness/newdir/typo.py` passed. This only ever missed typos; it
+  never rejected a correct plan.
+- `docs/agents/SPEC-FORMAT.md`: the known-root clause now says "in either layout".
+
 ## [0.115.0] — 2026-11-16
 
 ### Fixed — the doc-critic may write only its note (and a feedback-ledger entry on a trigger), and the caller checks the reviewed files (E99-F186, #323)

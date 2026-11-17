@@ -1313,4 +1313,20 @@ printf '%s\n' '- [ ] **T5** (R1) — Drop `.harness/tools/olddir/a.py`.' >> "$GT
 lint "$GD"; expect_ok F184_delete_dir_through_remap
 pass "F184_delete_dir_through_remap"
 
+# an installed-layout declaration makes its top-level directory a known root (E99-F187):
+# `create .harness/newdir/x.py` (no newdir/ on disk) must not leave a sibling typo ignored
+for _verb in create delete; do
+  fresh "f187$_verb"
+  printf '%s\n' "| \`.harness/newdir/x.py\` | $_verb the new tool | R1 |" > "$T/row.md"
+  insert_before "$GP" '| `README.md` |' "$T/row.md"
+  printf '%s\n' '- [ ] **T5** (R1) — Wire `.harness/newdir/x.py`; see also `.harness/newdir/typo.py` and `newdir/typo2.py`.' >> "$GT"
+  lint "$GD"; expect_fail "F187_installed_layout_known_root_$_verb"
+  [ "$(count 'unresolved-path .*tasks\.md:[0-9]+ \.harness/newdir/typo\.py$')" -eq 1 ] \
+    || fail "F187_installed_layout_known_root_$_verb: the .harness/ sibling typo under an installed-layout $_verb row is not flagged ($(both))"
+  [ "$(count 'unresolved-path .*tasks\.md:[0-9]+ newdir/typo2\.py$')" -eq 1 ] \
+    || fail "F187_installed_layout_known_root_$_verb: the source-layout sibling typo under an installed-layout $_verb row is not flagged ($(both))"
+  [ "$(count 'newdir/x\.py')" -eq 0 ] || fail "F187_installed_layout_known_root_$_verb: the declared path itself is flagged ($(both))"
+  pass "F187_installed_layout_known_root_$_verb"
+done
+
 echo "all readiness-check checks passed"

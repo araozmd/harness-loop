@@ -283,7 +283,8 @@ def shape_ignored(path):
 def ignored(path, root, created):
     """True when a candidate is not a reference: shape_ignored(), or a `/` path whose first
     segment is not a known root — an existing directory at the root or under `.harness/`, or
-    the first segment of a created path (computed after the created set)."""
+    the first segment of a declared (created or deleted) path in either layout: a declared
+    `.harness/newdir/x.py` makes `newdir` known, the same as `newdir/x.py` (E99-F187)."""
     if shape_ignored(path):
         return True
     if "/" not in path:
@@ -296,7 +297,8 @@ def ignored(path, root, created):
     first = rest.split("/", 1)[0]
     known = os.path.isdir(os.path.join(root, first)) \
         or os.path.isdir(os.path.join(root, HARNESS, first)) \
-        or any(c.startswith(first + "/") for c in created)
+        or any((c[len(HARNESS):] if c.startswith(HARNESS) else c).startswith(first + "/")
+               for c in created)
     return not known
 
 
