@@ -1584,6 +1584,21 @@
           "autonomous": true,
           "depends_on": [],
           "spec_path": "specs/epics/E99-maintenance/F186-doc-critic-write-guard/"
+        },
+        {
+          "id": "E99-F187",
+          "title": "readiness-check: an installed-layout declaration (.harness/<dir>/\u2026) makes its top-level directory a known root, so sibling typos are flagged",
+          "status": "in-review",
+          "sdd": false,
+          "autonomous": true,
+          "depends_on": [],
+          "spec_path": "specs/epics/E99-maintenance/F187-installed-layout-known-root/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (347)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F187 done --evidence <merge-ref>`",
+            "pr": "347"
+          }
         }
       ]
     },
