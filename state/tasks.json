@@ -1592,7 +1592,13 @@
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F187-installed-layout-known-root/"
+          "spec_path": "specs/epics/E99-maintenance/F187-installed-layout-known-root/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (347)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F187 done --evidence <merge-ref>`",
+            "pr": "347"
+          }
         }
       ]
     },
