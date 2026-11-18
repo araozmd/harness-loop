@@ -48,8 +48,11 @@ finding(s)`.
 
 Known limits: precision over recall.  A path whose first segment is not a known root (an
 existing directory at the root or under `.harness/`, or the first segment of a declared
-(created or deleted) path, in either layout) is ignored, so a first-segment typo (`tols/x.py`) is not caught; v1 symbol forms are `name()`
-and `path:name` only.
+(created or deleted) path, in either layout) is ignored, so a first-segment typo (`tols/x.py`) is not caught.
+A file directly under `.harness/` (`.harness/typo.py`) is ignored the same way: install stamps and
+per-target files such as `.harness/.harness-version` exist only in an installed target, so the
+lint cannot tell them from a typo (flagging them added 29 false findings over this repo's specs,
+E99-F188). v1 symbol forms are `name()` and `path:name` only.
 """
 import os
 import re

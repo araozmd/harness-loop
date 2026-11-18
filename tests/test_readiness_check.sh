@@ -1329,4 +1329,12 @@ for _verb in create delete; do
   pass "F187_installed_layout_known_root_$_verb"
 done
 
+# a file directly under .harness/ is ignored, never flagged (E99-F188): install stamps and
+# per-target files exist only in an installed target, so the lint cannot tell them from a typo
+fresh f188
+printf '%s\n' '- [ ] **T5** (R1) — Read `.harness/.harness-version`; see also `.harness/typo.py`.' >> "$GT"
+lint "$GD"; expect_ok F188_harness_root_file_ignored
+[ "$(count '\.harness/')" -eq 0 ] || fail "F188_harness_root_file_ignored: a file directly under .harness/ is flagged ($(both))"
+pass "F188_harness_root_file_ignored"
+
 echo "all readiness-check checks passed"

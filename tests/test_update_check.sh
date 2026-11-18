@@ -195,6 +195,21 @@ run_gate() {
   esac
 }
 
+# slow_twice <bound> <rerun-fn> — a wall-clock upper bound cannot tell a slow gate from a host
+# that slept mid-run (one full-suite run measured 903s against a ~4s bound, E99-F188). When the
+# first measurement is over the bound, re-run the gate ONCE (on a fresh target) and keep the
+# second measurement. A regression that is slow every run is slow both times; an intermittent
+# one is caught only when two runs in a row are slow, and a sleep during the baseline run or the
+# re-run can still fail the check. Sets SLOW_FIRST to the first time; returns 0 when the kept
+# time is within the bound.
+slow_twice() {
+  SLOW_FIRST="$GATE_SECS"
+  [ "$GATE_SECS" -le "$1" ] && return 0
+  echo "note: gate took ${GATE_SECS}s (bound $1s); re-running once (host sleep or load)"
+  "$2"
+  [ "$GATE_SECS" -le "$1" ]
+}
+
 ls_calls() { grep -c 'ls-remote' "$T/git-calls" 2>/dev/null || true; }
 bell_n()   { printf '%s\n' "$GATE_OUT" | grep -c '🔔' || true; }
 has()      { printf '%s\n' "$1" | grep -qF -- "$2"; }
@@ -340,24 +355,31 @@ R3_failure_silent_bounded_cached() {
   mk_target "$T/r3-hang"
   run_gate "$T/r3-hang" "" HARNESS_SKIP_UPDATE_CHECK=1
   _base="$GATE_SECS"
-  SHIM_MODE=hang run_gate "$T/r3-hang" "" HARNESS_UPDATE_REMOTE="$(remote_url newer)" HARNESS_UPDATE_TIMEOUT=3
+  _c8d="$T/r3-hang"
+  c8_gate() { SHIM_MODE=hang run_gate "$_c8d" "" HARNESS_UPDATE_REMOTE="$(remote_url newer)" HARNESS_UPDATE_TIMEOUT=3; }
+  c8_retry() { _c8d="$T/r3-hang-retry"; mk_target "$_c8d"; c8_gate; }
+  c8_gate
+  slow_twice $((_base + 3 + 1)) c8_retry \
+    || fail "R3 C8: the gate took ${SLOW_FIRST}s, then ${GATE_SECS}s on the re-run; bound is baseline ${_base}s + 3s + 1s margin (a 2x overrun of the timeout must fail)"
   [ "$GATE_RC" = 0 ] || fail "R3 C8: a hanging remote changed the exit code: $GATE_OUT"
   [ "$(bell_n)" = 0 ] || fail "R3 C8: printed a notice though the remote never answered"
   [ "$(ls_calls)" = 1 ] || fail "R3 C8: expected one (hung) contact, got $(ls_calls)"
-  [ "$GATE_SECS" -le $((_base + 3 + 1)) ] || fail "R3 C8: the gate took ${GATE_SECS}s, bound is baseline ${_base}s + 3s + 1s margin (a 2x overrun of the timeout must fail)"
   # control: at least the 3s timeout, and at least baseline + 1s — the absolute floor alone is
   # vacuous whenever the baseline gate itself takes >= 3s under load (the deadline waits >= 2s)
   _floor=3; [ $((_base + 1)) -gt "$_floor" ] && _floor=$((_base + 1))
   [ "$GATE_SECS" -ge "$_floor" ] || fail "R3 C8 control: the gate ended in ${GATE_SECS}s, below max(3s timeout, baseline ${_base}s + 1s) — the shim did not hang"
   ps -ax -o command 2>/dev/null | grep -q '[s]leep 37' && fail "R3 C8: an orphan 'sleep 37' outlived the gate"
-  [ -n "$(rec "$T/r3-hang" checked)" ] && [ -z "$(rec "$T/r3-hang" latest)" ] || fail "R3 C8: the abandoned attempt was not cached as a failure"
+  [ -n "$(rec "$_c8d" checked)" ] && [ -z "$(rec "$_c8d" latest)" ] || fail "R3 C8: the abandoned attempt was not cached as a failure"
   # C8c — a git that IGNORES SIGTERM is escalated to SIGKILL: bounded (timeout + <=1s grace),
   # exit 0, silent, no orphan
   mk_target "$T/r3-hang-term"
-  SHIM_MODE=hang-term run_gate "$T/r3-hang-term" "" HARNESS_UPDATE_REMOTE="$(remote_url newer)" HARNESS_UPDATE_TIMEOUT=1
+  c8c_gate() { SHIM_MODE=hang-term run_gate "$1" "" HARNESS_UPDATE_REMOTE="$(remote_url newer)" HARNESS_UPDATE_TIMEOUT=1; }
+  c8c_retry() { mk_target "$T/r3-hang-term-retry"; c8c_gate "$T/r3-hang-term-retry"; }
+  c8c_gate "$T/r3-hang-term"
+  slow_twice $((_base + 1 + 1 + 1)) c8c_retry \
+    || fail "R3 C8c: the gate took ${SLOW_FIRST}s, then ${GATE_SECS}s on the re-run; bound is baseline ${_base}s + 1s timeout + 1s grace + 1s margin (SIGTERM was never escalated)"
   [ "$GATE_RC" = 0 ] || fail "R3 C8c: a SIGTERM-ignoring git changed the exit code: $GATE_OUT"
   [ "$(bell_n)" = 0 ] || fail "R3 C8c: printed a notice though the remote never answered"
-  [ "$GATE_SECS" -le $((_base + 1 + 1 + 1)) ] || fail "R3 C8c: the gate took ${GATE_SECS}s, bound is baseline ${_base}s + 1s timeout + 1s grace + 1s margin (SIGTERM was never escalated)"
   ps -ax -o command 2>/dev/null | grep -q '[s]leep 39' && fail "R3 C8c: an orphan 'sleep 39' outlived the gate"
   # C3b — an ssh remote is asked with BatchMode=yes (no host-key / passphrase prompt on /dev/tty),
   # appended to the ssh command GIT ITSELF would pick — never a bare `ssh` that overrides the

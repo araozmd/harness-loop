@@ -4,6 +4,21 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.115.2] — 2026-11-17
+
+### Fixed — readiness-check states its `.harness/<file>` limit; update-check timing tests tolerate a host sleep (E99-F188)
+- `docs/agents/SPEC-FORMAT.md` and the `tools/readiness-check.py` module docstring now state the
+  limit: a file directly under `.harness/` (`.harness/typo.py`) is ignored, never flagged. Install
+  stamps and per-target files such as `.harness/.harness-version` exist only in an installed
+  target, and flagging them would add 29 false findings across this repository's specs. The tool's
+  behaviour is unchanged. A new test pins it.
+- `tests/test_update_check.sh` R3 C8 and C8c: when the gate's wall-clock time is over its upper
+  bound, the gate is re-run once on a fresh target, and the test fails only if the re-run is also
+  over the bound; the failure names both times. A host sleep during one hang measurement no longer
+  fails it (a sleep during the baseline run or the re-run still can). A regression that is slow
+  every run is slow both times; an intermittent one is caught only when two runs in a row are
+  slow. The lower-bound checks are unchanged.
+
 ## [0.115.1] — 2026-11-16
 
 ### Fixed — readiness-check: an installed-layout declaration makes its directory a known root (E99-F187)
