@@ -198,11 +198,14 @@ run_gate() {
 # slow_twice <bound> <rerun-fn> — a wall-clock upper bound cannot tell a slow gate from a host
 # that slept mid-run (one full-suite run measured 903s against a ~4s bound, E99-F188). When the
 # first measurement is over the bound, re-run the gate ONCE (on a fresh target) and keep the
-# second measurement: a real regression is slow both times. Returns 0 when the kept time is
-# within the bound.
+# second measurement. A regression that is slow every run is slow both times; an intermittent
+# one is caught only when two runs in a row are slow, and a sleep during the baseline run or the
+# re-run can still fail the check. Sets SLOW_FIRST to the first time; returns 0 when the kept
+# time is within the bound.
 slow_twice() {
+  SLOW_FIRST="$GATE_SECS"
   [ "$GATE_SECS" -le "$1" ] && return 0
-  echo "note: gate took ${GATE_SECS}s (bound $1s); re-running once to rule out a host sleep"
+  echo "note: gate took ${GATE_SECS}s (bound $1s); re-running once (host sleep or load)"
   "$2"
   [ "$GATE_SECS" -le "$1" ]
 }
@@ -357,7 +360,7 @@ R3_failure_silent_bounded_cached() {
   c8_retry() { _c8d="$T/r3-hang-retry"; mk_target "$_c8d"; c8_gate; }
   c8_gate
   slow_twice $((_base + 3 + 1)) c8_retry \
-    || fail "R3 C8: the gate took ${GATE_SECS}s twice, bound is baseline ${_base}s + 3s + 1s margin (a 2x overrun of the timeout must fail)"
+    || fail "R3 C8: the gate took ${SLOW_FIRST}s, then ${GATE_SECS}s on the re-run; bound is baseline ${_base}s + 3s + 1s margin (a 2x overrun of the timeout must fail)"
   [ "$GATE_RC" = 0 ] || fail "R3 C8: a hanging remote changed the exit code: $GATE_OUT"
   [ "$(bell_n)" = 0 ] || fail "R3 C8: printed a notice though the remote never answered"
   [ "$(ls_calls)" = 1 ] || fail "R3 C8: expected one (hung) contact, got $(ls_calls)"
@@ -374,7 +377,7 @@ R3_failure_silent_bounded_cached() {
   c8c_retry() { mk_target "$T/r3-hang-term-retry"; c8c_gate "$T/r3-hang-term-retry"; }
   c8c_gate "$T/r3-hang-term"
   slow_twice $((_base + 1 + 1 + 1)) c8c_retry \
-    || fail "R3 C8c: the gate took ${GATE_SECS}s twice, bound is baseline ${_base}s + 1s timeout + 1s grace + 1s margin (SIGTERM was never escalated)"
+    || fail "R3 C8c: the gate took ${SLOW_FIRST}s, then ${GATE_SECS}s on the re-run; bound is baseline ${_base}s + 1s timeout + 1s grace + 1s margin (SIGTERM was never escalated)"
   [ "$GATE_RC" = 0 ] || fail "R3 C8c: a SIGTERM-ignoring git changed the exit code: $GATE_OUT"
   [ "$(bell_n)" = 0 ] || fail "R3 C8c: printed a notice though the remote never answered"
   ps -ax -o command 2>/dev/null | grep -q '[s]leep 39' && fail "R3 C8c: an orphan 'sleep 39' outlived the gate"

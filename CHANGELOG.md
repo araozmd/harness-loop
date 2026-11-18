@@ -14,8 +14,10 @@ All notable changes to the harness body are recorded here. Versions follow
   behaviour is unchanged. A new test pins it.
 - `tests/test_update_check.sh` R3 C8 and C8c: when the gate's wall-clock time is over its upper
   bound, the gate is re-run once on a fresh target, and the test fails only if the re-run is also
-  over the bound. A host that sleeps mid-run no longer fails it; a real regression is slow both
-  times. The lower-bound checks are unchanged.
+  over the bound; the failure names both times. A host sleep during one hang measurement no longer
+  fails it (a sleep during the baseline run or the re-run still can). A regression that is slow
+  every run is slow both times; an intermittent one is caught only when two runs in a row are
+  slow. The lower-bound checks are unchanged.
 
 ## [0.115.1] — 2026-11-16
 
