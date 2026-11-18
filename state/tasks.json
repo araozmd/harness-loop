@@ -1615,6 +1615,21 @@
             "unblocked_by": "the PR merging \u2014 then `set-status E99-F188 done --evidence <merge-ref>`",
             "pr": "350"
           }
+        },
+        {
+          "id": "E99-F189",
+          "title": "Installer copies Python bytecode (__pycache__/*.pyc) into installs; caused the test_frontend_retirement full-suite idempotence flake",
+          "status": "in-review",
+          "sdd": false,
+          "autonomous": true,
+          "depends_on": [],
+          "spec_path": "specs/epics/E99-maintenance/F189-no-bytecode-in-installs/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (351)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F189 done --evidence <merge-ref>`",
+            "pr": "351"
+          }
         }
       ]
     },
