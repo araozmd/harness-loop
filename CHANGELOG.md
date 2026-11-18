@@ -7,13 +7,14 @@ All notable changes to the harness body are recorded here. Versions follow
 ## [0.115.3] — 2026-11-18
 
 ### Fixed — the installer no longer copies Python bytecode into installs (E99-F189)
-- `harness-install.sh`: the body copy removes every `__pycache__/` directory and `*.pyc` file from
+- `harness-install.sh`: the body copy removes (best-effort) every `__pycache__/` directory and `*.pyc` file from
   each copied tree. Previously it shipped the source tree's local bytecode (stale,
   machine-specific, possibly from another Python version) into `.harness/` of every install. It
   also made a re-install differ when the source cache changed in between, which is why
   `tests/test_frontend_retirement.sh`'s idempotence check failed only inside full-suite runs: a
-  concurrent suite rewrote `tools/__pycache__/tasks-lock.cpython-313.pyc` in the shared source
-  tree.
+  concurrent suite that imports `tools/tasks-lock.py` wrote
+  `tools/__pycache__/tasks-lock.cpython-313.pyc` into the shared source tree between that test's
+  two installs.
 - New suite `tests/test_install_no_bytecode.sh`: an install, and a re-install, from a source copy
   that contains bytecode leave none under `.harness/`.
 

@@ -3778,7 +3778,7 @@ install_one() {
     cp -R "$_src" "$_dst"
     # Python bytecode is a runtime artefact of running tools/*.py in the SOURCE tree, never part
     # of the body: copying it shipped stale, machine-specific `.pyc` files into every install and
-    # made a re-install differ whenever the source cache was rewritten in between (E99-F189).
+    # made a re-install differ whenever the source cache was written in between (E99-F189).
     if [ -d "$_dst" ]; then
       find "$_dst" -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
       find "$_dst" -name '*.pyc' -type f -exec rm -f {} + 2>/dev/null || true

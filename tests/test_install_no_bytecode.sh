@@ -2,8 +2,8 @@
 # test_install_no_bytecode.sh — E99-F189: the installer never copies Python bytecode
 # (`__pycache__/`, `*.pyc`) from the source tree into an install. Bytecode is a runtime artefact
 # of running tools/*.py locally; copying it shipped stale, machine-specific files and made
-# test_frontend_retirement's idempotence check flaky whenever a concurrent suite rewrote
-# tools/__pycache__ in the shared source tree between that test's two installs.
+# test_frontend_retirement's idempotence check flaky whenever a concurrent suite wrote
+# tools/__pycache__ into the shared source tree between that test's two installs.
 # Constraints: installs from an isolated COPY of the source (never the working tree); no exact
 # VERSION literal; everything under $T.
 
