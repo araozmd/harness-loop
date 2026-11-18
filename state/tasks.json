@@ -1608,7 +1608,13 @@
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F188-harness-root-limit-and-c8-flake/"
+          "spec_path": "specs/epics/E99-maintenance/F188-harness-root-limit-and-c8-flake/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (350)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F188 done --evidence <merge-ref>`",
+            "pr": "350"
+          }
         }
       ]
     },
