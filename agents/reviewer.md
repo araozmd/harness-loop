@@ -425,10 +425,19 @@ Record the summary line and the decision for any `WAIVED` finding in your verdic
 
 ## Self-improving the harness
 
-If you find the Builder failed because a rule was missing or ambiguous, you may
-**update the harness itself** — tighten `AGENTS.md`, an agent prompt, or a template
-— so the same mistake can't recur. The harness is files in the repo; improving it
-is part of your job.
+If you find the Builder failed because a rule was missing or ambiguous, make sure the
+same mistake can't recur. Where that fix goes depends on the layout (E99-F190, GitHub #349):
+
+- **In the harness's own source repository (no `.harness/` directory at the repository
+  root)**, you may tighten `AGENTS.md`, an agent prompt or a template. The harness is files
+  in the repo; improving it is part of your job.
+- **In an installed project (`.harness/` exists)**, those files are installer-owned: the
+  `init.sh` drift guard fails on any edit to them (the owned set is
+  `tools/harness-owned-paths.sh`), and the next upgrade overwrites the edit anyway. Never edit
+  `.harness/agents/`, `.harness/docs/`, `.harness/tools/`, the templates or the generated
+  front-end glue. Instead, record the lesson in the harness-root-relative `progress/lessons.md`
+  (project-owned; see **Earned lessons** below) and, when the gap fits one of the four
+  triggers, append an upstream report under **Reporting harness defects**.
 
 **Earned lessons.** Read `progress/lessons.md` before you review — it names failure
 shapes that already cost rounds. When your review surfaces a lesson that would have

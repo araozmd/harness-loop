@@ -41,7 +41,9 @@ value, and the evidence required before removing a mechanism.
 5. **Verify autonomously.** Never trust "done." The harness proves it: `init.sh`,
    tests, type/lint checks, and behavioral checks (e.g. Playwright clicking the live
    app). The Reviewer can even improve the harness so a failure can't recur — a
-   correction loop.
+   correction loop. (In the harness's own repository it edits the prompts; in an installed
+   project it records a lesson and reports the gap upstream, because the installed harness is
+   installer-owned and the `init.sh` drift guard fails on any edit to it.)
 
 ## The commands this harness ships
 
