@@ -225,6 +225,8 @@ An unrecognised token is ignored, never flagged: placeholders and globs (any of 
 `?` `[` `]` `{` `}` `$` `~` `|`, an ellipsis or `://`), absolute paths and flags, bare
 extensions, `scratchpad/` and `progress/` (written at run time), a path whose first segment
 is not a known root (an existing top-level directory, or one a created or deleted path begins with, in either layout),
+a file directly under `.harness/` (install stamps and per-target files such as
+`.harness/.harness-version` exist only in an installed target, so a typo there is not caught),
 and — in a tasks or tests unit — a bare basename found nowhere. Write a path that is not in
 this repository (a fixture-internal path, a consumer's file) with a placeholder prefix —
 `<repo>/tools/x.py` — or inside fenced code: the lint cannot tell it from a typo. Two symbol
