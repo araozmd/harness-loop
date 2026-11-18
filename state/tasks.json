@@ -1619,7 +1619,7 @@
         {
           "id": "E99-F189",
           "title": "Installer copies Python bytecode (__pycache__/*.pyc) into installs; caused the test_frontend_retirement full-suite idempotence flake",
-          "status": "in-progress",
+          "status": "in-review",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
