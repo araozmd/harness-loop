@@ -1604,32 +1604,34 @@
         {
           "id": "E99-F188",
           "title": "State the readiness-check .harness/<file> limit (measured: 29 false positives if flagged); retry once before failing the update-check wall-clock bounds (C8/C8c sleep flake)",
-          "status": "in-review",
+          "status": "done",
+          "landed": {
+            "base": "origin/main",
+            "commit": "2724b5bd4e08887bb5011dd8558e4566c76db1dc",
+            "ref": "2724b5bd4e08887bb5011dd8558e4566c76db1dc",
+            "repo": "harness-sdd",
+            "verified": "ancestor"
+          },
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F188-harness-root-limit-and-c8-flake/",
-          "parked": {
-            "gate": "merge",
-            "reason": "approved; PR open, awaiting merge (350)",
-            "unblocked_by": "the PR merging \u2014 then `set-status E99-F188 done --evidence <merge-ref>`",
-            "pr": "350"
-          }
+          "spec_path": "specs/epics/E99-maintenance/F188-harness-root-limit-and-c8-flake/"
         },
         {
           "id": "E99-F189",
           "title": "Installer copies Python bytecode (__pycache__/*.pyc) into installs; caused the test_frontend_retirement full-suite idempotence flake",
-          "status": "in-review",
+          "status": "done",
+          "landed": {
+            "base": "origin/main",
+            "commit": "75a655dfd5ea4490c8d0650b13b29ed5bf539888",
+            "ref": "75a655dfd5ea4490c8d0650b13b29ed5bf539888",
+            "repo": "harness-sdd",
+            "verified": "ancestor"
+          },
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F189-no-bytecode-in-installs/",
-          "parked": {
-            "gate": "merge",
-            "reason": "approved; PR open, awaiting merge (351)",
-            "unblocked_by": "the PR merging \u2014 then `set-status E99-F189 done --evidence <merge-ref>`",
-            "pr": "351"
-          }
+          "spec_path": "specs/epics/E99-maintenance/F189-no-bytecode-in-installs/"
         }
       ]
     },
