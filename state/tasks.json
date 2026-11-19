@@ -1636,7 +1636,7 @@
         {
           "id": "E99-F190",
           "title": "Reviewer self-improving clause: edit prompts only in the harness source repo; in an installed project record a lesson and report upstream (GitHub #349)",
-          "status": "in-progress",
+          "status": "in-review",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
