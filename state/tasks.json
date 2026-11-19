@@ -1647,6 +1647,15 @@
             "unblocked_by": "the PR merging \u2014 then `set-status E99-F190 done --evidence <merge-ref>`",
             "pr": "354"
           }
+        },
+        {
+          "id": "E99-F191",
+          "title": "Drift guard excludes project planning docs (specs/vision.md, architecture.md, adr/); uncovered glue documented; installer sets _cdx_cmds outside skill_unit_claimed",
+          "status": "in-progress",
+          "sdd": false,
+          "autonomous": true,
+          "depends_on": [],
+          "spec_path": "specs/epics/E99-maintenance/F191-drift-planning-docs-and-cdx-cmds/"
         }
       ]
     },
