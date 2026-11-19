@@ -1687,7 +1687,13 @@
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F193-pr-loop-robustness/"
+          "spec_path": "specs/epics/E99-maintenance/F193-pr-loop-robustness/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (362)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F193 done --evidence <merge-ref>`",
+            "pr": "362"
+          }
         }
       ]
     },
