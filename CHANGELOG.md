@@ -11,17 +11,21 @@ All notable changes to the harness body are recorded here. Versions follow
   `specs/architecture.md` and `specs/adr/`. `/sdd-plan` writes these, they are project-authored,
   they are not in the install manifest's HARNESS-OWNED list, and no upgrade touches them.
   Previously an uncommitted planning edit failed the `init.sh` drift guard. The helper's header
-  now states a known limit: the Antigravity glue and the root `<!-- harness:begin -->` pointer
-  block are not claimed, so an edit to them goes undetected (it never causes a false failure).
-- `harness-install.sh`: the shared-skill command list `_cdx_cmds` is computed outside the
-  `skill_unit_claimed` block. The pi template block reads it too. A crashed `grep` inside
-  `agent_selected` (`Segmentation fault: 11` under load) had made `skill_unit_claimed` false
-  while pi stayed selected, and `set -u` aborted the install.
+  now states a known limit: the root `<!-- harness:begin -->` pointer block is not claimed (it
+  sits inside a project-owned file), so an edit to it goes undetected rather than failing. The
+  install manifest's PROJECT-OWNED list names the three planning docs too.
+- `harness-install.sh`: `agent_selected` now matches the selected front-end keys with a pure
+  shell `case` instead of piping to `grep`. A `grep` that crashed under load
+  (`Segmentation fault: 11`) once gave two different answers for the same key in one run:
+  `skill_unit_claimed` was false while pi stayed selected, and `set -u` aborted the pi block on
+  an unset `_cdx_cmds`. With no subprocess, the answers cannot diverge. The `set -u` guard is
+  kept, so any future inconsistency still fails loudly instead of leaving a broken install.
 - `docs/agents/INSTALL.md` "Layout & ownership": the planning docs are now listed as
   project-owned.
 - Tests: `tests/test_init_drift_guard.sh` checks that uncommitted planning-doc edits do not trip
   the guard, and that the source emits the three exclusions. The new
-  `tests/test_install_cdx_cmds.sh` is a structural pin with a mutant.
+  `tests/test_install_agent_selected.sh` checks `agent_selected`'s exact matching on the real
+  function, and rejects a substring-matching mutant and a reintroduced subprocess.
 
 ## [0.115.4] — 2026-11-18
 

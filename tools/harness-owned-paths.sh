@@ -24,11 +24,11 @@
 #   because that is the directory the caller runs git from.
 #
 # Exit: 0 always on a valid mode; 2 on usage error. Prints nothing but pathspecs on stdout.
-# Known limit (E99-F191): some installer-written glue is NOT claimed, so an edit to it is a
-# missed drift rather than a false one — the Antigravity files (`.agents/rules/harness.md`,
-# `.agents/agents/*.md`), which would need last-written ownership evidence like the Codex
-# and Gemini namespaces below, and the `<!-- harness:begin -->` pointer block, which lives
-# inside a project-owned CLAUDE.md / AGENTS.md that a pathspec cannot claim in part.
+# Known limit (E99-F191): the `<!-- harness:begin -->` … `<!-- harness:end -->` pointer block
+# the installer writes into the project's own AGENTS.md / CLAUDE.md is NOT claimed. It lives
+# inside a project-owned file, and a pathspec cannot claim part of a file, so an edit to the
+# block is a missed drift, never a false one. (Retired v0.78.1 Antigravity/Gemini glue that an
+# upgrade preserved is excluded on purpose; see docs/agents/INSTALL.md.)
 
 set -eu
 

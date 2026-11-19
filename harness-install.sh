@@ -2458,7 +2458,19 @@ detect_host() {
 
 # agent_selected <key> — true (exit 0) iff <key> is a line in $SELECTED (R3/R4).
 agent_selected() {
-  printf '%s\n' "$SELECTED" | grep -qx "$1"
+  # A pure shell match against the newline-separated $SELECTED, no subprocess (E99-F191): this
+  # is asked ~30 times per run, and a crashed `grep` here (a "Segmentation fault: 11" under
+  # load) once answered differently for the same key within one run, so skill_unit_claimed
+  # was false while `agent_selected pi` was true and the pi block aborted on an unset
+  # `_cdx_cmds`. Exact whole-line match, as `grep -qx` did for these plain keys.
+  case "
+$SELECTED
+" in
+    *"
+$1
+"*) return 0 ;;
+  esac
+  return 1
 }
 
 # normalize_keys <space-or-newline-list> — print the given keys de-duplicated and
@@ -4840,6 +4852,8 @@ PROJECT-OWNED  (seeded once, never clobbered on upgrade):
   .harness/harness.config.yaml   (verification commands + store backend + change_size budget)
   .harness/init.project.sh       (project-specific init.sh gate checks)
   .harness/specs/product.md  .harness/specs/glossary.md  .harness/specs/epics/
+  .harness/specs/vision.md  .harness/specs/architecture.md  .harness/specs/adr/
+                                 (/sdd-plan writes these; never seeded or overwritten)
   .harness/state/tasks.json  .harness/progress/
   umbrella.manifest.yaml         (umbrella mode only: coordinator manifest)
 
@@ -9681,13 +9695,9 @@ EOF
   # so this writes ONE shared unit per command rather than one per front-end (ADR-0003).
   # The surface is fully repository-local and never requires or writes HOME / CODEX_HOME.
   # The old global prompts resolver remains below only for safe migration.
-  # The command list is computed OUTSIDE the skill_unit_claimed block (E99-F191): §5d-pi below
-  # reads it too, on the assumption that pi selected implies skill_unit_claimed, and a crashed
-  # `grep` inside agent_selected once broke that assumption and aborted the install under
-  # `set -u` ("_cdx_cmds: parameter not set").
-  _cdx_cmds="$HARNESS_EMITTED_CMDS"
-  if pr_loop_enabled; then _cdx_cmds="$_cdx_cmds $HARNESS_PR_LOOP_CMDS"; fi
   if skill_unit_claimed; then
+    _cdx_cmds="$HARNESS_EMITTED_CMDS"
+    if pr_loop_enabled; then _cdx_cmds="$_cdx_cmds $HARNESS_PR_LOOP_CMDS"; fi
     for _c in $_cdx_cmds; do
       install_skill_unit "$_c"
     done
