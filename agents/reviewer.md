@@ -425,10 +425,30 @@ Record the summary line and the decision for any `WAIVED` finding in your verdic
 
 ## Self-improving the harness
 
-If you find the Builder failed because a rule was missing or ambiguous, you may
-**update the harness itself** — tighten `AGENTS.md`, an agent prompt, or a template
-— so the same mistake can't recur. The harness is files in the repo; improving it
-is part of your job.
+If you find the Builder failed because a rule was missing or ambiguous, act so the same
+mistake is less likely to recur. Where that fix goes depends on the layout (E99-F190,
+GitHub #349):
+
+- **In the harness's own source repository (the harness files sit at the repository root and
+  there is no `.harness/` directory)**, you may tighten `AGENTS.md`, an agent prompt or a
+  template so the mistake can't recur. The harness is files in the repo; improving it is part
+  of your job.
+- **In an installed project (the harness you run from is a `.harness/` directory carrying
+  `.harness-version`)**, the installer-owned files are the ones the install manifest
+  (`.harness/manifest.txt`, "HARNESS-OWNED") says every upgrade overwrites: `.harness/AGENTS.md`,
+  `.harness/init.sh`, `.harness/agents/`, `.harness/docs/`, `.harness/store/`,
+  `.harness/tools/`, `.harness/specs/_templates/`, the two `.harness/umbrella.*.example*`
+  files, and the generated front-end glue. When the body is version-controlled, the `init.sh`
+  drift guard fails on an uncommitted edit to an installer-owned `.harness/` file or to the
+  glue `tools/harness-owned-paths.sh` lists (an untracked body only warns), and the next upgrade
+  reinstalls a committed edit to those `.harness/` files and the regenerated `.claude/` and
+  `.opencode/command/` glue away (edited Codex skill units and pi units are kept instead).
+  Never edit an installer-owned file. Instead, record the lesson in the
+  harness-root-relative `progress/lessons.md` (`.harness/progress/lessons.md`, project-owned;
+  see **Earned lessons** below). A rule that belongs to this project may go in the project's
+  own root `AGENTS.md` or `CLAUDE.md`, outside the `<!-- harness:begin -->` …
+  `<!-- harness:end -->` pointer block. When the gap fits one of the four triggers, also
+  append an upstream report under **Reporting harness defects**.
 
 **Earned lessons.** Read `progress/lessons.md` before you review — it names failure
 shapes that already cost rounds. When your review surfaces a lesson that would have

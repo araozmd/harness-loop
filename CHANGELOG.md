@@ -4,6 +4,26 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.115.4] — 2026-11-18
+
+### Fixed — the Reviewer no longer edits installer-owned files in an installed project (E99-F190, GitHub #349)
+- `agents/reviewer.md` "Self-improving the harness": in the harness's own source repository (the
+  harness files at the repository root, no `.harness/`) the Reviewer may still tighten
+  `AGENTS.md`, an agent prompt or a template. In an installed project, the files the install manifest lists as HARNESS-OWNED
+  (`.harness/AGENTS.md`, `init.sh`, `agents/`, `docs/`, `store/`, `tools/`,
+  `specs/_templates/`, the umbrella examples) and the generated glue are installer-owned. When
+  the body is version-controlled, the `init.sh` drift guard fails on an uncommitted edit to
+  an installer-owned `.harness/` file or to the glue `tools/harness-owned-paths.sh` lists, and the next upgrade reinstalls a committed edit to the `.harness/` files and the
+  regenerated `.claude/` and `.opencode/command/` glue away (edited Codex and pi units are kept). There the
+  Reviewer records the lesson in `progress/lessons.md`. It may put a project rule in the
+  project's own root `AGENTS.md` or `CLAUDE.md`, outside the harness pointer block. When the gap
+  fits a reporting trigger, it also appends an upstream report. Previously the clause invited the edit unconditionally, and a Reviewer
+  following it turned the session gate red.
+- `docs/CONCEPTS.md` and `docs/agents/HARNESS.md` qualify "the Reviewer may change the harness"
+  the same way.
+- New suite `tests/test_reviewer_self_improve.sh`: it pins the layout-aware clause and the
+  `docs/agents/HARNESS.md` qualification, and bans the old over-claims, with mutants.
+
 ## [0.115.3] — 2026-11-18
 
 ### Fixed — the installer no longer copies Python bytecode into installs (E99-F189)
