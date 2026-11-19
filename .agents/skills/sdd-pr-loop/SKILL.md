@@ -71,6 +71,21 @@ mut() {
   fi
   "$@"
 }
+# needs_human_label — label the PR `needs-human`, the loop's hand-off signal. A label that
+# does not exist in the repository makes `gh pr edit --add-label` fail, and discarding that
+# failure (`>/dev/null 2>&1 || true`) left the PR unlabeled with no signal at all (#357). So:
+# apply it; if that fails, create the label and apply it again; if it STILL fails, say so on
+# stderr, naming the PR. Every write goes through `mut`, so a dry run creates and labels
+# nothing. It always returns 0 — callers go on to their own hand-off — but a failure to label
+# is never silent.
+needs_human_label() {
+  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 && return 0
+  mut gh label create needs-human --color B60205 \
+    --description "The PR-loop handed this PR to a human" >/dev/null 2>&1 || :
+  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 && return 0
+  echo "sdd-pr-loop: WARNING — could not apply the needs-human label to PR #$pr_number (the label is missing and could not be created, or gh failed); the hand-off is NOT label-signalled, treat PR #$pr_number as needs-human" >&2
+  return 0
+}
 # A dry run keeps its OWN cache root: its stub round must never count toward the real
 # PR's round budget, and a rehearsed `handback`/`merged` marker must never short-circuit
 # a later real run at the same head.
@@ -187,7 +202,7 @@ reviewed PR looks unfixed while an unrelated branch quietly receives the commits
 pr_head_oid="$(gh pr view "$pr_number" --json headRefOid --jq '.headRefOid' 2>/dev/null || echo '')"
 if [ -z "$pr_head_oid" ]; then
   echo "cannot resolve the PR's head oid — needs-human, not proceeding" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   exit 1     # TERMINAL — a warning that falls through would preserve the exact
              # failure this section closes (fixes pushed from an unrelated tree)
 fi
@@ -198,7 +213,7 @@ fi
 # tracked paths only.
 if [ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then
   echo "working tree has uncommitted tracked changes — they would be swept into fixer commits; commit/stash them first — needs-human, not proceeding" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   exit 1     # TERMINAL
 fi
 # ALWAYS run the checkout — object equality alone is not a binding (Codex #165
@@ -208,12 +223,12 @@ fi
 # idempotent when the tree is already on the PR branch.
 if ! mut gh pr checkout "$pr_number" 2>/dev/null; then
   echo "could not check out PR #$pr_number (conflicting local changes?) — needs-human, not proceeding" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   exit 1     # TERMINAL, same reason
 fi
 if [ -z "$(git branch --show-current 2>/dev/null)" ]; then
   echo "working tree is detached after checkout — needs-human, not proceeding" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   exit 1     # TERMINAL
 fi
 if [ "$(git rev-parse HEAD 2>/dev/null)" != "$pr_head_oid" ] \
@@ -224,7 +239,7 @@ if [ "$(git rev-parse HEAD 2>/dev/null)" != "$pr_head_oid" ] \
   # promised re-entry at needs-human and discard legitimate fix work (Codex #165
   # round-4). Anything else is an unrelated tree and fails closed.
   echo "working tree is neither at the PR head $pr_head_oid nor locally ahead of it — needs-human, not proceeding" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   exit 1     # TERMINAL — OID-verified even after a successful checkout
 fi
 ```
@@ -306,7 +321,8 @@ When the watcher exits, the harness re-invokes you. **Record its exit code as th
 | `3` | **Clean review, 0 findings** (head banner as a review **or** an issue comment, or a 👍 reaction) | Skip classification; treat the round as zero blocking |
 | `2` | **Timeout** — ceiling hit, no resolution | Abort the round with `needs-human`. Never treat a timeout as "clean". |
 | `4` | Usage / precondition error (incl. an unresolvable trigger timestamp) | Fix the args and relaunch; do not disable the freshness filter |
-| `5` | No Codex activity inside `HARNESS_FIRST_RESPONSE` (default 180s) | Report the diagnostic: the Codex GitHub App is most likely not installed. Do NOT wait out the ceiling. |
+| `5` | No Codex activity inside `HARNESS_FIRST_RESPONSE` (default 180s), seen on a poll that read every source | Report the diagnostic: the Codex GitHub App is most likely not installed. Do NOT wait out the ceiling. A poll whose `gh` fetch failed never counts as "no activity" — it defers this exit. |
+| `12` | A Codex-bot issue comment posted at or after this round's trigger says **"Unknown error"** (and carries no `Reviewed commit` text), and no findings or clean verdict had landed | A provider error, **not** a clean verdict: never merge on it. Abort the round with `needs-human` (a human can re-trigger `@codex review`). Do NOT wait out the ceiling. |
 
 The exit codes encode the freshness conditions the watcher checks: (1) Codex-bot inline
 comments filed against `headRefOid` **and created at/after the trigger comment** →
@@ -344,7 +360,7 @@ case "$watcher_rc" in
   0)   echo findings   > "$round_dir/outcome" ;;   # review landed WITH findings
   3)   echo clean      > "$round_dir/outcome" ;;   # review landed, zero findings
   2|5) echo timeout    > "$round_dir/outcome" ;;   # ceiling hit / no Codex activity at all
-  *)   echo unresolved > "$round_dir/outcome" ;;   # usage / precondition error (exit 4)
+  *)   echo unresolved > "$round_dir/outcome" ;;   # exit 4 (usage/precondition) or 12 (Codex "Unknown error")
 esac
 ```
 
@@ -700,7 +716,7 @@ that.
 |---|---|
 | below `max_rounds - 1` | For each blocking comment **not already `fix_done`** (resume, above): **`acted_append` it first**, then spawn one **`pr-fixer`** sub-agent **at a time — sequentially, never concurrently** (§0c: one shared checkout and index), passing it the PR number, comment id, file path, line and body. It commits one fix and writes `fix-<comment_id>.md` into the round dir. After all fixers return, `mut git push`. On a dry run, spawn no fixer: list the comments instead. |
 | `max_rounds - 1` | **`acted_append` every comment going into the prompt**, then build **one combined fix prompt** (all blocking comments not already `fix_done`, concatenated) and escalate to a **different worker** if the host CLI offers one; where no router exists, run one combined **in-session** pass instead. The combined pass must leave the SAME per-comment receipts `fix_done` reads: one `fix-<comment_id>.md` per comment it addressed, and every addressed `(#<comment_id>)` in its commit subject(s) — otherwise an interrupted escalation round re-sends already-fixed comments. Then `mut git push`. On a dry run, run no fix pass: list the comments instead. |
-| `max_rounds` (cap) | Stop the loop. `mut gh pr edit "$pr_number" --add-label needs-human`. **`acted_append` every blocking comment that survived** — the cap round disposes of them by declaring them, not by fixing them — then write `echo handover > "$round_dir/disposed"`. Post the handover summary listing every round, the surviving comments, and the cache path — **and the trend verdict, re-run after these rows exist**. When it is `non-converging`, the message must say what the tool's remedy line says, and must show the per-round series and the concentration list that make the case. Return failure. |
+| `max_rounds` (cap) | Stop the loop. `needs_human_label` (defined beside `mut`: applies the label, creates it first if the repository lacks it, and warns on stderr naming the PR if it still cannot). **`acted_append` every blocking comment that survived** — the cap round disposes of them by declaring them, not by fixing them — then write `echo handover > "$round_dir/disposed"`. Post the handover summary listing every round, the surviving comments, and the cache path — **and the trend verdict, re-run after these rows exist**. When it is `non-converging`, the message must say what the tool's remedy line says, and must show the per-round series and the concentration list that make the case. Return failure. |
 
 At the default `max_rounds: 4` that is rounds 1–2 per-comment, round 3 combined
 escalation, round 4 `needs-human`. A `max_rounds` below `3` simply has no per-comment
@@ -842,7 +858,7 @@ branch-protection/ruleset reads are reads, so a dry run still asks them; everyth
 follows a failure goes through `mut`. Two traps the helper closes: gh **exits 0** when a
 required check was **cancelled** (its `cancel` bucket is neither failed nor pending), so
 the verdict comes from the JSON buckets, not the exit status; and "no required checks
-reported" only means none has **started** yet. The rollup is therefore compared with what
+reported" (or "no checks reported") only means none has **started** yet. The rollup is therefore compared with what
 the base branch actually requires (classic protection contexts plus `required_status_checks`
 rulesets, every rules page read). A required context that has not reported yet is
 pending, and an empty rollup is green only when the base provably requires nothing. A
@@ -864,7 +880,7 @@ ci_required_gate() {
   _ci_waited=0; _ci_why=""
   while :; do
     # The rollup lists only checks that have STARTED, so "no required checks reported"
-    # can mean "none configured" OR "the required check has not registered yet". Read
+    # (or "no checks reported") can mean "none configured" OR "the required check has not registered yet". Read
     # what the BASE branch requires every poll: classic protection contexts plus EVERY
     # page of the active rules. Anything unreadable is "unknown", never green.
     _ci_known=0; _ci_want=""; _ci_wfn=0
@@ -897,9 +913,14 @@ ci_required_gate() {
     # Classify by BUCKET, not by gh's exit status: gh exits 0 with a CANCELLED required
     # check (its `cancel` bucket is neither Failed nor Pending), so the status lies there.
     _ci_out="$(gh pr checks "$pr_number" --required --json name,bucket 2>&1)" || :
+    # gh words a PR with zero checks as "no checks reported on the '<branch>' branch" (no
+    # check has reported yet: no CI at all, or none started) and one whose checks exist but
+    # none is required as "no required checks reported …". Both mean an EMPTY rollup — not an unreadable one (#355). Empty is
+    # green only through the `empty` arm below, i.e. when the base's own configuration was
+    # read and requires nothing; anything else gh prints is still "unreadable", fail closed.
     case "$_ci_out" in
       \[*) _ci_rep="$_ci_out" ;;
-      *) if printf '%s\n' "$_ci_out" | grep -qi 'no required checks reported'; then
+      *) if printf '%s\n' "$_ci_out" | grep -qiE 'no (required )?checks reported'; then
            _ci_rep='[]'
          else
            printf 'sdd-pr-loop: required CI unreadable on PR #%s — needs-human\n%s\n' \
@@ -1159,21 +1180,21 @@ if [ "$hb_refused" = threads ]; then
   # makes the next invocation run a FRESH review round, so the late input is classified
   # instead of being skipped by a re-entry on this round's cached (older) review.
   echo "sdd-pr-loop: hand-back refused — review threads changed (or were unreadable) during the CI wait — needs-human" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   [ "${HARNESS_DRY_RUN:-0}" = "1" ] || echo stale > "$round_dir/disposed"
   handback_ok=0      # take the needs-human terminal state and return failure
 elif [ "$hb_refused" = ci ]; then
   # Required CI red, or still pending at the ceiling (E99-F171): no green summary and NO
   # marker — the round stays re-enterable so the next run re-checks CI on its cached review.
   echo "sdd-pr-loop: hand-back refused — required CI is not green — needs-human" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   handback_ok=0      # take the needs-human terminal state and return failure
 elif [ "$hb_refused" = stale ]; then
   # Moved or unreadable head: no green summary and NO `handback` marker. `stale` records
   # that this round's verdict no longer describes the PR, so the next invocation ADVANCES
   # to a fresh review round instead of re-entering this one on its outdated green verdict.
   echo "sdd-pr-loop: hand-back refused — head moved since the reviewed round (unreviewed commits) — needs-human" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   [ "${HARNESS_DRY_RUN:-0}" = "1" ] || echo stale > "$round_dir/disposed"
   handback_ok=0      # take the needs-human terminal state and return failure
 else
@@ -1220,15 +1241,15 @@ default_branch="${default_branch:-$(gh repo view --json defaultBranchRef --jq '.
 base_ref="$(gh pr view "$pr_number" --json baseRefName --jq '.baseRefName' 2>/dev/null || echo '')"
 if [ -z "$default_branch" ] || [ -z "$base_ref" ] || [ "$base_ref" != "$default_branch" ]; then
   echo "sdd-pr-loop: merge refused — base '$base_ref' is not the default branch '$default_branch' (stacked lane deprecated, E21-F07); retarget the PR — needs-human" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
 elif [ -z "$reviewed_head" ]; then
   echo "sdd-pr-loop: merge refused — reviewed head unreadable from the round cache — needs-human" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
 elif ! sh tools/wait-for-codex.sh merge-verify "$round_dir" "$pr_number" pre; then
   # E99-F144: a push AFTER the clean review must not inherit its verdict — the receipt
   # compares the PR's current head against the head this round actually reviewed.
   echo "sdd-pr-loop: merge refused — head moved since the reviewed round (unreviewed commits) — needs-human" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   [ "${HARNESS_DRY_RUN:-0}" = "1" ] || echo stale > "$round_dir/disposed"   # next run re-reviews
 elif [ "${merge_ok:-0}" != "1" ]; then
   echo "unresolved non-Codex threads remain — needs-human, not merging" >&2
@@ -1239,14 +1260,14 @@ elif ! ci_required_gate; then
   # marker (the next run re-checks CI on this review).
   # A push during the wait cannot slip through: --match-head-commit pins the merge below.
   echo "sdd-pr-loop: merge refused — required CI is not green — needs-human" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
 elif _base_after="$(gh pr view "$pr_number" --json baseRefName --jq '.baseRefName' 2>/dev/null || echo '')" \
      && [ "$_base_after" != "$default_branch" ]; then
   # The CI wait can last up to the ceiling and --match-head-commit pins only the HEAD, so
   # every other pre-wait verdict is re-read after it. A PR retargeted during the wait would
   # otherwise merge into the new base and delete its head.
   echo "sdd-pr-loop: merge refused — base changed to '$_base_after' during the CI wait (default '$default_branch') — needs-human" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
 elif ! _ts_after="$(thread_scan)" \
      || printf '%s\n' "$_ts_after" | grep -v '^$' \
         | grep -qvxF -e "$([ "${HARNESS_DRY_RUN:-0}" = "1" ] && printf '%s' "${unresolved:-}")" \
@@ -1262,7 +1283,7 @@ elif ! _ts_after="$(thread_scan)" \
   # of EVERY thread, taken after the resolves, must be byte-identical too. A missing
   # snapshot never equals a scan, so an unset `_mg_fp_pre` also refuses.
   echo "sdd-pr-loop: merge refused — review threads changed (or were unreadable) during the CI wait — needs-human" >&2
-  mut gh pr edit "$pr_number" --add-label needs-human >/dev/null 2>&1 || true
+  needs_human_label
   [ "${HARNESS_DRY_RUN:-0}" = "1" ] || echo stale > "$round_dir/disposed"
 elif [ "${HARNESS_DRY_RUN:-0}" = "1" ]; then
   # Dry run (E99-F170): EVERY gate above held, thread eligibility included — say what

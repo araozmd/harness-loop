@@ -795,7 +795,10 @@ case "$sub" in
       esac
     done
     case "$_ep" in
-      */issues/comments/*/reactions) cat "$STUB_DIR/reactions.json" ;;
+      */issues/comments/*/reactions)
+        # `reactions-fail` = the reactions endpoint alone fails (a transient gh error).
+        [ "$mode" = "reactions-fail" ] && exit 1
+        cat "$STUB_DIR/reactions.json" ;;
       */pulls/*/comments)
         # `comments-fetch-fail` = the pull-review-comments endpoint alone fails, while
         # everything else (including a clean banner in `gh pr view`) still answers.
@@ -804,7 +807,9 @@ case "$sub" in
       */issues/comments/*)
         [ "$mode" = "no-trigger-ts" ] && exit 1
         printf '%s\n' "${STUB_TRIGGER_TS:-2026-01-01T00:00:00Z}" ;;
-      */issues/*/comments)           cat "$STUB_DIR/issue-comments.page.json" ;;
+      */issues/*/comments)
+        [ "$mode" = "issue-comments-fail" ] && exit 1
+        cat "$STUB_DIR/issue-comments.page.json" ;;
       *) echo '[]' ;;
     esac
     exit 0 ;;
@@ -863,6 +868,25 @@ mk_stub_payload() {
     fresh-review)
       printf '{"headRefOid":"%s","reviews":[{"author":{"login":"chatgpt-codex-connector"},"body":"Round 2 review","submittedAt":"2026-02-01T00:00:00Z"}],"comments":[],"statusCheckRollup":[]}\n' \
         "$_head" > "$_d/pr.json" ;;
+    # ── a Codex provider-error reply instead of a review (#356) ───────────────
+    codex-error)      # fresh (>= trigger 2026-01-01): the watcher must surface it
+      printf '[[{"id":31,"user":{"login":"chatgpt-codex-connector[bot]"},"created_at":"2026-02-01T00:00:00Z","body":"Codex: Unknown error. Please try again."}]]\n' \
+        > "$_d/issue-comments.page.json" ;;
+    codex-error-stale)  # an EARLIER round's error: must not be read as this round's
+      printf '[[{"id":31,"user":{"login":"chatgpt-codex-connector[bot]"},"created_at":"2025-12-01T00:00:00Z","body":"Codex: Unknown error. Please try again."}]]\n' \
+        > "$_d/issue-comments.page.json" ;;
+    codex-error-spoof)  # same words from a non-Codex account: no authority
+      printf '[[{"id":31,"user":{"login":"someone-else"},"created_at":"2026-02-01T00:00:00Z","body":"Unknown error"}]]\n' \
+        > "$_d/issue-comments.page.json" ;;
+    codex-error-then-findings)  # a review with findings wins over an error reply
+      printf '[[{"id":31,"user":{"login":"chatgpt-codex-connector[bot]"},"created_at":"2026-02-01T00:00:00Z","body":"Unknown error"}]]\n' \
+        > "$_d/issue-comments.page.json"
+      printf '[[{"id":11,"user":{"login":"chatgpt-codex-connector[bot]"},"commit_id":"%s","created_at":"2026-06-01T00:00:00Z","body":"P1 broken"}]]\n' \
+        "$_head" > "$_d/review-comments.page.json" ;;
+    codex-error-banner)  # an error line that ALSO carries a banner naming another commit:
+      # the banner exclusion keeps it from being read as a provider error (-> ceiling, 2)
+      printf '[[{"id":31,"user":{"login":"chatgpt-codex-connector[bot]"},"created_at":"2026-02-01T00:00:00Z","body":"Unknown error while posting\\nReviewed commit: 1234567"}]]\n' \
+        > "$_d/issue-comments.page.json" ;;
     pending) : ;;
   esac
 }
@@ -1074,6 +1098,64 @@ test_first_response_probe_is_round_scoped() {         # R57
   grep -qF 'issues/comments/$TRIGGER_COMMENT_ID/reactions' "$W" \
     || fail "R57: reactions are no longer fetched per-round from the trigger comment id"
   pass "R57 the first-response probe is scoped to the current round (stale activity cannot disarm it)"
+}
+
+test_failed_fetch_is_unknown_not_absence() {          # #356
+  # A transient gh failure on the issue-comments or reactions fetch used to be replaced
+  # with `[]`, which is indistinguishable from "Codex never answered": the first-response
+  # probe then exited 5 ("the Codex App is probably not installed") on a repo that has it.
+  if ! have_jq; then skip "test_failed_fetch_is_unknown_not_absence (jq not installed)"; return 0; fi
+  for _m in issue-comments-fail reactions-fail; do
+    _rc="$(run_wait "wff-$_m" pending "$_m" \
+           HARNESS_POLL_INTERVAL=1 HARNESS_POLL_CEILING=3 HARNESS_FIRST_RESPONSE=1)"
+    [ "$_rc" != 5 ] || fail "#356: a failing $_m fetch tripped the first-response probe (exit 5)"
+    [ "$_rc" = 2 ] || fail "#356: a failing $_m fetch must run to the ceiling (exit 2), got $_rc"
+    grep -qF 'gh fetch failed' "$T/.wff-$_m.err" || fail "#356: a failing $_m fetch was not reported as a failed poll"
+    grep -qF 'GitHub App' "$T/.wff-$_m.err" && fail "#356: a failing $_m fetch printed the missing-App diagnostic"
+  done
+  # the failed poll must not have published an empty list over the stream either
+  [ ! -s "$T/wff-issue-comments-fail/round/issue-comments.json" ] \
+    || fail "#356: a failed issue-comments fetch left a published issue-comments.json"
+  # the probe still works when every fetch succeeds (the fix defers it, it does not remove it)
+  _rc="$(run_wait wffok pending ok HARNESS_POLL_INTERVAL=1 HARNESS_POLL_CEILING=60 HARNESS_FIRST_RESPONSE=1)"
+  [ "$_rc" = 5 ] || fail "#356: with healthy fetches the probe must still exit 5 (got $_rc)"
+  pass "#356 a failed issue-comments/reactions fetch is unknown, never evidence of absence (no false exit 5)"
+}
+
+test_codex_unknown_error_is_surfaced() {              # #356
+  if ! have_jq; then skip "test_codex_unknown_error_is_surfaced (jq not installed)"; return 0; fi
+  _t0="$(date +%s)"
+  _rc="$(run_wait wce codex-error ok HARNESS_POLL_INTERVAL=1 HARNESS_POLL_CEILING=60 HARNESS_FIRST_RESPONSE=0)"
+  _t1="$(date +%s)"
+  [ "$_rc" = 12 ] || fail "#356: a fresh Codex 'Unknown error' reply must exit 12 (got $_rc)"
+  [ "$(( _t1 - _t0 ))" -lt 30 ] || fail "#356: the error reply was left to run to the ceiling"
+  grep -qF 'Unknown error' "$T/.wce.err" || fail "#356: exit 12 does not name the provider error"
+  grep -qF 'NOT a clean verdict' "$T/.wce.err" || fail "#356: exit 12 does not say it is not a clean verdict"
+  # a reply from an EARLIER round, or from a non-Codex account, is not this round's error
+  _rc="$(run_wait wces codex-error-stale ok HARNESS_POLL_INTERVAL=1 HARNESS_POLL_CEILING=2 HARNESS_FIRST_RESPONSE=0)"
+  [ "$_rc" = 2 ] || fail "#356: a STALE error reply was read as this round's (got $_rc, want 2)"
+  _rc="$(run_wait wcep codex-error-spoof ok HARNESS_POLL_INTERVAL=1 HARNESS_POLL_CEILING=2 HARNESS_FIRST_RESPONSE=0)"
+  [ "$_rc" = 2 ] || fail "#356: a non-Codex 'Unknown error' comment was read as Codex's (got $_rc, want 2)"
+  # a comment that also carries a `Reviewed commit` banner is not read as an error reply
+  _rc="$(run_wait wceb codex-error-banner ok HARNESS_POLL_INTERVAL=1 HARNESS_POLL_CEILING=2 HARNESS_FIRST_RESPONSE=0)"
+  [ "$_rc" = 2 ] || fail "#356: an 'Unknown error' comment carrying a Reviewed commit banner exited $_rc (want 2, not 12)"
+  # a review with findings that landed wins over the error reply
+  _rc="$(run_wait wcef codex-error-then-findings ok HARNESS_POLL_INTERVAL=1 HARNESS_POLL_CEILING=5 HARNESS_FIRST_RESPONSE=0)"
+  [ "$_rc" = 0 ] || fail "#356: findings must win over an error reply (got $_rc, want 0)"
+  # the error reply is a diagnostic only: `evaluate` (offline) still says pending, never clean
+  _rc=0; sh "$W" evaluate "$T/wce/round" >/dev/null 2>&1 || _rc=$?
+  [ "$_rc" = 1 ] || fail "#356: evaluate must keep reading an error reply as pending (got $_rc)"
+  pass "#356 a fresh Codex 'Unknown error' reply exits 12 (never clean); stale/spoofed ones and findings are unaffected"
+}
+
+test_exit_12_documented_everywhere() {                # #356
+  grep -q '^#  12  → `wait` mode ONLY' "$W" || fail "#356: exit 12 is missing from the watcher's header table"
+  for _f in "$BODY" "$SRC/docs/agents/WORKFLOW.md"; do
+    grep -q '`12`' "$_f" || fail "#356: exit 12 is not documented in $_f"
+    grep -qF 'Unknown error' "$_f" || fail "#356: $_f does not say what exit 12 is"
+  done
+  grep -q 'exit 4 (usage/precondition) or 12' "$BODY" || fail "#356: step 2b does not say 12 is recorded as unresolved"
+  pass "#356 exit 12 is documented in the watcher header, the command's exit table and docs/agents/WORKFLOW.md"
 }
 
 test_poll_env_knobs_honored() {                       # R34
@@ -2126,6 +2208,9 @@ test_timeout_exits_2_not_clean
 test_first_response_window_fails_fast
 test_first_response_probe_disabled
 test_first_response_probe_is_round_scoped
+test_failed_fetch_is_unknown_not_absence
+test_codex_unknown_error_is_surfaced
+test_exit_12_documented_everywhere
 test_poll_env_knobs_honored
 test_non_positive_interval_cannot_spin
 test_stale_reanchored_thread_is_not_a_finding

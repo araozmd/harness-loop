@@ -38,8 +38,9 @@
 #        issue comment, OR 👍 reaction on the trigger comment).
 #   4  → usage / precondition error (includes an unresolvable trigger timestamp and a
 #        non-positive HARNESS_POLL_INTERVAL).
-#   5  → `wait` mode ONLY: no Codex activity within HARNESS_FIRST_RESPONSE — the Codex
-#        GitHub App is most likely not installed/authorized on this repo. NEVER returned
+#   5  → `wait` mode ONLY: no Codex activity within HARNESS_FIRST_RESPONSE, seen on a poll
+#        that read every source (a poll whose gh fetch failed defers this exit, #356) — the
+#        Codex GitHub App is most likely not installed/authorized on this repo. NEVER returned
 #        by `preflight` (E99-F153: it used to be, conflated with the unrelated codes
 #        below — the same number with an opposite remedy sent a real project chasing an
 #        App-installation problem it did not have, when the actual cause was "wrong
@@ -66,10 +67,19 @@
 #        child repo) — re-run from the repo `gh` can resolve, or `gh repo set-default`.
 #  10  → `preflight` only, USAGE bucket: the PR number does not resolve, or resolves to a
 #        PR that is not OPEN. Remedy: pass an existing, open PR number.
+#  12  → `wait` mode ONLY (#356): a Codex-bot issue comment posted at/after THIS round's
+#        trigger carries a provider error (its body says "Unknown error", case-insensitive, with no
+#        "Reviewed commit" banner) instead of a review, and no findings or clean verdict
+#        had landed. A diagnostic, NOT a verdict: never clean, never merge on it. Remedy:
+#        re-trigger `@codex review`, or hand over as needs-human. (Not 11: 11 is
+#        `merge-verify post`'s.)
 #
-# Always (re)writes pr.json, review-comments.json, issue-comments.json, reactions.json
-# into round-dir on every poll, so the caller reads the same sources the command body
-# describes. POSIX sh, no bashisms (the harness's zero-dependency ethos); the ONLY
+# Rewrites pr.json, review-comments.json, issue-comments.json and reactions.json in
+# round-dir on every poll whose fetches all succeed, so the caller reads the same sources
+# the command body describes; a failed fetch keeps the last good copy (or none yet) and
+# fails that poll. A persistently failing endpoint (e.g. reactions 404 after the trigger
+# comment is deleted) therefore fails every poll and ends in exit 2: it fails closed.
+# POSIX sh, no bashisms (the harness's zero-dependency ethos); the ONLY
 # runtime dependencies are `gh` (authed) and `jq`, both asserted by `preflight` (`date +%s`
 # is used opportunistically for the wall-clock deadlines, with a fallback when absent).
 
@@ -264,6 +274,24 @@ wfc_bot_seen() {
     [ "$(wfc_count "$_bs_n")" -gt 0 ] && return 0
   fi
   return 1
+}
+
+# wfc_codex_error <round-dir> <trigger-ts> — exit 0 when a Codex-bot ISSUE comment posted at/after
+# THIS round's trigger is a provider-error reply (#356) rather than a review: one whose body contains "unknown error" (case-insensitive) and
+# no "Reviewed commit" banner. Only the issue-comment stream is read. It is consulted by
+# `wait` mode only after wfc_evaluate found neither findings nor a clean verdict, so a
+# review always wins over this. It is a diagnostic, never a verdict: nothing here says the
+# PR is clean, and the caller must not merge on it.
+wfc_codex_error() {
+  _ce_dir="$1"; _ce_since="${2:-}"
+  [ -f "$_ce_dir/issue-comments.json" ] || return 1
+  _ce_n="$(jq --arg bot "$WFC_BOT" --arg botr "$WFC_BOT_REST" --arg since "$_ce_since" '
+    [ .[]? | select((.user.login // "") == $bot or (.user.login // "") == $botr)
+           | select($since == "" or ((.created_at // "") >= $since))
+           | select((.body // "") | test("unknown error"; "i"))
+           | select((.body // "") | contains("Reviewed commit") | not) ] | length' \
+    "$_ce_dir/issue-comments.json" 2>/dev/null || echo 0)"
+  [ "$(wfc_count "$_ce_n")" -gt 0 ]
 }
 
 # ── preflight mode ────────────────────────────────────────────────────────────
@@ -631,20 +659,39 @@ fetch_sources() {
   # Issue comments via the PAGINATED REST endpoint. gh pr view --json comments caps at
   # first:100, so a clean banner (condition 2b) posted past page 1 would be missed and
   # an otherwise-clean PR would time out. This file is what condition 2b scans.
-  gh api "repos/$owner/$repo/issues/$PR_NUMBER/comments" --paginate --slurp 2>/dev/null \
-    | jq 'add // []' > "$ROUND_DIR/issue-comments.json" \
-    || echo '[]' > "$ROUND_DIR/issue-comments.json"
-  if [ -n "$TRIGGER_COMMENT_ID" ]; then
-    gh api "repos/$owner/$repo/issues/comments/$TRIGGER_COMMENT_ID/reactions" \
-      > "$ROUND_DIR/reactions.json" 2>/dev/null || echo '[]' > "$ROUND_DIR/reactions.json"
+  #
+  # Same rule as the findings stream above, and for the same reason (#356): a FAILED fetch
+  # is UNKNOWN, never "no Codex activity". Replacing it with `[]` made a transient gh
+  # failure indistinguishable from an absent bot, and the first-response probe then
+  # exited 5 ("the Codex App is probably not installed") on a repo that has it. Stage,
+  # publish only on success, otherwise keep the last good copy and fail this poll.
+  _fs_raw="$ROUND_DIR/.issue-comments.raw"
+  _fs_tmp="$ROUND_DIR/.issue-comments.tmp"
+  if gh api "repos/$owner/$repo/issues/$PR_NUMBER/comments" --paginate --slurp \
+       > "$_fs_raw" 2>/dev/null \
+     && jq 'add // []' < "$_fs_raw" > "$_fs_tmp" 2>/dev/null \
+     && [ -s "$_fs_tmp" ]; then
+    rm -f "$_fs_raw"
+    mv "$_fs_tmp" "$ROUND_DIR/issue-comments.json"
   else
+    rm -f "$_fs_raw" "$_fs_tmp"
+    return 1
+  fi
+  if [ -n "$TRIGGER_COMMENT_ID" ]; then
+    _fs_tmp="$ROUND_DIR/.reactions.tmp"
+    if gh api "repos/$owner/$repo/issues/comments/$TRIGGER_COMMENT_ID/reactions" \
+         > "$_fs_tmp" 2>/dev/null \
+       && jq -e 'type == "array"' < "$_fs_tmp" >/dev/null 2>&1; then
+      mv "$_fs_tmp" "$ROUND_DIR/reactions.json"
+    else
+      rm -f "$_fs_tmp"
+      return 1
+    fi
+  else
+    # No trigger comment id (compat path): there is no reactions endpoint to ask, so an
+    # empty list here is a statement of fact, not a swallowed failure.
     echo '[]' > "$ROUND_DIR/reactions.json"
   fi
-  # A truncated/failed write must never poison the evaluation. review-comments.json is
-  # deliberately NOT defaulted here: for the findings stream, an empty-but-valid `[]` is
-  # indistinguishable from a successful zero-findings fetch, so it is retried above.
-  [ -s "$ROUND_DIR/issue-comments.json" ]  || echo '[]' > "$ROUND_DIR/issue-comments.json"
-  [ -s "$ROUND_DIR/reactions.json" ]       || echo '[]' > "$ROUND_DIR/reactions.json"
   return 0
 }
 
@@ -667,11 +714,19 @@ case "$WFC_START" in ''|*[!0-9]*) WFC_START='' ;; esac
 elapsed=0
 ticks=0
 while :; do
+  POLL_OK=0
   if fetch_sources; then
+    POLL_OK=1
     case "$(wfc_evaluate "$ROUND_DIR" "$TRIGGER_TS")" in
       findings) echo "wait-for-codex: review with findings landed on head (${elapsed}s)" >&2; exit 0 ;;
       clean)    echo "wait-for-codex: clean review, 0 findings (${elapsed}s)" >&2; exit 3 ;;
     esac
+    if wfc_codex_error "$ROUND_DIR" "$TRIGGER_TS"; then
+      echo "wait-for-codex: Codex replied with a provider error (\"Unknown error\") instead of a" \
+           "review (${elapsed}s) — re-trigger the review (@codex review) or hand over to a human;" \
+           "this is NOT a clean verdict" >&2
+      exit 12
+    fi
     if [ "$PROBE" = 1 ] && wfc_bot_seen "$ROUND_DIR" "$TRIGGER_TS"; then
       PROBE=0   # disarm permanently — Codex is awake, let the ceiling govern from here
     fi
@@ -683,7 +738,11 @@ while :; do
   # took counts against them rather than being rounded away.
   elapsed="$(wfc_elapsed "$WFC_START" "$ticks")"
 
-  if [ "$PROBE" = 1 ] && [ "$elapsed" -ge "$FIRST_RESPONSE" ]; then
+  # A poll whose fetch failed read SOME sources stale or not at all, so "no activity" is
+  # UNKNOWN there, not evidence of absence (#356): the probe may only conclude on a poll
+  # that read every source. A failing fetch therefore defers the exit 5; the ceiling below
+  # still bounds the wait (exit 2).
+  if [ "$PROBE" = 1 ] && [ "$POLL_OK" = 1 ] && [ "$elapsed" -ge "$FIRST_RESPONSE" ]; then
     echo "wait-for-codex: no Codex activity of any kind within ${FIRST_RESPONSE}s —" \
          "the Codex GitHub App is most likely not installed on this repository (or has no" \
          "access to it). Install/authorize it, or set pr_loop.enabled: false in" \
