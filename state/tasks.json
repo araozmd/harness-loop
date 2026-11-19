@@ -1651,7 +1651,7 @@
         {
           "id": "E99-F191",
           "title": "Drift guard excludes project planning docs (specs/vision.md, architecture.md, adr/); pointer-block limit documented; installer's agent_selected is a pure shell match (no grep subprocess)",
-          "status": "in-progress",
+          "status": "in-review",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
