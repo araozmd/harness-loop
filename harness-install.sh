@@ -9681,9 +9681,13 @@ EOF
   # so this writes ONE shared unit per command rather than one per front-end (ADR-0003).
   # The surface is fully repository-local and never requires or writes HOME / CODEX_HOME.
   # The old global prompts resolver remains below only for safe migration.
+  # The command list is computed OUTSIDE the skill_unit_claimed block (E99-F191): §5d-pi below
+  # reads it too, on the assumption that pi selected implies skill_unit_claimed, and a crashed
+  # `grep` inside agent_selected once broke that assumption and aborted the install under
+  # `set -u` ("_cdx_cmds: parameter not set").
+  _cdx_cmds="$HARNESS_EMITTED_CMDS"
+  if pr_loop_enabled; then _cdx_cmds="$_cdx_cmds $HARNESS_PR_LOOP_CMDS"; fi
   if skill_unit_claimed; then
-    _cdx_cmds="$HARNESS_EMITTED_CMDS"
-    if pr_loop_enabled; then _cdx_cmds="$_cdx_cmds $HARNESS_PR_LOOP_CMDS"; fi
     for _c in $_cdx_cmds; do
       install_skill_unit "$_c"
     done

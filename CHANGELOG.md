@@ -4,6 +4,25 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.115.5] — 2026-11-18
+
+### Fixed — the drift guard no longer claims the project's planning docs; the installer survives a crashed `grep` (E99-F191)
+- `tools/harness-owned-paths.sh`: the body pathspec now excludes `specs/vision.md`,
+  `specs/architecture.md` and `specs/adr/`. `/sdd-plan` writes these, they are project-authored,
+  they are not in the install manifest's HARNESS-OWNED list, and no upgrade touches them.
+  Previously an uncommitted planning edit failed the `init.sh` drift guard. The helper's header
+  now states a known limit: the Antigravity glue and the root `<!-- harness:begin -->` pointer
+  block are not claimed, so an edit to them goes undetected (it never causes a false failure).
+- `harness-install.sh`: the shared-skill command list `_cdx_cmds` is computed outside the
+  `skill_unit_claimed` block. The pi template block reads it too. A crashed `grep` inside
+  `agent_selected` (`Segmentation fault: 11` under load) had made `skill_unit_claimed` false
+  while pi stayed selected, and `set -u` aborted the install.
+- `docs/agents/INSTALL.md` "Layout & ownership": the planning docs are now listed as
+  project-owned.
+- Tests: `tests/test_init_drift_guard.sh` checks that uncommitted planning-doc edits do not trip
+  the guard, and that the source emits the three exclusions. The new
+  `tests/test_install_cdx_cmds.sh` is a structural pin with a mutant.
+
 ## [0.115.4] — 2026-11-18
 
 ### Fixed — the Reviewer no longer edits installer-owned files in an installed project (E99-F190, GitHub #349)
