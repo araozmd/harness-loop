@@ -63,7 +63,7 @@ fn() { awk -v n="$2() {" '$0 == n { p = 1 } p { print } p && /^\}$/ { exit }' "$
 # lift_fns <body> — mut + ci_required_gate + the thread helpers + merge_land, lifted out of
 # the body (ts.sh also carries thread_fingerprint and merge_land, which the snippets call).
 lift_fns() {
-  fn "$1" mut > "$T/mut.sh"; fn "$1" ci_required_gate > "$T/ci.sh"
+  { fn "$1" mut; fn "$1" needs_human_label; } > "$T/mut.sh"; fn "$1" ci_required_gate > "$T/ci.sh"
   { fn "$1" thread_scan; fn "$1" thread_fingerprint; fn "$1" merge_land; } > "$T/ts.sh"
 }
 
@@ -105,6 +105,14 @@ case "\$*" in
       *"state isInMergeQueue autoMergeRequest"*"pr=7"*) cat "$_e/qstate" 2>/dev/null; : ;;
       *) echo "bad merge-state query" >&2; exit 1 ;;
     esac ;;
+  *"pr edit"*"--add-label"*)
+    # \$_e/label_missing ⇒ the repo has no such label until a label-create call succeeded.
+    if [ -e "$_e/label_missing" ] && [ ! -e "$_e/label_created" ]; then
+      echo "could not add label: 'needs-human' not found" >&2; exit 1
+    fi ;;
+  *"label create"*)
+    [ -e "$_e/label_create_fail" ] && exit 1
+    touch "$_e/label_created" ;;
   *"--json id"*) echo PR_NODE_7 ;;
   *"pr merge"*"--disable-auto"*|*"dequeuePullRequest"*)
     touch "$_e/cancelled"; [ -e "$_e/cancel_fail" ] && exit 1; : ;;
@@ -163,6 +171,8 @@ case "\$*" in
       pending) echo '[{"name":"build","bucket":"pending"}]'; exit 8 ;;
       other)   echo '[{"name":"lint","bucket":"pass"}]'; exit 0 ;;
       none)    echo "no required checks reported on the 'feat' branch" >&2; exit 1 ;;
+      nochecks) echo "no checks reported on the 'feat' branch" >&2; exit 1 ;;
+      garbage) echo "HTTP 502: bad gateway" >&2; exit 1 ;;
     esac ;;
 esac
 exit 0
@@ -344,7 +354,8 @@ PY
     # <ci modes>:<required contexts, "," separated; "-" = none; "!" = API unreadable>:<rc>
     for _case in "pass:build:0" "skip:build:0" "fail:build:1" "cancel:build:1" "pending:build:1" \
                  "pending pending pass:build:0" "none:-:0" "none:build:1" "none none pass:build:0" \
-                 "other:build:1" "other:-:0" "pass:!:1" "none:!:1"; do
+                 "other:build:1" "other:-:0" "pass:!:1" "none:!:1" \
+                 "nochecks:-:0" "nochecks:build:1" "nochecks:!:1" "garbage:-:1"; do
       _modes="${_case%%:*}"; _rest="${_case#*:}"; _req="${_rest%%:*}"; _want="${_rest##*:}"
       _e="$T/ci-fn"; rm -rf "$_e"; mk_env "$_e" aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
       printf '%s\n' $_modes > "$_e/ci"
@@ -796,10 +807,69 @@ PY
   pass "256 queued merge: post receipt 11 => reconcile then cancel via mut, re-read, MERGED => merged path, unconfirmed cancel says so, dry run read-only (all bodies)"
 }
 
+# ══ #357 — the needs-human label is created when missing, and a failure to label is loud ══
+test_needs_human_label_never_silent() {
+  for _b in $BODIES; do
+    lift_fns "$_b"
+    grep -qF 'needs_human_label() {' "$T/mut.sh" || fail "#357: $_b has no needs_human_label helper"
+    grep -qF -e '--add-label needs-human >/dev/null 2>&1 || true' "$_b" \
+      && fail "#357: $_b still discards a failed needs-human label call"
+    _run() {   # <dir> <extra env…> — run the helper against the sandbox gh stub
+      _d="$1"; shift
+      ( cd "$_d" && PATH="$_d/bin:$PATH" env "$@" sh -c ". '$T/mut.sh'; pr_number=7; needs_human_label; echo rc=\$?" ) \
+        >"$_d/out" 2>"$_d/err"
+    }
+    # (a) label already exists: applied once, nothing created, silent.
+    _e="$T/nh-ok"; rm -rf "$_e"; mk_env "$_e" aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    _run "$_e" X=1
+    grep -q 'label create' "$_e/gh.log" && fail "#357: $_b created a label that already exists"
+    [ "$(grep -c 'pr edit' "$_e/gh.log")" = 1 ] || fail "#357: $_b did not apply the label exactly once"
+    grep -q WARNING "$_e/err" && fail "#357: $_b warned although the label applied"
+    # (b) label missing: created, then applied; no warning.
+    _e="$T/nh-missing"; rm -rf "$_e"; mk_env "$_e" aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    touch "$_e/label_missing"
+    _run "$_e" X=1
+    grep -q 'label create needs-human' "$_e/gh.log" || fail "#357: $_b did not create the missing label"
+    [ -e "$_e/label_created" ] || fail "#357: $_b label create never reached gh"
+    [ "$(grep -c 'pr edit' "$_e/gh.log")" = 2 ] || fail "#357: $_b did not re-apply the label after creating it"
+    grep -q WARNING "$_e/err" && fail "#357: $_b warned although the label was created and applied"
+    # (c) label missing AND uncreatable: a visible warning naming the PR, still returns 0.
+    _e="$T/nh-fail"; rm -rf "$_e"; mk_env "$_e" aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    touch "$_e/label_missing" "$_e/label_create_fail"
+    _run "$_e" X=1
+    grep -q 'WARNING.*needs-human.*PR #7' "$_e/err" || fail "#357: $_b swallowed an unappliable label (no warning naming the PR)"
+    grep -q 'rc=0' "$_e/out" || fail "#357: $_b helper changed the caller's control flow (non-zero return)"
+    # (d) dry run: nothing is created or labeled — not even the label.
+    _e="$T/nh-dry"; rm -rf "$_e"; mk_env "$_e" aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    touch "$_e/label_missing"
+    _run "$_e" HARNESS_DRY_RUN=1
+    [ ! -s "$_e/gh.log" ] || fail "#357: $_b dry run reached gh: $(cat "$_e/gh.log")"
+    grep -q WARNING "$_e/err" && fail "#357: $_b dry run warned about a label it never tried to apply"
+  done
+  pass "#357 needs-human is created when missing, warns visibly when it cannot be applied, and a dry run touches nothing"
+}
+
+# ══ #356 — step 2b records exit 12 as `unresolved`, never `clean` ═══════════════════
+test_step_2b_outcome_mapping() {
+  for _b in $BODIES; do
+    block "$_b" 'case "$watcher_rc" in' > "$T/2b.sh" || fail "#356: $_b has no step-2b case block"
+    for _pair in 0:findings 3:clean 2:timeout 5:timeout 4:unresolved 12:unresolved; do
+      _rc="${_pair%%:*}"; _want="${_pair#*:}"
+      _d="$T/2b"; rm -rf "$_d"; mkdir -p "$_d"
+      ( round_dir="$_d"; watcher_rc="$_rc"; . "$T/2b.sh" ) || fail "#356: $_b step-2b block failed for rc $_rc"
+      [ "$(cat "$_d/outcome")" = "$_want" ] \
+        || fail "#356: $_b step 2b maps watcher exit $_rc to '$(cat "$_d/outcome")', want '$_want'"
+    done
+  done
+  pass "#356 step 2b maps watcher exits 0/3/2/5/4/12 to findings/clean/timeout/timeout/unresolved/unresolved in every body"
+}
+
 test_handback_revalidates_head
 test_required_ci_gates_terminal_paths
 test_dry_run_suppresses_every_mutation
 test_resume_skips_completed_fixers
 test_late_comments_refuse_green
 test_queued_merge_never_left_live
+test_needs_human_label_never_silent
+test_step_2b_outcome_mapping
 echo "All pr-loop hardening tests passed."

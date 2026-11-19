@@ -4,6 +4,35 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.115.7] — 2026-11-19
+
+### Fixed — PR-loop robustness: no-CI repos, transient `gh` failures, Codex "Unknown error", a missing `needs-human` label (E99-F193; fixes #355, #356, #357)
+- **#355, `/sdd-pr-loop` `ci_required_gate`.** gh's "no checks reported on the '<branch>'
+  branch" (no check has reported yet: no CI at all, or none started) is now read as an empty rollup, like "no required checks
+  reported". It passes the gate only when the base branch's own protection and ruleset
+  configuration was read and requires nothing; a base that requires a check still waits for
+  it, and any other `gh pr checks` output that is not a JSON list still fails closed as
+  "required CI unreadable".
+- **#356, `tools/wait-for-codex.sh`.** The issue-comments and reactions fetches are staged
+  like the review-comments fetch: a failed fetch keeps the last good copy and fails that
+  poll, instead of being replaced with `[]`. The first-response probe (exit `5`) now only
+  concludes on a poll that read every source, so a transient `gh` failure cannot produce
+  "the Codex App is probably not installed"; the ceiling (exit `2`) still bounds the wait.
+  New exit code `12` (`wait` mode only): a Codex-bot issue comment created at/after the
+  trigger whose body contains "unknown error" (case-insensitive) and no "Reviewed commit"
+  banner, seen when no findings or clean verdict had landed. It is a diagnostic, not a
+  verdict; `evaluate` still reports pending. Documented in the script header, the
+  `/sdd-pr-loop` exit table (step 2b records it as `unresolved`) and `docs/agents/WORKFLOW.md`.
+- **#357, `/sdd-pr-loop`.** The `needs-human` hand-offs call a new `needs_human_label` helper
+  (defined beside `mut`) instead of `gh pr edit … >/dev/null 2>&1 || true`. It applies the
+  label; if that fails it creates the label and applies it again; if that still fails it
+  prints a warning naming the PR on stderr. All writes go through `mut`, so a dry run creates
+  and labels nothing. The helper returns 0 either way, so the callers' hand-off flow is
+  unchanged.
+- Tests: `tests/test_pr_loop_hardening.sh` (no-checks vs unreadable CI cases; the label
+  helper), `tests/test_pr_loop.sh` (failed fetches never give exit 5; exit 12 and its
+  stale/non-Codex/findings-wins edges).
+
 ## [0.115.6] — 2026-11-19
 
 ### Fixed — `test-drift-check` waives a test name containing a spaced em dash, and names an `it(` whose title is on the next line (E99-F192, #353)

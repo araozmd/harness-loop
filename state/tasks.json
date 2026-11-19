@@ -1683,11 +1683,17 @@
         {
           "id": "E99-F193",
           "title": "PR-loop robustness: no-CI repos pass the CI gate; failed gh fetches are not 'no activity'; Codex 'Unknown error' surfaced; missing needs-human label created or warned (GitHub #355, #356, #357)",
-          "status": "pending",
+          "status": "in-review",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F193-pr-loop-robustness/"
+          "spec_path": "specs/epics/E99-maintenance/F193-pr-loop-robustness/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (362)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F193 done --evidence <merge-ref>`",
+            "pr": "362"
+          }
         }
       ]
     },

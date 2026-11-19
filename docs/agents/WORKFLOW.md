@@ -883,7 +883,11 @@ is an `init.sh` dependency.
 3. **Watch** — launch `tools/wait-for-codex.sh <pr> <trigger-id> <round-dir>` **in the
    background** and branch on its exit code; never hand-poll. `0` findings · `3` clean ·
    `2` ceiling timeout (never "clean") · `4` usage/precondition · `5` no Codex activity
-   inside `HARNESS_FIRST_RESPONSE` (the Codex GitHub App is probably not installed).
+   inside `HARNESS_FIRST_RESPONSE` (the Codex GitHub App is probably not installed) ·
+   `12` a Codex-bot issue comment posted at or after this round's trigger says "Unknown error"
+   instead of a review (a provider error, never a clean verdict; abort the round as `needs-human`, a
+   human can re-trigger `@codex review`). A poll whose `gh` fetch failed is retried and
+   never counts as "no Codex activity", so a transient `gh` failure cannot produce `5`.
    The script's other modes have their own codes (`classify` 6, `merge-verify` 7 and 11,
    `preflight` 8-10), which step 7 and the preconditions above rely on; the full table is
    in the header of `tools/wait-for-codex.sh`.
