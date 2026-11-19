@@ -1650,7 +1650,7 @@
         },
         {
           "id": "E99-F191",
-          "title": "Drift guard excludes project planning docs (specs/vision.md, architecture.md, adr/); uncovered glue documented; installer sets _cdx_cmds outside skill_unit_claimed",
+          "title": "Drift guard excludes project planning docs (specs/vision.md, architecture.md, adr/); pointer-block limit documented; installer's agent_selected is a pure shell match (no grep subprocess)",
           "status": "in-progress",
           "sdd": false,
           "autonomous": true,
