@@ -13,7 +13,7 @@ All notable changes to the harness body are recorded here. Versions follow
   (`.harness/AGENTS.md`, `init.sh`, `agents/`, `docs/`, `store/`, `tools/`,
   `specs/_templates/`, the umbrella examples) and the generated glue are installer-owned. When
   the body is version-controlled, the `init.sh` drift guard fails on an uncommitted edit to
-  them, and the next upgrade reinstalls a committed edit to the `.harness/` files and the
+  an installer-owned `.harness/` file or to the glue `tools/harness-owned-paths.sh` lists, and the next upgrade reinstalls a committed edit to the `.harness/` files and the
   regenerated `.claude/` and `.opencode/command/` glue away (edited Codex and pi units are kept). There the
   Reviewer records the lesson in `progress/lessons.md`. It may put a project rule in the
   project's own root `AGENTS.md` or `CLAUDE.md`, outside the harness pointer block. When the gap

@@ -39,7 +39,7 @@ check() { # <file> — 0 when the clause is layout-aware
      "the installed-project condition is missing" || return 1
   _p 'the installer-owned files are the ones the install manifest \(`\.harness/manifest\.txt`, "HARNESS-OWNED"\) says every upgrade overwrites: `\.harness/AGENTS\.md`, `\.harness/init\.sh`, `\.harness/agents/`, `\.harness/docs/`, `\.harness/store/`, `\.harness/tools/`, `\.harness/specs/_templates/`' \
      "the owned set is not the manifest's HARNESS-OWNED list" || return 1
-  _p 'the `init\.sh` drift guard fails on an uncommitted edit to any of them \(an untracked body only warns; the guard checks the wider set `tools/harness-owned-paths\.sh` lists\)' \
+  _p 'the `init\.sh` drift guard fails on an uncommitted edit to an installer-owned `\.harness/` file or to the glue `tools/harness-owned-paths\.sh` lists \(an untracked body only warns\)' \
      "the drift-guard reason is missing or overclaims" || return 1
   _p 'the next upgrade reinstalls a committed edit to those `\.harness/` files and the regenerated `\.claude/` and `\.opencode/command/` glue away' \
      "the committed-edit case (upgrade overwrite) is missing" || return 1
@@ -51,7 +51,7 @@ check() { # <file> — 0 when the clause is layout-aware
      "the project-owned root entrypoint route is missing" || return 1
   _p 'append an upstream report under \*\*Reporting harness defects\*\*' \
      "the upstream-report route is missing" || return 1
-  if printf '%s' "$_s" | grep -qiE 'fails on any edit|you may \*\*update the harness itself\*\*|everything under `\.harness/` is installer-owned'; then
+  if printf '%s' "$_s" | grep -qiE 'fails on any edit|you may \*\*update the harness itself\*\*|everything under `\.harness/` is installer-owned|the wider set'; then
     echo "an old over-claim is back"; return 1; fi
   return 0
 }
@@ -76,7 +76,7 @@ for _m in \
   's/there is no `\.harness\/` directory\)/there is a repository\)/' \
   's/directory carrying\s+`\.harness-version`\)/directory\)/' \
   's/`\.harness\/specs\/_templates\/`, the two/the two/' \
-  's/ \(an untracked body only warns;/ (/' \
+  's/ \(an untracked body only warns\)//' \
   's/reinstalls a committed edit to those/keeps a committed edit to those/' \
   's/`\.harness\/AGENTS\.md`,\s+`\.harness\/init\.sh`/`.harness\/init.sh`/' \
   's/Never edit an installer-owned file\./Avoid editing them./' \

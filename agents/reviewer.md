@@ -439,8 +439,8 @@ GitHub #349):
   `.harness/init.sh`, `.harness/agents/`, `.harness/docs/`, `.harness/store/`,
   `.harness/tools/`, `.harness/specs/_templates/`, the two `.harness/umbrella.*.example*`
   files, and the generated front-end glue. When the body is version-controlled, the `init.sh`
-  drift guard fails on an uncommitted edit to any of them (an untracked body only warns; the
-  guard checks the wider set `tools/harness-owned-paths.sh` lists), and the next upgrade
+  drift guard fails on an uncommitted edit to an installer-owned `.harness/` file or to the
+  glue `tools/harness-owned-paths.sh` lists (an untracked body only warns), and the next upgrade
   reinstalls a committed edit to those `.harness/` files and the regenerated `.claude/` and
   `.opencode/command/` glue away (edited Codex skill units and pi units are kept instead).
   Never edit an installer-owned file. Instead, record the lesson in the
