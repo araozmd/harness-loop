@@ -425,19 +425,29 @@ Record the summary line and the decision for any `WAIVED` finding in your verdic
 
 ## Self-improving the harness
 
-If you find the Builder failed because a rule was missing or ambiguous, make sure the
-same mistake can't recur. Where that fix goes depends on the layout (E99-F190, GitHub #349):
+If you find the Builder failed because a rule was missing or ambiguous, act so the same
+mistake is less likely to recur. Where that fix goes depends on the layout (E99-F190,
+GitHub #349):
 
-- **In the harness's own source repository (no `.harness/` directory at the repository
-  root)**, you may tighten `AGENTS.md`, an agent prompt or a template. The harness is files
-  in the repo; improving it is part of your job.
-- **In an installed project (`.harness/` exists)**, those files are installer-owned: the
-  `init.sh` drift guard fails on any edit to them (the owned set is
-  `tools/harness-owned-paths.sh`), and the next upgrade overwrites the edit anyway. Never edit
-  `.harness/agents/`, `.harness/docs/`, `.harness/tools/`, the templates or the generated
-  front-end glue. Instead, record the lesson in the harness-root-relative `progress/lessons.md`
-  (project-owned; see **Earned lessons** below) and, when the gap fits one of the four
-  triggers, append an upstream report under **Reporting harness defects**.
+- **In the harness's own source repository (the harness files sit at the repository root and
+  there is no `.harness/` directory)**, you may tighten `AGENTS.md`, an agent prompt or a
+  template so the mistake can't recur. The harness is files in the repo; improving it is part
+  of your job.
+- **In an installed project (the harness you run from is a `.harness/` directory carrying
+  `.harness-version`)**, everything under `.harness/` is installer-owned except
+  `harness.config.yaml`, `init.project.sh`, `specs/product.md`, `specs/glossary.md`,
+  `specs/epics/`, `state/`, `progress/` and `umbrella.manifest.draft.yaml` (the exclusions in
+  `tools/harness-owned-paths.sh`), and so is the generated front-end glue. When the body is
+  version-controlled, the `init.sh` drift guard fails on an uncommitted edit to an
+  installer-owned file (an untracked body only warns), and the next upgrade
+  reinstalls the `.harness/` body over a committed one. Never edit an installer-owned file:
+  in particular `.harness/AGENTS.md`, `.harness/agents/`, `.harness/specs/_templates/`,
+  `.harness/tools/` and `.harness/init.sh`. Instead, record the lesson in the
+  harness-root-relative `progress/lessons.md` (`.harness/progress/lessons.md`, project-owned;
+  see **Earned lessons** below). A rule that belongs to this project may go in the project's
+  own root `AGENTS.md` or `CLAUDE.md`, outside the `<!-- harness:begin -->` …
+  `<!-- harness:end -->` pointer block. When the gap fits one of the four triggers, also
+  append an upstream report under **Reporting harness defects**.
 
 **Earned lessons.** Read `progress/lessons.md` before you review — it names failure
 shapes that already cost rounds. When your review surfaces a lesson that would have

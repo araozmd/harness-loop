@@ -21,7 +21,7 @@ Five rules shape this harness:
 - **Minimal tooling.** Tools start at Bash and the filesystem; a tool is added only when a task and its verification show the need.
 - **Memory is files.** Resumable state lives in `state/`, `specs/` and `progress/`; a role resumes from files, not from a chat.
 - **Roles are separate.** Each role has a bounded responsibility, so planning, implementation and independent review leave separate evidence.
-- **Done is proven, not declared.** "Done" is not taken on trust: `init.sh`, the tests and the Reviewer's checks prove it, and the Reviewer may change the harness so a failure cannot recur (in an installed project, by recording a lesson and reporting the gap upstream, never by editing the installed harness).
+- **Done is proven, not declared.** "Done" is not taken on trust: `init.sh`, the tests and the Reviewer's checks prove it, and the Reviewer may change the harness so a failure cannot recur (in an installed project, by recording a lesson and reporting the gap upstream, never by editing the installed harness's installer-owned files).
 
 ## The loop
 
