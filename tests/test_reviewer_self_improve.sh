@@ -37,21 +37,21 @@ check() { # <file> — 0 when the clause is layout-aware
      "the source-repository condition is missing" || return 1
   _p 'In an installed project \(the harness you run from is a `\.harness/` directory carrying `\.harness-version`\)' \
      "the installed-project condition is missing" || return 1
-  _p 'everything under `\.harness/` is installer-owned except `harness\.config\.yaml`, `init\.project\.sh`, `specs/product\.md`, `specs/glossary\.md`, `specs/epics/`, `state/`, `progress/` and `umbrella\.manifest\.draft\.yaml`' \
-     "the owned set is not stated as tools/harness-owned-paths.sh's exclusions" || return 1
-  _p 'the `init\.sh` drift guard fails on an uncommitted edit to an installer-owned file \(an untracked body only warns\)' \
+  _p 'the installer-owned files are the ones the install manifest \(`\.harness/manifest\.txt`, "HARNESS-OWNED"\) says every upgrade overwrites: `\.harness/AGENTS\.md`, `\.harness/init\.sh`, `\.harness/agents/`, `\.harness/docs/`, `\.harness/store/`, `\.harness/tools/`, `\.harness/specs/_templates/`' \
+     "the owned set is not the manifest's HARNESS-OWNED list" || return 1
+  _p 'the `init\.sh` drift guard fails on an uncommitted edit to any of them \(an untracked body only warns; the guard checks the wider set `tools/harness-owned-paths\.sh` lists\)' \
      "the drift-guard reason is missing or overclaims" || return 1
-  _p 'the next upgrade reinstalls the `\.harness/` body over a committed one' \
+  _p 'the next upgrade reinstalls a committed edit away' \
      "the committed-edit case (upgrade overwrite) is missing" || return 1
-  _p 'Never edit an installer-owned file: in particular `\.harness/AGENTS\.md`, `\.harness/agents/`, `\.harness/specs/_templates/`, `\.harness/tools/` and `\.harness/init\.sh`' \
-     "the never-edit rule or its examples are missing" || return 1
+  _p 'Never edit an installer-owned file\.' \
+     "the never-edit rule is missing" || return 1
   _p 'record the lesson in the harness-root-relative `progress/lessons\.md`' \
      "the lessons-ledger route is missing" || return 1
   _p 'own root `AGENTS\.md` or `CLAUDE\.md`, outside the `<!-- harness:begin -->`' \
      "the project-owned root entrypoint route is missing" || return 1
   _p 'append an upstream report under \*\*Reporting harness defects\*\*' \
      "the upstream-report route is missing" || return 1
-  if printf '%s' "$_s" | grep -qiE 'fails on any edit|you may \*\*update the harness itself\*\*'; then
+  if printf '%s' "$_s" | grep -qiE 'fails on any edit|you may \*\*update the harness itself\*\*|everything under `\.harness/` is installer-owned'; then
     echo "an old over-claim is back"; return 1; fi
   return 0
 }
@@ -75,11 +75,12 @@ _n=0
 for _m in \
   's/there is no `\.harness\/` directory\)/there is a repository\)/' \
   's/directory carrying\s+`\.harness-version`\)/directory\)/' \
-  's/`specs\/epics\/`, `state\/`, `progress\/` and/`state\/` and/' \
-  's/ \(an untracked body only warns\)//' \
-  's/reinstalls the `\.harness\/` body over a committed one/keeps a committed one/' \
-  's/`\.harness\/AGENTS\.md`, `\.harness\/agents\/`/`.harness\/agents\/`/' \
-  's/`\.harness\/specs\/_templates\/`,\s+//' \
+  's/`\.harness\/specs\/_templates\/`, the two/the two/' \
+  's/ \(an untracked body only warns;/ (/' \
+  's/reinstalls a committed edit away/keeps a committed edit/' \
+  's/`\.harness\/AGENTS\.md`,\s+`\.harness\/init\.sh`/`.harness\/init.sh`/' \
+  's/Never edit an installer-owned file\./Avoid editing them./' \
+  's/the installer-owned files are the ones/everything under `.harness\/` is installer-owned, and the files/' \
   's/record the lesson in the\s+harness-root-relative `progress\/lessons\.md`/note the lesson somewhere/' \
   's/own root `AGENTS\.md` or `CLAUDE\.md`, outside/own root files, outside/' \
   's/append an upstream report under \*\*Reporting harness defects\*\*/mention it/' \

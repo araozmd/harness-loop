@@ -9,10 +9,11 @@ All notable changes to the harness body are recorded here. Versions follow
 ### Fixed — the Reviewer no longer edits installer-owned files in an installed project (E99-F190, GitHub #349)
 - `agents/reviewer.md` "Self-improving the harness": in the harness's own source repository (the
   harness files at the repository root, no `.harness/`) the Reviewer may still tighten
-  `AGENTS.md`, an agent prompt or a template. In an installed project, everything under
-  `.harness/` except the project-owned exclusions of `tools/harness-owned-paths.sh` is
-  installer-owned. When the body is version-controlled, the `init.sh` drift guard fails on an
-  uncommitted edit, and the next upgrade reinstalls the body over a committed one. There the
+  `AGENTS.md`, an agent prompt or a template. In an installed project, the files the install manifest lists as HARNESS-OWNED
+  (`.harness/AGENTS.md`, `init.sh`, `agents/`, `docs/`, `store/`, `tools/`,
+  `specs/_templates/`, the umbrella examples) and the generated glue are installer-owned. When
+  the body is version-controlled, the `init.sh` drift guard fails on an uncommitted edit to
+  them, and the next upgrade reinstalls a committed edit away. There the
   Reviewer records the lesson in `progress/lessons.md`. It may put a project rule in the
   project's own root `AGENTS.md` or `CLAUDE.md`, outside the harness pointer block. When the gap
   fits a reporting trigger, it also appends an upstream report. Previously the clause invited the edit unconditionally, and a Reviewer

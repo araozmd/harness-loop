@@ -434,15 +434,14 @@ GitHub #349):
   template so the mistake can't recur. The harness is files in the repo; improving it is part
   of your job.
 - **In an installed project (the harness you run from is a `.harness/` directory carrying
-  `.harness-version`)**, everything under `.harness/` is installer-owned except
-  `harness.config.yaml`, `init.project.sh`, `specs/product.md`, `specs/glossary.md`,
-  `specs/epics/`, `state/`, `progress/` and `umbrella.manifest.draft.yaml` (the exclusions in
-  `tools/harness-owned-paths.sh`), and so is the generated front-end glue. When the body is
-  version-controlled, the `init.sh` drift guard fails on an uncommitted edit to an
-  installer-owned file (an untracked body only warns), and the next upgrade
-  reinstalls the `.harness/` body over a committed one. Never edit an installer-owned file:
-  in particular `.harness/AGENTS.md`, `.harness/agents/`, `.harness/specs/_templates/`,
-  `.harness/tools/` and `.harness/init.sh`. Instead, record the lesson in the
+  `.harness-version`)**, the installer-owned files are the ones the install manifest
+  (`.harness/manifest.txt`, "HARNESS-OWNED") says every upgrade overwrites: `.harness/AGENTS.md`,
+  `.harness/init.sh`, `.harness/agents/`, `.harness/docs/`, `.harness/store/`,
+  `.harness/tools/`, `.harness/specs/_templates/`, the two `.harness/umbrella.*.example*`
+  files, and the generated front-end glue. When the body is version-controlled, the `init.sh`
+  drift guard fails on an uncommitted edit to any of them (an untracked body only warns; the
+  guard checks the wider set `tools/harness-owned-paths.sh` lists), and the next upgrade
+  reinstalls a committed edit away. Never edit an installer-owned file. Instead, record the lesson in the
   harness-root-relative `progress/lessons.md` (`.harness/progress/lessons.md`, project-owned;
   see **Earned lessons** below). A rule that belongs to this project may go in the project's
   own root `AGENTS.md` or `CLAUDE.md`, outside the `<!-- harness:begin -->` …
