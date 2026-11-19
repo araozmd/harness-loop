@@ -4,6 +4,21 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.115.6] — 2026-11-19
+
+### Fixed — `test-drift-check` can waive a test whose name contains a spaced em dash (E99-F192, #353)
+- `tools/test-drift-check.sh`: the waiver parser split every `waive-test-drift:` line at the
+  first spaced em dash, so a finding named e.g. `A — b` could never be waived (the line parsed
+  as name `A`). A line now waives a finding when the text after the prefix starts with that
+  finding's exact name followed by a blank, an em dash, a blank and a non-empty reason; when
+  several finding names qualify for one line the longest wins and that line waives only it.
+  A reason may still contain ` — `. The parse-time check is unchanged: a line with no spaced
+  em dash, or an empty text before the first one or after it, is still a malformed waiver
+  (exit 2). The grammar is stated in the tool header, `agents/reviewer.md` and
+  `docs/agents/WORKFLOW.md`. Pinned by R10j-R10m in `tests/test_test_drift_check.sh`.
+- Not changed: attribution of a finding when an `it(` title starts on the line after `it(`
+  (the second request in #353) is out of scope for this fix.
+
 ## [0.115.5] — 2026-11-18
 
 ### Fixed — the drift guard no longer claims the project's planning docs; the installer survives a crashed `grep` (E99-F191)

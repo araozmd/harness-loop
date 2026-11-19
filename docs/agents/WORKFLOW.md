@@ -203,7 +203,8 @@ other changed lines in a test file, such as fixtures and expected values, are no
 the Reviewer still reads the test diff.
 It never judges whether an edit tightened or weakened an assertion — that look is what it
 forces. A finding is waived per test, by exact name, with a `waive-test-drift: <test name> —
-<reason>` line in the feature's `.tasks.md`. Extra assertion patterns go in
+<reason>` line in the feature's `.tasks.md`. The name may itself contain a spaced ` — `: the line is matched against the finding
+names and the longest name followed by ` — ` and a non-empty reason wins. Extra assertion patterns go in
 `change_size.assert_patterns`. It is an added check; `run-tests.sh` stays primary.
 The Reviewer runs it once against the default branch (the contract) and, when the branch
 carries pair commits, once per pair commit with `--feature-scope <default branch>`: on a branch
