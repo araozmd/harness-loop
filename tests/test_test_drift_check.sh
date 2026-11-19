@@ -1355,6 +1355,163 @@ for nm in test_gone_v2 test_gon Test_gone; do
 done
 pass "R10b_non_match"
 
+# E99-F192 (#353): a test name that itself contains a spaced em dash is waivable. A waiver line
+# waives a finding when the text after the prefix STARTS with that finding's exact name followed
+# by a blank, an em dash, a blank and a non-empty reason; among several qualifying names the
+# longest wins. Fixture: ONE finding named 'A — b' (a weakened assertion in that it()).
+newrepo r10j; put tests/d.test.js <<'EOF'
+describe('suite', () => {
+  it('A — b', () => {
+    expect(load(1)).toBe(1);
+  });
+});
+EOF
+basecommit; feature
+subst tests/d.test.js '    expect(load(1)).toBe(1);' '    expect(load(1)).toBeTruthy();'; featcommit
+run "$R" main
+expect_rc 1 "R10j baseline"
+expect_line '^DRIFT assert-modified \| tests/d\.test\.js:[0-9]+ \| A — b \| ' "R10j: the finding is attributed to the it title 'A — b'"
+printf 'waive-test-drift: A — b — tightened on purpose\n' > "$T/tasks.md"
+run "$R" main --tasks-md "$T/tasks.md"
+expect_rc 0 "R10j: the exact-name waiver of a name holding ' — '"
+expect_line '^test-drift-check: 1 findings, 1 waived, ' "R10j: summary reads 1 findings, 1 waived"
+expect_line '^WAIVED assert-modified \| tests/d\.test\.js:[0-9]+ \| A — b \| tightened on purpose$' "R10j: reason is the text after the name's separator"
+pass "R10j_name_with_spaced_em_dash_waived"
+
+# A reason holding ' — ' still parses (the reason is everything after the name's separator).
+printf 'waive-test-drift: A — b — one — two\n' > "$T/tasks.md"
+run "$R" main --tasks-md "$T/tasks.md"
+expect_rc 0 "R10k"
+expect_line '^WAIVED assert-modified \| .* \| A — b \| one — two$' "R10k: reason 'one — two' kept whole"
+pass "R10k_reason_with_em_dash"
+
+# Near misses do not waive: a PREFIX of the real name (parses as name 'A'), an extension of it,
+# a name that shares only a leading part, an unspaced separator on either side after the real name, and an
+# empty reason after it (each is a well-formed line that simply names no finding).
+for _w in 'A — x — r' 'A — b xyz — r' 'A — b2 — r' 'A — bb — r' 'A — b— r' 'A — b —r' 'A — b — '; do
+  printf 'waive-test-drift: %s\n' "$_w" > "$T/tasks.md"
+  run "$R" main --tasks-md "$T/tasks.md"
+  expect_rc 1 "R10l near miss: $_w"; expect_line ', 0 waived, ' "R10l: $_w waives nothing"
+done
+pass "R10l_near_miss_names_do_not_waive"
+
+# Several names qualify: the longest wins. 'A' (a prefix of 'A — b') and 'A — b' are both
+# findings; 'A — b — why' waives 'A — b' and leaves 'A' unwaived.
+newrepo r10m; put tests/d.test.js <<'EOF'
+describe('suite', () => {
+  it('A', () => {
+    expect(load(0)).toBe(0);
+  });
+});
+describe('suite', () => {
+  it('A — b', () => {
+    expect(load(1)).toBe(1);
+  });
+});
+EOF
+basecommit; feature
+subst tests/d.test.js '    expect(load(0)).toBe(0);' '    expect(load(0)).toBeTruthy();'
+subst tests/d.test.js '    expect(load(1)).toBe(1);' '    expect(load(1)).toBeTruthy();'; featcommit
+printf 'waive-test-drift: A — b — why\n' > "$T/tasks.md"
+run "$R" main --tasks-md "$T/tasks.md"
+expect_rc 1 "R10m: 'A' stays unwaived"
+expect_line '^WAIVED assert-modified \| .* \| A — b \| why$' "R10m: the longest qualifying name takes the line"
+expect_line '^DRIFT assert-modified \| .* \| A \| ' "R10m: the shorter name is not waived by that line"
+printf 'waive-test-drift: A — b — why\nwaive-test-drift: A — short\n' > "$T/tasks.md"
+run "$R" main --tasks-md "$T/tasks.md"
+expect_rc 0 "R10m: a second line waives 'A' as well"
+pass "R10m_longest_qualifying_name_wins"
+
+# E99-F192 (#353, second request): an it(/test(/describe( call whose title starts on the line
+# AFTER the opening paren is named by that title, not by the enclosing describe. Only the next
+# non-blank line is read, and only when it starts with a quote.
+newrepo r13a; put tests/n.test.js <<'EOF'
+describe('A — b', () => {
+  it(
+    'title', () => { expect(load(1)).toBe(1); });
+});
+EOF
+basecommit; feature
+subst tests/n.test.js "    'title', () => { expect(load(1)).toBe(1); });" "    'title', () => { expect(load(1)).toBeTruthy(); });"; featcommit
+run "$R" main
+expect_rc 1 "R13a"
+expect_line '^DRIFT assert-modified \| tests/n\.test\.js:3 \| title \| ' "R13a: attributed to the next-line title, not 'A — b'"
+pass "R13a_title_on_next_line"
+
+# Blank lines between the paren and the title are skipped; test( and a backtick title read alike.
+newrepo r13b; put tests/n.test.js <<'EOF'
+describe('outer', () => {
+  test(
+
+    `tpl title`, () => { expect(load(1)).toBe(1); });
+});
+EOF
+basecommit; feature
+subst tests/n.test.js '    `tpl title`, () => { expect(load(1)).toBe(1); });' '    `tpl title`, () => { expect(load(1)).toBeTruthy(); });'; featcommit
+run "$R" main
+expect_rc 1 "R13b"
+expect_line '\| tpl title \| ' "R13b: blank line skipped, test( with a backtick title"
+pass "R13b_blank_lines_skipped"
+
+# Negative controls: the next non-blank line is NOT a title (an identifier), or a title sits two
+# non-blank lines down. The finding keeps the enclosing name.
+_n13=0
+for _v in 'const t = 1;' "// c
+    'late'"; do
+  _n13=$((_n13 + 1)); newrepo r13c$_n13; mkdir -p "$R/tests"; printf "describe('outer', () => {\n  it(\n    %s\n  () => { expect(load(1)).toBe(1); });\n});\n" "$_v" > "$R/tests/n.test.js"
+  basecommit; feature
+  subst tests/n.test.js '  () => { expect(load(1)).toBe(1); });' '  () => { expect(load(1)).toBeTruthy(); });'; featcommit
+  run "$R" main
+  expect_rc 1 "R13c: $_v"
+  expect_line '\| outer \| ' "R13c: a non-title next line leaves the enclosing name ($_v)"
+  [ "$(cnt '\| late \| ')" = 0 ] || fail "R13c: a title two non-blank lines down is not read"
+done
+pass "R13c_non_title_next_line_keeps_enclosing"
+
+# A quote that opens on the next line but does not CLOSE on it names nothing (backtick title
+# split over two lines): the finding keeps the enclosing describe.
+newrepo r13d; mkdir -p "$R/tests"
+printf "describe('outer', () => {\n  it(\n    \`multi\n    line\`, () => { expect(load(1)).toBe(1); });\n});\n" > "$R/tests/n.test.js"
+basecommit; feature
+subst tests/n.test.js '    line`, () => { expect(load(1)).toBe(1); });' '    line`, () => { expect(load(1)).toBeTruthy(); });'; featcommit
+run "$R" main
+expect_rc 1 "R13d"
+expect_line '\| outer \| ' "R13d: an unclosed next-line title leaves the enclosing name"
+[ "$(cnt '\| multi')" = 0 ] || fail "R13d: the unclosed rest of the line must not become a name"
+pass "R13d_unclosed_next_line_title"
+
+# An escaped quote inside a next-line title does not close it; the backslash is kept as written,
+# like a same-line title.
+newrepo r13e; mkdir -p "$R/tests"
+printf "describe('outer', () => {\n  it(\n    'it\\\\'s — b', () => { expect(load(1)).toBe(1); });\n});\n" > "$R/tests/n.test.js"
+basecommit; feature
+subst tests/n.test.js "    'it\\'s — b', () => { expect(load(1)).toBe(1); });" "    'it\\'s — b', () => { expect(load(1)).toBeTruthy(); });"; featcommit
+run "$R" main
+expect_rc 1 "R13e"
+grep -Fq "| it\\'s — b | " "$T/out" || { cat "$T/out" >&2; fail "R13e: the finding is named it\\'s — b (backslash kept)"; }
+pass "R13e_escaped_quote_in_next_line_title"
+
+# The definition is recorded at the OPENER line (and `.skip` etc. count as openers): a skip-added
+# finding on the `it.skip(` line names the title that follows, not the enclosing describe.
+newrepo r13f; mkdir -p "$R/tests"
+printf "describe('outer', () => {\n  it(\n    'title', () => { load(1); });\n});\n" > "$R/tests/n.test.js"
+basecommit; feature
+subst tests/n.test.js '  it(' '  it.skip('; featcommit
+run "$R" main
+expect_rc 1 "R13f"
+expect_line '^DRIFT skip-added \| tests/n\.test\.js:2 \| title \| it\.skip\($' "R13f: skip-added on the opener line names the next-line title"
+pass "R13f_opener_line_and_skip_variant"
+
+# CRLF files: a bare `it(` followed by CR still opens the lookahead, and a CR-only line is blank.
+newrepo r13g; mkdir -p "$R/tests"
+printf "describe('outer', () => {\r\n  it(\r\n\r\n    'title', () => { expect(load(1)).toBe(1); });\r\n});\r\n" > "$R/tests/n.test.js"
+basecommit; feature
+printf "describe('outer', () => {\r\n  it(\r\n\r\n    'title', () => { expect(load(1)).toBeTruthy(); });\r\n});\r\n" > "$R/tests/n.test.js"; featcommit
+run "$R" main
+expect_rc 1 "R13g"
+expect_line '\| title \| ' "R13g: CRLF opener and CR-only blank line"
+pass "R13g_crlf"
+
 newrepo r10c; put tests/t.sh <<'EOF'
 #!/bin/sh
 test_a() { :; }

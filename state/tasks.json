@@ -1668,11 +1668,17 @@
         {
           "id": "E99-F192",
           "title": "test-drift-check: waive a test whose name contains a spaced em dash (match against finding names) (GitHub #353)",
-          "status": "pending",
+          "status": "in-review",
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F192-test-drift-waiver-dash/"
+          "spec_path": "specs/epics/E99-maintenance/F192-test-drift-waiver-dash/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (361)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F192 done --evidence <merge-ref>`",
+            "pr": "361"
+          }
         },
         {
           "id": "E99-F193",

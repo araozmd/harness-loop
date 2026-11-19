@@ -21,6 +21,15 @@
 #                  waive-test-drift: <exact test name> — <reason>      (— is U+2014)
 #                optionally behind a `- ` list marker. A waiver covers every finding
 #                attributed to that one test name, byte for byte, and nothing else.
+#                A line waives a finding when the text after `waive-test-drift:` (blanks
+#                trimmed) STARTS with that finding's exact name, then a blank, an em dash, a
+#                blank and a non-empty reason. So a test name may itself contain a spaced
+#                em dash, and so may a reason. When several finding names qualify for one
+#                line (one is a prefix of another, e.g. `A` and `A — b` for the line
+#                `A — b — why`), the LONGEST wins and that line waives only it. A line
+#                that names no finding waives nothing; separately, a line with no spaced em
+#                dash, or with nothing before the first one or nothing after it, is a
+#                malformed waiver (exit 2) whether or not any finding matches it.
 #   --feature-scope  examine only the test files the BRANCH itself changed: those in
 #                `git diff --name-status <fs-mb> <head>` (plus untracked files in working-tree
 #                mode), where <fs-mb> = `git merge-base <default-ref> <head>`; a renamed file
@@ -51,6 +60,10 @@
 # pathnames containing LF or TAB are unsupported; describe( blocks count as test names; the
 # shared classifier matches `*.spec.md`, so a spec prose line naming an assertion pattern is a
 # finding whose name is the spec's path (waive it by that path).
+# A JS/TS `it(` / `test(` / `describe(` (with an optional .only/.skip/.todo/.each) that ends its
+# line right after the paren takes its name from the NEXT non-blank line, but only when that line
+# starts with a quote (' " or `) and the title closes on that same line; any other next line, or a
+# title two non-blank lines down, leaves the finding attributed to the enclosing name.
 # Outside the spec, unpinned (round-3 mutation campaign): a JS/TS test name whose closing quote
 # is on a later line is not extracted; symlinked test paths are not a supported shape (a dangling
 # one reads as empty head text in working-tree mode).
@@ -101,8 +114,11 @@ trap 'rm -rf "$tmp"' EXIT
 if [ -n "$tasks_md" ]; then
   { [ -f "$tasks_md" ] && [ -r "$tasks_md" ]; } || usage_err "--tasks-md is not a readable file: $tasks_md"
   # A line is a waiver only when it STARTS (after an optional list marker) with the prefix, so
-  # prose that merely mentions the syntax never parses. Split on the FIRST em dash that has
-  # whitespace on both sides; an empty name or reason, or no separator, is malformed (exit 2).
+  # prose that merely mentions the syntax never parses. Here a line is only VALIDATED: it must
+  # hold a spaced em dash (whitespace on both sides) with a non-empty trimmed text before the
+  # first one and after it, else it is malformed (exit 2). What is written out is the whole
+  # trimmed text after the prefix; the name/reason split is decided at match time, against the
+  # finding names (see "waive, print, summarise"), so a name may itself contain a spaced dash.
   DT_DASH="$DASH" awk '
     function trim(s) { gsub(/^[ \t\r]+|[ \t\r]+$/, "", s); return s }
     BEGIN { dash = ENVIRON["DT_DASH"]; bad = 0 }
@@ -126,7 +142,7 @@ if [ -n "$tasks_md" ]; then
         printf "test-drift-check: malformed waiver (expected %swaive-test-drift: <test name> %s <reason>%s): %s\n", "\047", dash, "\047", $0 > "/dev/stderr"
         bad = 1; exit
       }
-      printf "%s\t%s\n", name, reason
+      print trim(rest)
     }
     END { if (bad) exit 2 }
   ' "$tasks_md" > "$tmp/waivers" || exit 2
@@ -299,6 +315,9 @@ extract_names() { # extract_names <textfile> <pathname>
       re_pass  = "^[ \t]*pass[ \t]+(" dq "[^" dq "]*" dq "|" sq "[^" sq "]*" sq ")"
       re_pydef = "^[ \t]*(async[ \t]+)?def[ \t]+test_[A-Za-z0-9_]*"
       re_js    = "^[ \t]*(it|test|describe)(\\.(only|skip|todo|each))?[ \t]*\\([ \t]*[" dq sq bq "]"
+      re_jsopen = "^[ \t]*(it|test|describe)(\\.(only|skip|todo|each))?[ \t]*\\([ \t\r]*$"
+      re_jstitle = "^[ \t]*[" dq sq bq "]"
+      pend = 0
       re_go    = "^func[ \t]+Test[A-Za-z0-9_]*[ \t]*\\("
     }
     {
@@ -318,6 +337,24 @@ extract_names() { # extract_names <textfile> <pathname>
           printf "%d\tB\t%s\n", NR, s
         }
       } else if (lang == "js") {
+        # A title on the line AFTER a bare `it(` / `test(` / `describe(`: only the next non-blank
+        # line is read, and only when it starts with a quote; the definition keeps the line of
+        # the opener, not of the title line: a `skip-added` finding on an `it.skip(` opener line
+        # (head line N) must read the title that follows (recorded at N), not the enclosing name.
+        if (pend > 0 && line !~ /^[ \t\r]*$/) {
+          if (match(line, re_jstitle)) {
+            q = substr(line, RSTART + RLENGTH - 1, 1); rest = substr(line, RSTART + RLENGTH)
+            i = 0
+            for (k = 1; k <= length(rest); k++) {
+              c = substr(rest, k, 1)
+              if (c == "\\") { k++; continue }
+              if (c == q) { i = k; break }
+            }
+            if (i > 0) printf "%d\tB\t%s\n", pend, substr(rest, 1, i - 1)
+          }
+          pend = 0
+        }
+        if (line ~ re_jsopen) pend = NR
         if (match(line, re_js)) {
           q = substr(line, RSTART + RLENGTH - 1, 1)
           rest = substr(line, RSTART + RLENGTH)
@@ -472,10 +509,29 @@ while IFS="$TAB" read -r st old new; do
 done < "$tmp/files"
 
 # ── waive, print, summarise (R9, R10) ────────────────────────────────────────────
-DT_W="$tmp/waivers" awk -F'\t' '
+DT_W="$tmp/waivers" DT_FIND="$tmp/findings" DT_DASH="$DASH" awk -F'\t' '
+  function ltrim(s) { sub(/^[ \t]+/, "", s); return s }
   BEGIN {
+    dash = ENVIRON["DT_DASH"]; dl = length(dash)
+    f = ENVIRON["DT_FIND"]
+    while ((getline ln < f) > 0) { split(ln, fl, "\t"); if (fl[4] != "") fname[fl[4]] = 1 }
+    close(f)
     f = ENVIRON["DT_W"]
-    while ((getline ln < f) > 0) { i = index(ln, "\t"); waive[substr(ln, 1, i - 1)] = substr(ln, i + 1) }
+    # Each waiver line goes to the LONGEST finding name that it starts with AND that is followed
+    # by blank, em dash, blank and a non-empty reason; a line matching no name waives nothing.
+    while ((getline ln < f) > 0) {
+      best = ""; bestr = ""; found = 0
+      for (nm in fname) {
+        L = length(nm)
+        if (substr(ln, 1, L) != nm) continue
+        t = substr(ln, L + 1); t2 = ltrim(t)
+        if (length(t2) == length(t) || substr(t2, 1, dl) != dash) continue
+        t3 = substr(t2, dl + 1); t4 = ltrim(t3)
+        if (length(t4) == length(t3)) continue
+        if (!found || L > length(best)) { best = nm; bestr = t4; found = 1 }
+      }
+      if (found) waive[best] = bestr
+    }
     close(f)
   }
   {

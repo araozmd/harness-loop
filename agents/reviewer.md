@@ -401,7 +401,9 @@ Read the exit code, not the prose:
   you still read the test diff yourself (3b). Carry on.
 - `1` — at least one `DRIFT` line. **REJECT** unless the finding is waived: a line
   `waive-test-drift: <exact test name> — <reason>` in the feature's `.tasks.md`, one per test,
-  exact name. Quote the `DRIFT` lines in `progress/<run>/review.md`. The tool does not judge
+  exact name. The name may itself contain a spaced ` — `: the tool matches the text after the
+  colon against the finding names, taking the longest name followed by ` — ` and a reason.
+  Quote the `DRIFT` lines in `progress/<run>/review.md`. The tool does not judge
   whether the edit tightened or weakened the assertion, and neither should you from the diff
   alone — check it the way 3b says: delete the mechanism it claims to pin and watch it go red.
 - `2` or `3` — the check **did not run** (usage error; a ref that does not resolve; no merge
