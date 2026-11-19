@@ -2458,7 +2458,19 @@ detect_host() {
 
 # agent_selected <key> — true (exit 0) iff <key> is a line in $SELECTED (R3/R4).
 agent_selected() {
-  printf '%s\n' "$SELECTED" | grep -qx "$1"
+  # A pure shell match against the newline-separated $SELECTED, no subprocess (E99-F191): this
+  # is asked ~30 times per run, and a crashed `grep` here (a "Segmentation fault: 11" under
+  # load) once answered differently for the same key within one run, so skill_unit_claimed
+  # was false while `agent_selected pi` was true and the pi block aborted on an unset
+  # `_cdx_cmds`. Exact whole-line match, as `grep -qx` did for these plain keys.
+  case "
+$SELECTED
+" in
+    *"
+$1
+"*) return 0 ;;
+  esac
+  return 1
 }
 
 # normalize_keys <space-or-newline-list> — print the given keys de-duplicated and
@@ -4840,6 +4852,8 @@ PROJECT-OWNED  (seeded once, never clobbered on upgrade):
   .harness/harness.config.yaml   (verification commands + store backend + change_size budget)
   .harness/init.project.sh       (project-specific init.sh gate checks)
   .harness/specs/product.md  .harness/specs/glossary.md  .harness/specs/epics/
+  .harness/specs/vision.md  .harness/specs/architecture.md  .harness/specs/adr/
+                                 (/sdd-plan writes these; never seeded or overwritten)
   .harness/state/tasks.json  .harness/progress/
   umbrella.manifest.yaml         (umbrella mode only: coordinator manifest)
 

@@ -4,6 +4,29 @@ All notable changes to the harness body are recorded here. Versions follow
 [SemVer](https://semver.org/) and are stamped into every install's
 `.harness/.harness-version` (see `AGENTS.md` → Branch, review, and release lifecycle).
 
+## [0.115.5] — 2026-11-18
+
+### Fixed — the drift guard no longer claims the project's planning docs; the installer survives a crashed `grep` (E99-F191)
+- `tools/harness-owned-paths.sh`: the body pathspec now excludes `specs/vision.md`,
+  `specs/architecture.md` and `specs/adr/`. `/sdd-plan` writes these, they are project-authored,
+  they are not in the install manifest's HARNESS-OWNED list, and no upgrade touches them.
+  Previously an uncommitted planning edit failed the `init.sh` drift guard. The helper's header
+  now states a known limit: the root `<!-- harness:begin -->` pointer block is not claimed (it
+  sits inside a project-owned file), so an edit to it goes undetected rather than failing. The
+  install manifest's PROJECT-OWNED list names the three planning docs too.
+- `harness-install.sh`: `agent_selected` now matches the selected front-end keys with a pure
+  shell `case` instead of piping to `grep`. A `grep` that crashed under load
+  (`Segmentation fault: 11`) once gave two different answers for the same key in one run:
+  `skill_unit_claimed` was false while pi stayed selected, and `set -u` aborted the pi block on
+  an unset `_cdx_cmds`. With no subprocess, the answers cannot diverge. The `set -u` guard is
+  kept, so any future inconsistency still fails loudly instead of leaving a broken install.
+- `docs/agents/INSTALL.md` "Layout & ownership": the planning docs are now listed as
+  project-owned.
+- Tests: `tests/test_init_drift_guard.sh` checks that uncommitted planning-doc edits do not trip
+  the guard, and that the source emits the three exclusions. The new
+  `tests/test_install_agent_selected.sh` checks `agent_selected`'s exact matching on the real
+  function, and rejects a substring-matching mutant and a reintroduced subprocess.
+
 ## [0.115.4] — 2026-11-18
 
 ### Fixed — the Reviewer no longer edits installer-owned files in an installed project (E99-F190, GitHub #349)

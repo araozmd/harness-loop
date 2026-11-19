@@ -127,9 +127,16 @@ printf '{"note":"local"}\n' > "$T/owned/.harness/progress/scratch.md"
 # E30-F01 (R10): specs/glossary.md is project-owned (seeded once, preserved on upgrade) —
 # an uncommitted edit to it alone must not read as harness drift either.
 printf '\nR10 marker term — uncommitted project glossary edit\n' >> "$T/owned/.harness/specs/glossary.md"
+# E99-F191: the planning documents /sdd-plan writes (vision, architecture, ADRs) are
+# project-authored living documents — never in the install manifest's HARNESS-OWNED list and
+# never touched by an upgrade — so an uncommitted edit to them is not harness drift either.
+printf '\n# uncommitted vision edit\n' >> "$T/owned/.harness/specs/vision.md"
+printf '\n# uncommitted architecture edit\n' >> "$T/owned/.harness/specs/architecture.md"
+mkdir -p "$T/owned/.harness/specs/adr"
+printf '# ADR 0001 — uncommitted\n' > "$T/owned/.harness/specs/adr/0001-uncommitted.md"
 run_gate "$T/owned"
 [ "$GATE_RC" = "0" ] \
-  || fail "R4/R10: project-owned changes (harness.config.yaml, progress/, specs/glossary.md) failed the gate: $GATE_OUT"
+  || fail "R4/R10: project-owned changes (harness.config.yaml, progress/, specs/glossary.md, specs/vision.md, specs/architecture.md, specs/adr/) failed the gate: $GATE_OUT"
 pass "project-owned changes alone do not trip the guard (R4, R10) [R4_project_owned_excluded]"
 # positive control on the SAME tree
 echo "# unlanded edit" >> "$T/owned/.harness/agents/reviewer.md"
@@ -145,6 +152,11 @@ pass "…and a harness-owned change in that same tree still fails (R4 control) [
 "$SRC/tools/harness-owned-paths.sh" body "$T/owned/.harness" | grep -qxF ':(exclude).harness/specs/glossary.md' \
   || fail "R10: tools/harness-owned-paths.sh body does not exclude .harness/specs/glossary.md"
 pass "harness-owned-paths.sh excludes specs/glossary.md at the source (R10) [R10_glossary_excluded_at_source]"
+for _pd in specs/vision.md specs/architecture.md specs/adr/; do
+  "$SRC/tools/harness-owned-paths.sh" body "$T/owned/.harness" | grep -qxF ":(exclude).harness/$_pd" \
+    || fail "E99-F191: tools/harness-owned-paths.sh body does not exclude .harness/$_pd"
+done
+pass "harness-owned-paths.sh excludes the planning docs at the source (E99-F191) [F191_planning_docs_excluded_at_source]"
 
 # ── E28-F02 R12: the derived Planner draft is project-owned, not harness drift ─────
 # draft_untracked_does_not_trip_guard

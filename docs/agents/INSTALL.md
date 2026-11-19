@@ -1498,7 +1498,7 @@ POSIX `sh`, zero deps.
 |---|---|---|
 | harness-owned body | `.harness/{AGENTS.md,agents,docs,store,tools,specs/_templates,init.sh}` | refreshed; thin children retain prose pointers |
 | generated glue | managed command/role names for selected front-ends, including `.claude/agents/` and `.claude/commands/` harness files | regenerated subject to each emitter's ownership checks; deselection conservatively reclaims owned files |
-| project-owned | `.harness/{harness.config.yaml,init.project.sh,specs/product.md,specs/glossary.md,specs/epics,state/tasks.json,progress}` | preserved (config also append-migrated) |
+| project-owned | `.harness/{harness.config.yaml,init.project.sh,specs/product.md,specs/glossary.md,specs/vision.md,specs/architecture.md,specs/adr,specs/epics,state/tasks.json,progress}` | preserved (config also append-migrated) |
 | derived, project-owned | `.harness/umbrella.manifest.draft.yaml` (only when `specs/architecture.md` names more than one deployable) | never installer-managed; excluded from the drift guard, so an untracked draft does not fail `init.sh`; a collapse amend may remove it |
 | runtime/local | `.harness/{telemetry.jsonl,workers.json,.gitignore}`, project-root `.gitignore` | gitignored; both `.gitignore`s append-seeded (never clobbered), logs/personal state never committed. `workers.json` is installer-OWNED derived data: rewritten every run while `workers.roster` is on, removed when it is off |
 | merge-region | `AGENTS.md` / selected `CLAUDE.md`; legacy `GEMINI.md` cleanup | only the marked block |

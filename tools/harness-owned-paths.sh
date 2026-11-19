@@ -24,6 +24,11 @@
 #   because that is the directory the caller runs git from.
 #
 # Exit: 0 always on a valid mode; 2 on usage error. Prints nothing but pathspecs on stdout.
+# Known limit (E99-F191): the `<!-- harness:begin -->` … `<!-- harness:end -->` pointer block
+# the installer writes into the project's own AGENTS.md / CLAUDE.md is NOT claimed. It lives
+# inside a project-owned file, and a pathspec cannot claim part of a file, so an edit to the
+# block is a missed drift, never a false one. (Retired v0.78.1 Antigravity/Gemini glue that an
+# upgrade preserved is excluded on purpose; see docs/agents/INSTALL.md.)
 
 set -eu
 
@@ -69,6 +74,13 @@ emit_body() {
   printf ':(exclude)%sstate/\n'              "$pfx"
   printf ':(exclude)%sprogress/\n'           "$pfx"
   printf ':(exclude)%sumbrella.manifest.draft.yaml\n' "$pfx"
+  # E99-F191: the planning documents /sdd-plan writes are project-authored living documents
+  # (the Architect cites and updates them). They are not in the install manifest's
+  # HARNESS-OWNED list and no upgrade touches them, so an uncommitted planning edit must not
+  # read as harness drift — the same false-positive shape as the corrections above.
+  printf ':(exclude)%sspecs/vision.md\n'       "$pfx"
+  printf ':(exclude)%sspecs/architecture.md\n' "$pfx"
+  printf ':(exclude)%sspecs/adr/\n'            "$pfx"
 }
 
 # ── generated front-end glue at the PROJECT ROOT ─────────────────────────────────────────
