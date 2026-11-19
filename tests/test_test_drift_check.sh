@@ -1355,6 +1355,73 @@ for nm in test_gone_v2 test_gon Test_gone; do
 done
 pass "R10b_non_match"
 
+# E99-F192 (#353): a test name that itself contains a spaced em dash is waivable. A waiver line
+# waives a finding when the text after the prefix STARTS with that finding's exact name followed
+# by a blank, an em dash, a blank and a non-empty reason; among several qualifying names the
+# longest wins. Fixture: ONE finding named 'A — b' (a weakened assertion in that it()).
+newrepo r10j; put tests/d.test.js <<'EOF'
+describe('suite', () => {
+  it('A — b', () => {
+    expect(load(1)).toBe(1);
+  });
+});
+EOF
+basecommit; feature
+subst tests/d.test.js '    expect(load(1)).toBe(1);' '    expect(load(1)).toBeTruthy();'; featcommit
+run "$R" main
+expect_rc 1 "R10j baseline"
+expect_line '^DRIFT assert-modified \| tests/d\.test\.js:[0-9]+ \| A — b \| ' "R10j: the finding is attributed to the it title 'A — b'"
+printf 'waive-test-drift: A — b — tightened on purpose\n' > "$T/tasks.md"
+run "$R" main --tasks-md "$T/tasks.md"
+expect_rc 0 "R10j: the exact-name waiver of a name holding ' — '"
+expect_line '^test-drift-check: 1 findings, 1 waived, ' "R10j: summary reads 1 findings, 1 waived"
+expect_line '^WAIVED assert-modified \| tests/d\.test\.js:[0-9]+ \| A — b \| tightened on purpose$' "R10j: reason is the text after the name's separator"
+pass "R10j_name_with_spaced_em_dash_waived"
+
+# A reason holding ' — ' still parses (the reason is everything after the name's separator).
+printf 'waive-test-drift: A — b — one — two\n' > "$T/tasks.md"
+run "$R" main --tasks-md "$T/tasks.md"
+expect_rc 0 "R10k"
+expect_line '^WAIVED assert-modified \| .* \| A — b \| one — two$' "R10k: reason 'one — two' kept whole"
+pass "R10k_reason_with_em_dash"
+
+# Near misses do not waive: a PREFIX of the real name (parses as name 'A'), an extension of it,
+# a name that shares only a leading part, an unspaced separator on either side after the real name, and an
+# empty reason after it (each is a well-formed line that simply names no finding).
+for _w in 'A — x — r' 'A — b2 — r' 'A — bb — r' 'A — b— r' 'A — b —r' 'A — b — '; do
+  printf 'waive-test-drift: %s\n' "$_w" > "$T/tasks.md"
+  run "$R" main --tasks-md "$T/tasks.md"
+  expect_rc 1 "R10l near miss: $_w"; expect_line ', 0 waived, ' "R10l: $_w waives nothing"
+done
+pass "R10l_near_miss_names_do_not_waive"
+
+# Several names qualify: the longest wins. 'A' (a prefix of 'A — b') and 'A — b' are both
+# findings; 'A — b — why' waives 'A — b' and leaves 'A' unwaived.
+newrepo r10m; put tests/d.test.js <<'EOF'
+describe('suite', () => {
+  it('A', () => {
+    expect(load(0)).toBe(0);
+  });
+});
+describe('suite', () => {
+  it('A — b', () => {
+    expect(load(1)).toBe(1);
+  });
+});
+EOF
+basecommit; feature
+subst tests/d.test.js '    expect(load(0)).toBe(0);' '    expect(load(0)).toBeTruthy();'
+subst tests/d.test.js '    expect(load(1)).toBe(1);' '    expect(load(1)).toBeTruthy();'; featcommit
+printf 'waive-test-drift: A — b — why\n' > "$T/tasks.md"
+run "$R" main --tasks-md "$T/tasks.md"
+expect_rc 1 "R10m: 'A' stays unwaived"
+expect_line '^WAIVED assert-modified \| .* \| A — b \| why$' "R10m: the longest qualifying name takes the line"
+expect_line '^DRIFT assert-modified \| .* \| A \| ' "R10m: the shorter name is not waived by that line"
+printf 'waive-test-drift: A — b — why\nwaive-test-drift: A — short\n' > "$T/tasks.md"
+run "$R" main --tasks-md "$T/tasks.md"
+expect_rc 0 "R10m: a second line waives 'A' as well"
+pass "R10m_longest_qualifying_name_wins"
+
 newrepo r10c; put tests/t.sh <<'EOF'
 #!/bin/sh
 test_a() { :; }
