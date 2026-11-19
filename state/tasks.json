@@ -1668,32 +1668,34 @@
         {
           "id": "E99-F192",
           "title": "test-drift-check: waive a test whose name contains a spaced em dash (match against finding names) (GitHub #353)",
-          "status": "in-review",
+          "status": "done",
+          "landed": {
+            "base": "origin/main",
+            "commit": "ca45cb31464a9402398d8ff5ec59504229efd32b",
+            "ref": "ca45cb31464a9402398d8ff5ec59504229efd32b",
+            "repo": "harness-sdd",
+            "verified": "ancestor"
+          },
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F192-test-drift-waiver-dash/",
-          "parked": {
-            "gate": "merge",
-            "reason": "approved; PR open, awaiting merge (361)",
-            "unblocked_by": "the PR merging \u2014 then `set-status E99-F192 done --evidence <merge-ref>`",
-            "pr": "361"
-          }
+          "spec_path": "specs/epics/E99-maintenance/F192-test-drift-waiver-dash/"
         },
         {
           "id": "E99-F193",
           "title": "PR-loop robustness: no-CI repos pass the CI gate; failed gh fetches are not 'no activity'; Codex 'Unknown error' surfaced; missing needs-human label created or warned (GitHub #355, #356, #357)",
-          "status": "in-review",
+          "status": "done",
+          "landed": {
+            "base": "origin/main",
+            "commit": "cdace8f7040e1fc0c7420504a35a5c7c1b2e73aa",
+            "ref": "cdace8f7040e1fc0c7420504a35a5c7c1b2e73aa",
+            "repo": "harness-sdd",
+            "verified": "ancestor"
+          },
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F193-pr-loop-robustness/",
-          "parked": {
-            "gate": "merge",
-            "reason": "approved; PR open, awaiting merge (362)",
-            "unblocked_by": "the PR merging \u2014 then `set-status E99-F193 done --evidence <merge-ref>`",
-            "pr": "362"
-          }
+          "spec_path": "specs/epics/E99-maintenance/F193-pr-loop-robustness/"
         }
       ]
     },
