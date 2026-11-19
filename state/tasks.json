@@ -1664,6 +1664,24 @@
           "autonomous": true,
           "depends_on": [],
           "spec_path": "specs/epics/E99-maintenance/F191-drift-planning-docs-and-cdx-cmds/"
+        },
+        {
+          "id": "E99-F192",
+          "title": "test-drift-check: waive a test whose name contains a spaced em dash (match against finding names) (GitHub #353)",
+          "status": "pending",
+          "sdd": false,
+          "autonomous": true,
+          "depends_on": [],
+          "spec_path": "specs/epics/E99-maintenance/F192-test-drift-waiver-dash/"
+        },
+        {
+          "id": "E99-F193",
+          "title": "PR-loop robustness: no-CI repos pass the CI gate; failed gh fetches are not 'no activity'; Codex 'Unknown error' surfaced; missing needs-human label created or warned (GitHub #355, #356, #357)",
+          "status": "pending",
+          "sdd": false,
+          "autonomous": true,
+          "depends_on": [],
+          "spec_path": "specs/epics/E99-maintenance/F193-pr-loop-robustness/"
         }
       ]
     },
