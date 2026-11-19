@@ -1640,7 +1640,13 @@
           "sdd": false,
           "autonomous": true,
           "depends_on": [],
-          "spec_path": "specs/epics/E99-maintenance/F190-reviewer-self-improve-installed/"
+          "spec_path": "specs/epics/E99-maintenance/F190-reviewer-self-improve-installed/",
+          "parked": {
+            "gate": "merge",
+            "reason": "approved; PR open, awaiting merge (354)",
+            "unblocked_by": "the PR merging \u2014 then `set-status E99-F190 done --evidence <merge-ref>`",
+            "pr": "354"
+          }
         }
       ]
     },
