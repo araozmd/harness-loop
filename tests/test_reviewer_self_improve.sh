@@ -41,7 +41,7 @@ check() { # <file> — 0 when the clause is layout-aware
      "the owned set is not the manifest's HARNESS-OWNED list" || return 1
   _p 'the `init\.sh` drift guard fails on an uncommitted edit to any of them \(an untracked body only warns; the guard checks the wider set `tools/harness-owned-paths\.sh` lists\)' \
      "the drift-guard reason is missing or overclaims" || return 1
-  _p 'the next upgrade reinstalls a committed edit away' \
+  _p 'the next upgrade reinstalls a committed edit to those `\.harness/` files and the regenerated `\.claude/` and `\.opencode/command/` glue away' \
      "the committed-edit case (upgrade overwrite) is missing" || return 1
   _p 'Never edit an installer-owned file\.' \
      "the never-edit rule is missing" || return 1
@@ -77,7 +77,7 @@ for _m in \
   's/directory carrying\s+`\.harness-version`\)/directory\)/' \
   's/`\.harness\/specs\/_templates\/`, the two/the two/' \
   's/ \(an untracked body only warns;/ (/' \
-  's/reinstalls a committed edit away/keeps a committed edit/' \
+  's/reinstalls a committed edit to those/keeps a committed edit to those/' \
   's/`\.harness\/AGENTS\.md`,\s+`\.harness\/init\.sh`/`.harness\/init.sh`/' \
   's/Never edit an installer-owned file\./Avoid editing them./' \
   's/the installer-owned files are the ones/everything under `.harness\/` is installer-owned, and the files/' \

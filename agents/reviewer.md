@@ -441,7 +441,9 @@ GitHub #349):
   files, and the generated front-end glue. When the body is version-controlled, the `init.sh`
   drift guard fails on an uncommitted edit to any of them (an untracked body only warns; the
   guard checks the wider set `tools/harness-owned-paths.sh` lists), and the next upgrade
-  reinstalls a committed edit away. Never edit an installer-owned file. Instead, record the lesson in the
+  reinstalls a committed edit to those `.harness/` files and the regenerated `.claude/` and
+  `.opencode/command/` glue away (edited Codex skill units and pi units are kept instead).
+  Never edit an installer-owned file. Instead, record the lesson in the
   harness-root-relative `progress/lessons.md` (`.harness/progress/lessons.md`, project-owned;
   see **Earned lessons** below). A rule that belongs to this project may go in the project's
   own root `AGENTS.md` or `CLAUDE.md`, outside the `<!-- harness:begin -->` …
