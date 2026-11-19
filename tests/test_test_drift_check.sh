@@ -1388,7 +1388,7 @@ pass "R10k_reason_with_em_dash"
 # Near misses do not waive: a PREFIX of the real name (parses as name 'A'), an extension of it,
 # a name that shares only a leading part, an unspaced separator on either side after the real name, and an
 # empty reason after it (each is a well-formed line that simply names no finding).
-for _w in 'A — x — r' 'A — b2 — r' 'A — bb — r' 'A — b— r' 'A — b —r' 'A — b — '; do
+for _w in 'A — x — r' 'A — b xyz — r' 'A — b2 — r' 'A — bb — r' 'A — b— r' 'A — b —r' 'A — b — '; do
   printf 'waive-test-drift: %s\n' "$_w" > "$T/tasks.md"
   run "$R" main --tasks-md "$T/tasks.md"
   expect_rc 1 "R10l near miss: $_w"; expect_line ', 0 waived, ' "R10l: $_w waives nothing"
@@ -1467,6 +1467,50 @@ for _v in 'const t = 1;' "// c
   [ "$(cnt '\| late \| ')" = 0 ] || fail "R13c: a title two non-blank lines down is not read"
 done
 pass "R13c_non_title_next_line_keeps_enclosing"
+
+# A quote that opens on the next line but does not CLOSE on it names nothing (backtick title
+# split over two lines): the finding keeps the enclosing describe.
+newrepo r13d; mkdir -p "$R/tests"
+printf "describe('outer', () => {\n  it(\n    \`multi\n    line\`, () => { expect(load(1)).toBe(1); });\n});\n" > "$R/tests/n.test.js"
+basecommit; feature
+subst tests/n.test.js '    line`, () => { expect(load(1)).toBe(1); });' '    line`, () => { expect(load(1)).toBeTruthy(); });'; featcommit
+run "$R" main
+expect_rc 1 "R13d"
+expect_line '\| outer \| ' "R13d: an unclosed next-line title leaves the enclosing name"
+[ "$(cnt '\| multi')" = 0 ] || fail "R13d: the unclosed rest of the line must not become a name"
+pass "R13d_unclosed_next_line_title"
+
+# An escaped quote inside a next-line title does not close it; the backslash is kept as written,
+# like a same-line title.
+newrepo r13e; mkdir -p "$R/tests"
+printf "describe('outer', () => {\n  it(\n    'it\\\\'s — b', () => { expect(load(1)).toBe(1); });\n});\n" > "$R/tests/n.test.js"
+basecommit; feature
+subst tests/n.test.js "    'it\\'s — b', () => { expect(load(1)).toBe(1); });" "    'it\\'s — b', () => { expect(load(1)).toBeTruthy(); });"; featcommit
+run "$R" main
+expect_rc 1 "R13e"
+grep -Fq "| it\\'s — b | " "$T/out" || { cat "$T/out" >&2; fail "R13e: the finding is named it\\'s — b (backslash kept)"; }
+pass "R13e_escaped_quote_in_next_line_title"
+
+# The definition is recorded at the OPENER line (and `.skip` etc. count as openers): a skip-added
+# finding on the `it.skip(` line names the title that follows, not the enclosing describe.
+newrepo r13f; mkdir -p "$R/tests"
+printf "describe('outer', () => {\n  it(\n    'title', () => { load(1); });\n});\n" > "$R/tests/n.test.js"
+basecommit; feature
+subst tests/n.test.js '  it(' '  it.skip('; featcommit
+run "$R" main
+expect_rc 1 "R13f"
+expect_line '^DRIFT skip-added \| tests/n\.test\.js:2 \| title \| it\.skip\($' "R13f: skip-added on the opener line names the next-line title"
+pass "R13f_opener_line_and_skip_variant"
+
+# CRLF files: a bare `it(` followed by CR still opens the lookahead, and a CR-only line is blank.
+newrepo r13g; mkdir -p "$R/tests"
+printf "describe('outer', () => {\r\n  it(\r\n\r\n    'title', () => { expect(load(1)).toBe(1); });\r\n});\r\n" > "$R/tests/n.test.js"
+basecommit; feature
+printf "describe('outer', () => {\r\n  it(\r\n\r\n    'title', () => { expect(load(1)).toBeTruthy(); });\r\n});\r\n" > "$R/tests/n.test.js"; featcommit
+run "$R" main
+expect_rc 1 "R13g"
+expect_line '\| title \| ' "R13g: CRLF opener and CR-only blank line"
+pass "R13g_crlf"
 
 newrepo r10c; put tests/t.sh <<'EOF'
 #!/bin/sh

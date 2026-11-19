@@ -339,7 +339,8 @@ extract_names() { # extract_names <textfile> <pathname>
       } else if (lang == "js") {
         # A title on the line AFTER a bare `it(` / `test(` / `describe(`: only the next non-blank
         # line is read, and only when it starts with a quote; the definition keeps the line of
-        # the opener so an assertion on the title line still attributes backward to it.
+        # the opener, not of the title line: a `skip-added` finding on an `it.skip(` opener line
+        # (head line N) must read the title that follows (recorded at N), not the enclosing name.
         if (pend > 0 && line !~ /^[ \t\r]*$/) {
           if (match(line, re_jstitle)) {
             q = substr(line, RSTART + RLENGTH - 1, 1); rest = substr(line, RSTART + RLENGTH)
