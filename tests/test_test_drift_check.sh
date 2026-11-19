@@ -1422,6 +1422,52 @@ run "$R" main --tasks-md "$T/tasks.md"
 expect_rc 0 "R10m: a second line waives 'A' as well"
 pass "R10m_longest_qualifying_name_wins"
 
+# E99-F192 (#353, second request): an it(/test(/describe( call whose title starts on the line
+# AFTER the opening paren is named by that title, not by the enclosing describe. Only the next
+# non-blank line is read, and only when it starts with a quote.
+newrepo r13a; put tests/n.test.js <<'EOF'
+describe('A — b', () => {
+  it(
+    'title', () => { expect(load(1)).toBe(1); });
+});
+EOF
+basecommit; feature
+subst tests/n.test.js "    'title', () => { expect(load(1)).toBe(1); });" "    'title', () => { expect(load(1)).toBeTruthy(); });"; featcommit
+run "$R" main
+expect_rc 1 "R13a"
+expect_line '^DRIFT assert-modified \| tests/n\.test\.js:3 \| title \| ' "R13a: attributed to the next-line title, not 'A — b'"
+pass "R13a_title_on_next_line"
+
+# Blank lines between the paren and the title are skipped; test( and a backtick title read alike.
+newrepo r13b; put tests/n.test.js <<'EOF'
+describe('outer', () => {
+  test(
+
+    `tpl title`, () => { expect(load(1)).toBe(1); });
+});
+EOF
+basecommit; feature
+subst tests/n.test.js '    `tpl title`, () => { expect(load(1)).toBe(1); });' '    `tpl title`, () => { expect(load(1)).toBeTruthy(); });'; featcommit
+run "$R" main
+expect_rc 1 "R13b"
+expect_line '\| tpl title \| ' "R13b: blank line skipped, test( with a backtick title"
+pass "R13b_blank_lines_skipped"
+
+# Negative controls: the next non-blank line is NOT a title (an identifier), or a title sits two
+# non-blank lines down. The finding keeps the enclosing name.
+_n13=0
+for _v in 'const t = 1;' "// c
+    'late'"; do
+  _n13=$((_n13 + 1)); newrepo r13c$_n13; mkdir -p "$R/tests"; printf "describe('outer', () => {\n  it(\n    %s\n  () => { expect(load(1)).toBe(1); });\n});\n" "$_v" > "$R/tests/n.test.js"
+  basecommit; feature
+  subst tests/n.test.js '  () => { expect(load(1)).toBe(1); });' '  () => { expect(load(1)).toBeTruthy(); });'; featcommit
+  run "$R" main
+  expect_rc 1 "R13c: $_v"
+  expect_line '\| outer \| ' "R13c: a non-title next line leaves the enclosing name ($_v)"
+  [ "$(cnt '\| late \| ')" = 0 ] || fail "R13c: a title two non-blank lines down is not read"
+done
+pass "R13c_non_title_next_line_keeps_enclosing"
+
 newrepo r10c; put tests/t.sh <<'EOF'
 #!/bin/sh
 test_a() { :; }

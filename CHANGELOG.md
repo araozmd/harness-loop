@@ -6,7 +6,7 @@ All notable changes to the harness body are recorded here. Versions follow
 
 ## [0.115.6] — 2026-11-19
 
-### Fixed — `test-drift-check` can waive a test whose name contains a spaced em dash (E99-F192, #353)
+### Fixed — `test-drift-check` waives a test name containing a spaced em dash, and names an `it(` whose title is on the next line (E99-F192, #353)
 - `tools/test-drift-check.sh`: the waiver parser split every `waive-test-drift:` line at the
   first spaced em dash, so a finding named e.g. `A — b` could never be waived (the line parsed
   as name `A`). A line now waives a finding when the text after the prefix starts with that
@@ -16,8 +16,13 @@ All notable changes to the harness body are recorded here. Versions follow
   em dash, or an empty text before the first one or after it, is still a malformed waiver
   (exit 2). The grammar is stated in the tool header, `agents/reviewer.md` and
   `docs/agents/WORKFLOW.md`. Pinned by R10j-R10m in `tests/test_test_drift_check.sh`.
-- Not changed: attribution of a finding when an `it(` title starts on the line after `it(`
-  (the second request in #353) is out of scope for this fix.
+- `tools/test-drift-check.sh` (second request in #353): for a JS/TS file, an `it(` / `test(` /
+  `describe(` call (optionally `.only`/`.skip`/`.todo`/`.each`) whose line ends right after the
+  opening paren now takes its name from the NEXT non-blank line, when that line starts with a
+  quote (`'`, `"` or a backtick) and the title closes on that same line. Previously the call
+  was not named and a finding inside it was attributed to the enclosing `describe` title. Any
+  other next line, or a title two non-blank lines down, leaves the attribution unchanged.
+  Pinned by R13a-R13c in `tests/test_test_drift_check.sh`.
 
 ## [0.115.5] — 2026-11-18
 

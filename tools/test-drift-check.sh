@@ -60,6 +60,10 @@
 # pathnames containing LF or TAB are unsupported; describe( blocks count as test names; the
 # shared classifier matches `*.spec.md`, so a spec prose line naming an assertion pattern is a
 # finding whose name is the spec's path (waive it by that path).
+# A JS/TS `it(` / `test(` / `describe(` (with an optional .only/.skip/.todo/.each) that ends its
+# line right after the paren takes its name from the NEXT non-blank line, but only when that line
+# starts with a quote (' " or `) and the title closes on that same line; any other next line, or a
+# title two non-blank lines down, leaves the finding attributed to the enclosing name.
 # Outside the spec, unpinned (round-3 mutation campaign): a JS/TS test name whose closing quote
 # is on a later line is not extracted; symlinked test paths are not a supported shape (a dangling
 # one reads as empty head text in working-tree mode).
@@ -311,6 +315,9 @@ extract_names() { # extract_names <textfile> <pathname>
       re_pass  = "^[ \t]*pass[ \t]+(" dq "[^" dq "]*" dq "|" sq "[^" sq "]*" sq ")"
       re_pydef = "^[ \t]*(async[ \t]+)?def[ \t]+test_[A-Za-z0-9_]*"
       re_js    = "^[ \t]*(it|test|describe)(\\.(only|skip|todo|each))?[ \t]*\\([ \t]*[" dq sq bq "]"
+      re_jsopen = "^[ \t]*(it|test|describe)(\\.(only|skip|todo|each))?[ \t]*\\([ \t\r]*$"
+      re_jstitle = "^[ \t]*[" dq sq bq "]"
+      pend = 0
       re_go    = "^func[ \t]+Test[A-Za-z0-9_]*[ \t]*\\("
     }
     {
@@ -330,6 +337,23 @@ extract_names() { # extract_names <textfile> <pathname>
           printf "%d\tB\t%s\n", NR, s
         }
       } else if (lang == "js") {
+        # A title on the line AFTER a bare `it(` / `test(` / `describe(`: only the next non-blank
+        # line is read, and only when it starts with a quote; the definition keeps the line of
+        # the opener so an assertion on the title line still attributes backward to it.
+        if (pend > 0 && line !~ /^[ \t\r]*$/) {
+          if (match(line, re_jstitle)) {
+            q = substr(line, RSTART + RLENGTH - 1, 1); rest = substr(line, RSTART + RLENGTH)
+            i = 0
+            for (k = 1; k <= length(rest); k++) {
+              c = substr(rest, k, 1)
+              if (c == "\\") { k++; continue }
+              if (c == q) { i = k; break }
+            }
+            if (i > 0) printf "%d\tB\t%s\n", pend, substr(rest, 1, i - 1)
+          }
+          pend = 0
+        }
+        if (line ~ re_jsopen) pend = NR
         if (match(line, re_js)) {
           q = substr(line, RSTART + RLENGTH - 1, 1)
           rest = substr(line, RSTART + RLENGTH)
